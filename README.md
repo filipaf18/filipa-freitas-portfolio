@@ -10,12 +10,22 @@ com ou sem tratamento com GLP-1 (ex.: Mounjaro/tirzepatida).
 
 ## Versão sem custos: Artifact no claude.ai
 
-A versão em uso está em [`artifact/nutriglp.html`](artifact/nutriglp.html), publicada como
-Artifact no claude.ai (base de dados da artifact + chat via a capacidade `sample`). Não precisa
-de Supabase, Vercel nem chave de API. Inclui perfis, hidratação com horário, análises, tensão
-arterial, leitura de documentos (fotos/PDF) pelo chat, plano semanal e ajustes pelo chat.
-Para republicar depois de editar o ficheiro, publica-o de novo para o mesmo URL a partir do
-Claude Code.
+A versão em uso está em [`artifact/`](artifact/), publicada como Artifact no claude.ai
+(base de dados da artifact + chat via a capacidade `sample`). Não precisa de Supabase, Vercel
+nem chave de API.
+
+- `nutriglp.html` — a página (fragmento; o claude.ai acrescenta o `<head>`).
+- `styles.css` — tokens de cor (claro/escuro) e componentes.
+- `foods.js` — tabela de ~170 alimentos portugueses (kcal, proteína, hidratos, gordura, fibra por 100 g e medidas caseiras) usada para calcular os macros na página.
+- `app.js` — toda a lógica: perfis, Hoje (próxima refeição, adesão, sintomas, alarmes, ciclo da injeção, revisão semanal), Registar (água, corpo, tensão, análises, documentos), Plano (geração em 4 pedidos, refazer um dia, trocar uma refeição, 👍/👎, jantares alinhados entre perfis, lista de compras somada), Chat (ferramentas para regras, tensão, extras e alterações ao plano; memória destilada de 12 em 12 mensagens) e Perfil.
+- `tests/` — testes automáticos com Playwright contra uma base de dados falsa (com snapshots congelados, como no claude.ai) e respostas falsas do Claude: `cd artifact/tests && npm install && npm test` (ou `node run.mjs t08` para um só).
+
+Coleções na base de dados (uma por perfil, `<coleção>/<perfil>`): `profiles`, `water` (`water/<perfil>_<data>`),
+`chat`, `weights`, `labs`, `vitals`, `docs`, `rules`, `body`, `plans`, `adherence`, `symptoms`,
+`reviews`, `prefs`, `diag`. As alterações são sempre aditivas: nunca se muda a forma dos campos existentes.
+
+Para republicar depois de editar, publica `artifact/nutriglp.html` para o mesmo URL a partir do
+Claude Code, com `styles.css`, `app.js` e `foods.js` como ficheiros de apoio.
 
 A versão Next.js + Supabase abaixo fica como alternativa com logins separados.
 

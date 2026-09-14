@@ -25,6 +25,8 @@
     symptoms: {},          // sintomas por dia: { "YYYY-MM-DD": { nauseas, vomitos, transito, energia, apetite, dor_intensa, sem_liquidos, at } }
     reviews: [],           // revisões semanais [{week_start, texto, propostas, at}]
     prefs: [],             // gostei/não gostei por refeição [{id, at, dia, refeicao, itens, voto}]
+    memUpto: null,         // ISO da última mensagem já destilada para regras/preferências
+    distilling: false,
     otherFor: null,        // refeição para a qual se está a escrever "comi outra coisa"
     body: [],              // composição corporal [{id, date, weight_kg, fat_pct, muscle_kg, water_pct, visceral, bone_kg, notes}]
     bodyPick: "weight_kg",
@@ -134,7 +136,7 @@
   }
   async function saveChat() {
     if (S.chat.length > CHAT_KEEP) S.chat = S.chat.slice(-CHAT_KEEP);
-    await write(`chat/${S.pid}`, { profile: S.pid, messages: S.chat, updatedAt: new Date().toISOString() }, mem.chat, S.pid);
+    await write(`chat/${S.pid}`, { profile: S.pid, messages: S.chat, updatedAt: new Date().toISOString(), memory_upto: S.memUpto || null }, mem.chat, S.pid);
   }
   async function saveLabs() {
     await write(`labs/${S.pid}`, { profile: S.pid, entries: S.labs }, mem.labs, S.pid);
@@ -179,7 +181,7 @@
   async function savePrefs() {
     S.prefs = S.prefs.slice(-80);
     await write(`prefs/${S.pid}`, { profile: S.pid, entries: S.prefs }, mem.prefs, S.pid);
-    renderPlan();
+    renderPlan(); renderRules();
   }
   async function savePlan() {
     S.plans = { ...S.plans, [S.pid]: { ...S.plan, profile: S.pid } };
@@ -195,11 +197,11 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = []; S.edit = { body: null, lab: null, bp: null }; S.adherence = {}; S.symptoms = {}; S.reviews = []; S.prefs = []; S.otherFor = null;
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = []; S.edit = { body: null, lab: null, bp: null }; S.adherence = {}; S.symptoms = {}; S.reviews = []; S.prefs = []; S.memUpto = null; S.otherFor = null;
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
-      S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
+      S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.memUpto = mem.chat[S.pid]?.memory_upto || null; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
       S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
       S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || [];
       renderAll(); return;
@@ -212,6 +214,7 @@
     S.unsub.push(S.db.doc(`chat/${S.pid}`).onSnapshot((snap) => {
       if (S.streaming) return; // não sobrescrever durante uma resposta
       S.chat = snap.exists ? (thaw(snap.data().messages) || []) : [];
+      S.memUpto = snap.exists ? (snap.data().memory_upto || null) : null;
       renderChat();
     }, (e) => console.warn("chat", e)));
     S.unsub.push(S.db.doc(`weights/${S.pid}`).onSnapshot((snap) => {
@@ -234,7 +237,7 @@
       S.reviews = snap.exists ? (thaw(snap.data().entries) || []) : []; renderHome();
     }, (e) => console.warn("reviews", e)));
     S.unsub.push(S.db.doc(`prefs/${S.pid}`).onSnapshot((snap) => {
-      S.prefs = snap.exists ? (thaw(snap.data().entries) || []) : []; renderPlan();
+      S.prefs = snap.exists ? (thaw(snap.data().entries) || []) : []; renderPlan(); if (document.activeElement?.id !== "r_text") renderRules();
     }, (e) => console.warn("prefs", e)));
     S.unsub.push(S.db.doc(`body/${S.pid}`).onSnapshot((snap) => {
       S.body = snap.exists ? (thaw(snap.data().entries) || []) : [];
@@ -968,6 +971,11 @@ Responde APENAS com JSON válido nesta forma:
     el.innerHTML = S.rules.length === 0
       ? `<li class="muted small">Sem regras. O plano segue só as preferências escritas acima.</li>`
       : S.rules.map((r) => `<li><span>${esc(r.texto)}${r.origem === "chat" ? ` <span class="meta">· dita no chat</span>` : ""}</span><button type="button" class="btn ghost sm" data-delrule="${r.id}">remover</button></li>`).join("");
+    const pl = $("prefsList"); if (!pl) return;
+    const rows = [...S.prefs].reverse();
+    pl.innerHTML = rows.length === 0
+      ? `<li class="muted small">Ainda sem preferências. Marca 👍/👎 nas refeições do plano ou diz no chat do que gostas e não gostas.</li>`
+      : rows.map((p) => `<li><span>${p.voto === 1 ? "👍" : "👎"} ${esc(p.dia ? `${p.refeicao} (${p.dia}): ${p.itens}` : p.itens)}${p.origem === "chat" ? ` <span class="meta">· do chat</span>` : ""}</span><button type="button" class="btn ghost sm" data-delpref="${p.id}">remover</button></li>`).join("");
   }
 
   async function addRule(texto, origem) {
@@ -1531,7 +1539,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   /** Resumo das preferências para os prompts: o que gostou e o que não gostou, sem repetições. */
   function prefsSummary() {
     if (!S.prefs.length) return null;
-    const pick = (v) => [...new Map(S.prefs.filter((p) => p.voto === v).map((p) => [p.key, `${p.refeicao}: ${p.itens}`])).values()].slice(-15);
+    const pick = (v) => [...new Map(S.prefs.filter((p) => p.voto === v).map((p) => [p.key, p.dia ? `${p.refeicao}: ${p.itens}` : p.itens])).values()].slice(-15);
     return { gostei: pick(1), nao_gostei: pick(-1) };
   }
 
@@ -2194,13 +2202,52 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     }
     renderChat();
     if (!err || err.code === "cancelled") await saveChat();
+    if (!err) distillMemory().catch((e) => console.warn("memória", e));
+  }
+
+  // ---------- memória destilada: de X em X mensagens, o que é duradouro passa a regras e preferências ----------
+  const MEM_EVERY = 12;
+  function undistilled() { return S.chat.filter((m) => !m.error && m.at && (!S.memUpto || m.at > S.memUpto)); }
+  async function distillMemory(force) {
+    if (!S.sample || S.distilling) return false;
+    const pending = undistilled();
+    if (!force && pending.length < MEM_EVERY) return false;
+    if (pending.length === 0) return false;
+    const pid = S.pid; S.distilling = true;
+    try {
+      const conv = pending.map((m) => `${m.role === "user" ? "PESSOA" : "ASSISTENTE"}: ${String(m.content).slice(0, 700)}`).join("\n");
+      const prompt = `Estás a manter a MEMÓRIA de longo prazo de uma app de nutrição familiar (português de Portugal). Lê esta parte da conversa e extrai APENAS o que é duradouro e vale a pena lembrar em planos futuros: regras que a pessoa quer sempre cumpridas (ordem por que come, horários, alimentos que recusa, modos de confeção, alergias) e preferências (o que gosta e o que não gosta de comer). Ignora pedidos pontuais de um dia, sintomas, medições e conversa geral.
+
+JÁ GUARDADO (não repitas, nem com outras palavras):
+regras: ${JSON.stringify(S.rules.map((r) => r.texto))}
+gostei: ${JSON.stringify(S.prefs.filter((p) => p.voto === 1).map((p) => p.itens))}
+nao_gostei: ${JSON.stringify(S.prefs.filter((p) => p.voto === -1).map((p) => p.itens))}
+
+CONVERSA:
+${conv}
+
+Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gostei":["alimento ou prato"],"nao_gostei":["alimento ou prato"]}. Listas vazias quando não há nada novo.`;
+      const res = await S.sample.json(prompt, { cache: false, modelTier: "quick" });
+      if (S.pid !== pid) return false; // mudou de perfil entretanto
+      const clean = (arr) => [...new Set((Array.isArray(arr) ? arr : []).map((x) => String(x || "").trim()).filter((x) => x.length > 2 && x.length <= 220))].slice(0, 8);
+      let added = 0;
+      for (const r of clean(res?.regras)) { const got = await addRule(r, "chat"); if (got && !got.duplicada) added++; }
+      const known = new Set(S.prefs.map((p) => norm(p.itens)));
+      const novos = [];
+      for (const [v, k] of [[1, "gostei"], [-1, "nao_gostei"]]) for (const t of clean(res?.[k])) { if (known.has(norm(t))) continue; known.add(norm(t)); novos.push({ id: uid(), at: new Date().toISOString(), key: `mem:${norm(t)}`, dia: "", refeicao: v === 1 ? "Gosto" : "Não gosto", itens: t, voto: v, origem: "chat" }); }
+      if (novos.length) { S.prefs = [...S.prefs, ...novos]; await savePrefs(); added += novos.length; }
+      S.memUpto = pending[pending.length - 1].at;
+      await saveChat();
+      if (added) { S.diag.step = `memória: ${added} item(ns) guardado(s)`; renderDiag(); }
+      return true;
+    } finally { S.distilling = false; }
   }
 
   // ============================================================
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday],[data-delpref]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -2233,6 +2280,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (t.dataset.editbody) { startEdit("body", t.dataset.editbody); return; }
     if (t.dataset.editlab) { startEdit("lab", t.dataset.editlab); return; }
     if (t.dataset.editbp) { startEdit("bp", t.dataset.editbp); return; }
+    if (t.dataset.delpref) { S.prefs = S.prefs.filter((x) => x.id !== t.dataset.delpref); await savePrefs(); return; }
     if (t.dataset.delrule) { S.rules = S.rules.filter((x) => x.id !== t.dataset.delrule); await saveRules(); return; }
     if (t.dataset.deldoc) { S.docs = S.docs.filter((x) => x.id !== t.dataset.deldoc); await saveDocs(); return; }
     if (t.dataset.delextra) { S.plan = { ...S.plan, extras: (S.plan.extras || []).filter((x) => x.id !== t.dataset.delextra) }; await savePlan(); return; }
@@ -2345,7 +2393,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   $("stopChat").addEventListener("click", () => S.streaming?.abort());
   $("clearChat").addEventListener("click", async () => {
     if (!(await askConfirm("Apagar toda a conversa? O assistente deixa de se lembrar dos ajustes que já lhe deste.", "Apagar"))) return;
-    S.chat = []; S.attachments = []; renderAttachments(); await saveChat(); renderChat();
+    S.chat = []; S.attachments = []; S.memUpto = null; renderAttachments(); await saveChat(); renderChat();
   });
   let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderWater(); if (S.labs.length) renderLabChart(); if (S.body.length) renderBodyChart(); }, 150); });
   $("l_marker").addEventListener("change", applyMarkerDefaults);
@@ -2378,7 +2426,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

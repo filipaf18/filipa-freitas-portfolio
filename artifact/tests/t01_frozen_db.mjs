@@ -25,7 +25,7 @@ export default async function () {
     // análise manual, corpo, água, perfil
     await app.go("analises"); await page.selectOption("#l_marker", "ferritina"); await page.fill("#l_value", "11"); await page.click('#labForm button[type=submit]'); await page.waitForTimeout(300);
     await app.go("corpo"); await page.fill("#c_weight", "77.5"); await page.fill("#c_fat", "38"); await page.fill("#c_muscle", "34"); await page.click('#bodyForm button[type=submit]'); await page.waitForTimeout(400);
-    await app.go("hoje"); await page.click('[data-ml="250"]'); await page.waitForTimeout(300);
+    await app.go("hoje"); await page.click("#view-hoje details summary"); await page.click('#quickAdd1 [data-ml="250"]'); await page.waitForTimeout(300);
     await app.go("plano"); await page.click("#genPlan"); await page.waitForTimeout(2500);
     const d2 = await app.dump();
     eq(d2["labs/mae"].entries.length, 5, "análise manual guardada");

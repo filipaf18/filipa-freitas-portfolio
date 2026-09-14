@@ -274,6 +274,18 @@
       <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button></div>
       <div class="progress" id="genProgress" hidden><div></div></div>
     </div>
+    <div class="card lift" id="familyCard">
+      <div class="row between"><h2>Refeições em família</h2><span class="small muted" id="familyMeta"></span></div>
+      <p class="muted small">O mesmo jantar para todos: uma base comum e, por cima, o prato de cada um com as suas quantidades e sem o que não come. Os almoços saem em marmita, preparada de véspera ou ao início da semana.</p>
+      <p class="status" id="familyHint" hidden></p>
+      <div id="familyWho"></div>
+      <label class="check small"><input type="checkbox" id="famLunch" checked> Incluir também os almoços, em marmita</label>
+      <div class="row"><button class="btn primary" id="genFamily">Gerar refeições em família</button><button class="btn ghost sm" id="undoFamily" hidden>Repor anterior</button><span class="small muted" id="famMsg"></span></div>
+      <div class="progress" id="famProgress" hidden><div></div></div>
+      <div class="status" id="famNote" hidden></div>
+      <div id="familyBody"></div>
+    </div>
+
     <div class="card" id="planShopCard" hidden>
       <div class="row between">
         <h2>Lista de compras da semana</h2>
@@ -377,7 +389,22 @@
           <select class="input" id="f_sex" name="sex"><option value="">—</option><option value="feminino">Feminino</option><option value="masculino">Masculino</option><option value="outro">Outro</option></select></div>
         <div class="field"><label for="f_height">Altura (cm)</label><input class="input num" id="f_height" name="height_cm" type="number" step="0.5" min="100" max="250"></div>
         <div class="field"><label for="f_weight">Peso atual (kg)</label><input class="input num" id="f_weight" name="weight_kg" type="number" step="0.1" min="25" max="350"></div>
-        <div class="field"><label for="f_target">Peso objetivo (kg)</label><input class="input num" id="f_target" name="target_kg" type="number" step="0.1" min="25" max="350"></div>
+        <div class="field"><label for="f_target">Peso objetivo (kg)</label><input class="input num" id="f_target" name="target_kg" type="number" step="0.1" min="25" max="350"><span class="hint">Só se o objetivo for perder ou ganhar peso.</span></div>
+        <div class="field"><label for="f_objetivo">Objetivo</label>
+          <select class="input" id="f_objetivo" name="objetivo">
+            <option value="perder">Perder peso</option>
+            <option value="manter">Manter o peso e comer equilibrado</option>
+            <option value="ganhar">Ganhar massa muscular</option>
+          </select>
+          <span class="hint">Muda a energia do plano. A proteína e a fibra mantêm-se.</span></div>
+        <div class="field"><label for="f_activity">Atividade física</label>
+          <select class="input" id="f_activity" name="activity">
+            <option value="">—</option>
+            <option value="sedentaria">Sedentária: trabalho sentado, pouco exercício</option>
+            <option value="pouco_ativa">Pouco ativa: caminhadas ou treino 1 a 2 vezes</option>
+            <option value="ativa">Ativa: treino 3 a 5 vezes por semana</option>
+            <option value="muito_ativa">Muito ativa: treino quase diário ou trabalho físico</option>
+          </select></div>
         <div class="field"><label for="f_satiety">Saciedade precoce</label>
           <select class="input" id="f_satiety" name="satiety">
             <option value="">—</option>
@@ -406,7 +433,10 @@
       <div class="grid-2">
         <div class="field"><label for="f_allergies">Alergias (separadas por vírgula)</label><input class="input" id="f_allergies" name="allergies" placeholder="amendoim, marisco"></div>
         <div class="field"><label for="f_intol">Intolerâncias</label><input class="input" id="f_intol" name="intolerances" placeholder="lactose, glúten"></div>
+        <div class="field"><label for="f_dislikes">Não come (separados por vírgula)</label><input class="input" id="f_dislikes" name="dislikes" placeholder="legumes, leguminosas, peixe cozido"><span class="hint">Nas refeições em família, isto sai do prato desta pessoa e o resto da mesa mantém-se.</span></div>
       </div>
+      <label class="check"><input type="checkbox" id="f_family" name="family" checked> Come as refeições em família (jantar igual para todos)</label>
+      <p class="small muted" id="targetNote"></p>
       <div class="field"><label for="f_prefs">Preferências e restrições</label><textarea class="input" id="f_prefs" name="preferences" placeholder="Não gosto de peixe cozido; prefiro jantares leves; vegetariana às terças…"></textarea></div>
       <div class="field"><label for="f_notes">Outras notas</label><textarea class="input" id="f_notes" name="notes" placeholder="Horários, treino, sintomas frequentes…"></textarea></div>
       <div class="row">

@@ -4,8 +4,11 @@
   // ============================================================
   // Estado
   // ============================================================
-  const PROFILE_IDS = ["filipa", "mae"];
-  const DEFAULT_NAMES = { filipa: "Filipa", mae: "Mãe" };
+  const PROFILE_IDS = ["filipa", "mae", "pai", "vitoria"];
+  const DEFAULT_NAMES = { filipa: "Filipa", mae: "Mãe", pai: "Pai", vitoria: "Vitória" };
+  /** Objetivo de cada perfil: muda a energia, não a proteína nem a fibra. */
+  const GOALS = { perder: "perder peso", manter: "manter o peso e comer equilibrado", ganhar: "ganhar massa muscular" };
+  const ACTIVITY = { sedentaria: 1.3, pouco_ativa: 1.45, ativa: 1.6, muito_ativa: 1.75 };
   const PRESETS = [150, 250, 330, 500];
   const CHAT_KEEP = 200;
 
@@ -26,6 +29,7 @@
     reviews: [],           // revisões semanais [{week_start, texto, propostas, at}]
     prefs: [],             // gostei/não gostei por refeição [{id, at, dia, refeicao, itens, voto}]
     memUpto: null,         // ISO da última mensagem já destilada para regras/preferências
+    family: null,          // refeições em família (documento partilhado family/plan)
     promptMax: 65536,      // limites lidos em sample.limits()
     toolMax: 8,
     distilling: false,
@@ -110,7 +114,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {}, adherence: {}, symptoms: {}, reviews: {}, prefs: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {}, adherence: {}, symptoms: {}, reviews: {}, prefs: {}, family: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -205,7 +209,7 @@
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.memUpto = mem.chat[S.pid]?.memory_upto || null; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
       S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
-      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || [];
+      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || []; S.family = thaw(mem.family.plan) || null;
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -595,10 +599,14 @@ Responde APENAS com JSON válido nesta forma:
     const p = profile(); const f = (n) => $("profileForm").elements.namedItem(n);
     f("name").value = p.name || DEFAULT_NAMES[S.pid]; f("birth_date").value = p.birth_date || ""; f("sex").value = p.sex || "";
     f("height_cm").value = p.height_cm ?? ""; f("weight_kg").value = p.weight_kg ?? ""; f("target_kg").value = p.target_kg ?? ""; f("water_goal_ml").value = p.water_goal_ml ?? "";
+    f("objetivo").value = p.objetivo || goalOf(p); f("activity").value = p.activity || "";
+    f("dislikes").value = (p.dislikes || []).join(", "); f("family").checked = p.family !== false;
     f("uses_glp1").checked = !!p.uses_glp1; $("glp1Fields").hidden = !p.uses_glp1;
     f("glp1_substance").value = p.glp1_substance || ""; f("glp1_dose").value = p.glp1_dose || ""; f("glp1_start").value = p.glp1_start || "";
     f("glp1_inj_day").value = p.glp1_inj_day || ""; f("satiety").value = p.satiety || "";
     f("allergies").value = (p.allergies || []).join(", "); f("intolerances").value = (p.intolerances || []).join(", ");
+    { const t = planTargets(p); const el = $("targetNote");
+      if (el) el.innerHTML = t ? `Com estes dados: <strong>${t.proteina_alvo_g_dia} g</strong> de proteína por dia${t.energia_alvo_kcal ? ` e cerca de <strong>${t.energia_alvo_kcal} kcal</strong> (${esc(t.objetivo)})` : ""}.` : "Preenche peso, altura e data de nascimento para veres as metas."; }
     f("preferences").value = p.preferences || ""; f("notes").value = p.notes || "";
     $("f_water").placeholder = `automática: ${waterGoal({ ...p, water_goal_ml: null }).ml}`;
 
@@ -622,6 +630,8 @@ Responde APENAS com JSON válido nesta forma:
       name: f.name.value.trim() || DEFAULT_NAMES[S.pid],
       birth_date: f.birth_date.value || null, sex: f.sex.value || null,
       height_cm: num(f.height_cm.value), weight_kg: num(f.weight_kg.value), target_kg: num(f.target_kg.value), water_goal_ml: num(f.water_goal_ml.value),
+      objetivo: f.objetivo.value || null, activity: f.activity.value || null,
+      dislikes: list(f.dislikes.value), family: f.family.checked,
       uses_glp1: uses,
       glp1_substance: uses ? f.glp1_substance.value.trim() || null : null,
       glp1_dose: uses ? f.glp1_dose.value.trim() || null : null,
@@ -1194,7 +1204,8 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
   function planPromptContext() {
     const p = profile(); const goal = waterGoal(p); const meds = (p.meds || []).filter((m) => m.active !== false);
     return JSON.stringify({
-      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), saciedade_precoce: p.satiety || "não indicada", alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
+      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), objetivo: GOALS[goalOf(p)], saciedade_precoce: p.satiety || "não indicada", alergias: p.allergies || [], intolerancias: p.intolerances || [], nao_come: p.dislikes || [], preferencias: p.preferences || null, notas: p.notes || null },
+      agregado: householdContext(),
       glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, dia_da_injecao: p.glp1_inj_day || null, titulacao: (p.titrations || []).slice(-6) } : null,
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
@@ -1253,24 +1264,65 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
    * Peso ideal = 25 × altura²; peso ajustado = ideal + 0,25 × excesso (convenção ASPEN/ESPEN).
    * Proteína = max(1,4 × ajustado; 1,5 × ideal), com piso de 80 g (mulher) / 100 g (homem).
    */
+  /** Objetivo efetivo: o que está escolhido no perfil, ou deduzido do peso objetivo. */
+  function goalOf(p) {
+    if (p.objetivo && GOALS[p.objetivo]) return p.objetivo;
+    const w = p.current_weight_kg ?? p.weight_kg;
+    return w && p.target_kg && p.target_kg < w - 1 ? "perder" : "manter";
+  }
+  /** Gasto de manutenção estimado: Mifflin-St Jeor × fator de atividade. */
+  function maintenanceKcal(p) {
+    const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm, age = ageFrom(p.birth_date);
+    if (!w || !h || age === null) return null;
+    const female = (p.sex || "feminino") !== "masculino";
+    const bmr = 10 * w + 6.25 * h - 5 * age + (female ? -161 : 5);
+    return Math.round(bmr * (ACTIVITY[p.activity] || 1.4) / 10) * 10;
+  }
+  /** Perfis com dados preenchidos (os outros ainda não contam como agregado). */
+  const hasProfile = (id) => { const q = S.profiles[id]; return !!(q && (q.name || q.weight_kg || q.height_cm)); };
+  const familyIds = () => PROFILE_IDS.filter((id) => hasProfile(id) && S.profiles[id].family !== false);
+  /** O agregado, para o assistente perceber que o jantar é o mesmo para todos. */
+  function householdContext() {
+    const ids = familyIds();
+    if (ids.length < 2) return null;
+    return {
+      come_em_familia: ids.map((id) => nameOf(id)),
+      regra: "O jantar (e o almoço, quando é marmita) é o mesmo prato para todos: muda a quantidade de cada um e sai do prato o que a pessoa não come. Não proponhas pratos diferentes para a mesma refeição.",
+      pessoas: ids.map((id) => {
+        const q = S.profiles[id]; const t = planTargets(q);
+        return { perfil: id, nome: nameOf(id), objetivo: GOALS[goalOf(q)], nao_come: q.dislikes || [], alergias: q.allergies || [], intolerancias: q.intolerances || [], proteina_alvo_g_dia: t?.proteina_alvo_g_dia ?? null, energia_alvo_kcal: t?.energia_alvo_kcal ?? null, usa_glp1: !!q.uses_glp1 };
+      }),
+    };
+  }
   function planTargets(p) {
     const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm;
     if (!w) return null;
     const female = (p.sex || "feminino") !== "masculino";
     const ideal = h ? 25 * Math.pow(h / 100, 2) : w;
     const adj = w > ideal ? ideal + 0.25 * (w - ideal) : w;
-    const prot = Math.max(1.4 * adj, 1.5 * ideal, female ? 80 : 100);
-    const perMeal = 0.4 * adj;
-    const liquid = waterGoal(p).ml;
+    const goal = goalOf(p);
+    const prot = goal === "perder" ? Math.max(1.4 * adj, 1.5 * ideal, female ? 80 : 100)
+      : goal === "ganhar" ? Math.max(1.6 * adj, female ? 90 : 110)
+        : Math.max(1.1 * adj, female ? 70 : 85);
+    const perMeal = (goal === "perder" ? 0.4 : 0.35) * adj;
+    const manut = maintenanceKcal(p);
+    const piso = female ? 1200 : 1500;
+    const energia = manut === null ? null
+      : goal === "perder" ? Math.max(piso, Math.round((manut - 500) / 10) * 10)
+        : goal === "ganhar" ? Math.round((manut + 300) / 10) * 10 : manut;
     return {
+      objetivo: GOALS[goal],
       peso_ideal_kg: Math.round(ideal * 10) / 10,
       peso_ajustado_kg: Math.round(adj * 10) / 10,
       proteina_alvo_g_dia: Math.round(prot),
       proteina_por_refeicao_g: `${Math.round(perMeal)} g (usa 25–35 g; 35–40 g se tiver 65 anos ou mais)`,
-      energia_piso_kcal: female ? 1200 : 1500,
-      liquidos_alvo_ml: liquid,
+      energia_manutencao_estimada_kcal: manut,
+      energia_alvo_kcal: energia,
+      energia_piso_kcal: piso,
+      liquidos_alvo_ml: waterGoal(p).ml,
       fibra_alvo_g: "22 a 28",
-      ritmo_de_perda_alvo: "0,5 a 1,0 kg por semana",
+      ...(goal === "perder" ? { ritmo_de_perda_alvo: "0,5 a 1,0 kg por semana" } : {}),
+      ...(goal === "manter" ? { nota: "Não é para emagrecer: energia de manutenção, sem défice. O que interessa é o equilíbrio do prato e a proteína." } : {}),
     };
   }
 
@@ -1486,6 +1538,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       }
       $("genMsg").textContent = ""; return;
     }
+    applyFamilyToPlan(plan, S.pid);
     S.plan = { week_start: mondayOf(), version: (S.plan?.version || 0) + 1, plan, previous: S.plan?.plan || null, extras: (S.plan?.extras || []).filter((x) => x.date >= addDays(localDate(), -7)), changelog: [{ at: new Date().toISOString(), o_que: "Plano gerado" }], generatedAt: new Date().toISOString() };
     S.planDay = todayDayName();
     await savePlan();
@@ -1500,11 +1553,15 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       : `A pessoa ainda não definiu regras próprias.`;
     const prefs = prefsSummary();
     const prefTxt = prefs ? `\n\nPREFERÊNCIAS REGISTADAS NA APP (gostei / não gostei em refeições anteriores):\n${JSON.stringify(prefs)}\nRepete o estilo do que gostou e não voltes a propor o que não gostou.` : "";
-    const dinners = alignWith ? otherDinners(alignWith) : [];
+    const famMeals = familyMealsFor(S.pid);
+    const famTxt = famMeals
+      ? `\n\nREFEIÇÕES EM FAMÍLIA JÁ FIXADAS (a família come o mesmo prato; não as mudes, constrói o resto do dia à volta delas e desconta os macros que já trazem):\n${JSON.stringify(famMeals)}`
+      : "";
+    const dinners = alignWith && !famMeals ? otherDinners(alignWith) : [];
     const alignTxt = dinners.length
       ? `\n\nJANTARES ALINHADOS COM ${nameOf(alignWith).toUpperCase()} (vivem e cozinham juntas): o jantar de cada dia deve ter a mesma base (mesma proteína, mesmos legumes, mesma confeção) que o jantar de ${nameOf(alignWith)} nesse dia, ajustando apenas as quantidades e o que as regras, alergias e metas desta pessoa exigirem. Jantares de ${nameOf(alignWith)} por dia:\n${JSON.stringify(dinners)}`
       : "";
-    return `És nutricionista e estás a preparar um plano alimentar para uma app familiar privada, em português de Portugal.\n\n${rules}${prefTxt}${alignTxt}\n\n${PLAN_KNOWLEDGE}\n\nDADOS DA PESSOA (JSON):\n${ctx}`;
+    return `És nutricionista e estás a preparar um plano alimentar para uma app familiar privada, em português de Portugal.\n\n${rules}${prefTxt}${famTxt}${alignTxt}\n\n${PLAN_KNOWLEDGE}\n\nDADOS DA PESSOA (JSON):\n${ctx}`;
   }
   /** A estrutura de um plano já existente, no formato que os pedidos por dia e por refeição esperam. */
   function frameOf(pl) {
@@ -1523,7 +1580,8 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   }
   const alignDinnersWanted = () => !!(($("alignDinners")?.checked) || ($("alignDinners2")?.checked));
   function renderAlignOption() {
-    const other = otherProfileId(); const has = other && otherDinners(other).length > 0;
+    const other = otherProfileId();
+    const has = other && otherDinners(other).length > 0 && !familyMealsFor(S.pid);
     ["alignWrap", "alignWrap2"].forEach((id) => { const el = $(id); if (el) el.hidden = !has; });
     ["alignName", "alignName2"].forEach((id) => { const el = $(id); if (el && other) el.textContent = nameOf(other); });
   }
@@ -1592,6 +1650,277 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const plan = JSON.parse(JSON.stringify(pl));
     plan.dias.find((d) => d.dia === dayName).refeicoes[idx] = novo;
     await commitPlan(plan, `${meal.nome} de ${dayName} trocada`);
+  }
+
+
+  // ============================================================
+  // Refeições em família: uma base comum, o prato de cada um por cima
+  // ============================================================
+  const FAMILY_MENU_SCHEMA = `{"dias":[{"dia":"segunda",
+"jantar":{"nome":"Jantar","hora":"20:30","base":"nome do prato em 3 a 6 palavras","preparacao":"2 a 3 frases de confeção, para a mesa toda de uma vez","componentes":[
+  {"componente":"proteína","alimento":"peito de frango grelhado","grupo":"proteina","quem_leva":"todos"},
+  {"componente":"legumes","alimento":"brócolos salteados","grupo":"legumes","quem_leva":["filipa","mae"]}]},
+"almoco":{"nome":"Almoço","hora":"13:00","base":"...","preparacao":"...","marmita":{"preparar_em":"domingo","conservacao":"frigorífico até 3 dias","montagem":"como montar a marmita e reaquecer"},"componentes":[...]}}],
+"preparacao_antecipada":["3 a 6 tarefas de uma vez, com o que rendem e quantos dias duram"]}`;
+
+  const FAMILY_QTY_SCHEMA = `{"dias":[{"dia":"segunda","refeicoes":[{"refeicao":"Jantar","por_pessoa":[
+{"perfil":"filipa","itens":[{"alimento":"peito de frango grelhado","quantidade":"130 g","estado":"cru","medida_caseira":"1 bife médio","grupo":"proteina"}],
+"ordem":["legumes","proteína","hidratos"],"kcal":460,"proteina_g":38,"hidratos_g":42,"gordura_g":14,"fibra_g":8,
+"nota":"uma frase só quando o prato desta pessoa muda do dos outros"}]}]}]}`;
+
+  const famChosen = () => [...document.querySelectorAll("#familyWho input:checked")].map((i) => i.value);
+  function renderFamilyWho() {
+    const el = $("familyWho"); if (!el) return;
+    const ids = PROFILE_IDS.filter(hasProfile);
+    const prev = famChosen();
+    el.className = "famwho";
+    el.innerHTML = ids.map((id) => {
+      const on = prev.length ? prev.includes(id) : (S.family?.pessoas ? S.family.pessoas.includes(id) : S.profiles[id].family !== false);
+      return `<label><input type="checkbox" value="${id}" ${on ? "checked" : ""}> ${esc(nameOf(id))}</label>`;
+    }).join("");
+  }
+  function renderFamily() {
+    const card = $("familyCard"); if (!card) return;
+    renderFamilyWho();
+    const ids = PROFILE_IDS.filter(hasProfile);
+    const f = S.family;
+    $("genFamily").textContent = f ? "Gerar outra semana" : "Gerar refeições em família";
+    $("undoFamily").hidden = !f?.previous;
+    $("familyMeta").textContent = f ? `Versão ${f.version} · semana de ${f.week_start} · ${(f.pessoas || []).map(nameOf).join(", ")}` : (ids.length < 2 ? "Preenche pelo menos dois perfis" : "");
+    const porPreencher = PROFILE_IDS.filter((id) => !hasProfile(id));
+    const hint = $("familyHint");
+    if (hint) {
+      hint.hidden = porPreencher.length === 0;
+      hint.innerHTML = porPreencher.length
+        ? `Para entrarem nas refeições em família, falta preencher o perfil de <strong>${porPreencher.map((id) => esc(DEFAULT_NAMES[id])).join(" e ")}</strong> (nome, peso, altura e o que não comem). <a href="#" data-goto="perfil">Ir ao perfil</a>.`
+        : "";
+    }
+    const body = $("familyBody");
+    if (!f?.dias?.length) { body.innerHTML = ""; return; }
+    const pessoas = f.pessoas || [];
+    const one = (m) => {
+      if (!m) return "";
+      const plates = pessoas.map((id) => {
+        const pp = m.por_pessoa?.[id];
+        if (!pp) return `<div class="plate"><span class="n">${esc(nameOf(id))}</span><span class="out">não janta este prato</span></div>`;
+        const itens = (pp.itens || []).map((i) => `${i.alimento} ${i.quantidade}`).join(" · ");
+        return `<div class="plate ${id === S.pid ? "me" : ""}"><span class="n">${esc(nameOf(id))}</span><span>${esc(itens)}${pp.nota ? ` <span class="muted">(${esc(pp.nota)})</span>` : ""}</span></div>`;
+      }).join("");
+      const mar = m.marmita?.preparar_em ? `<div class="marmita">🥡 Marmita preparada ${esc(m.marmita.preparar_em)}${m.marmita.conservacao ? ` · ${esc(m.marmita.conservacao)}` : ""}</div>` : "";
+      return `<div class="fammeal"><div class="b">${esc(m.nome)}${m.hora ? ` <span class="muted small num">${esc(m.hora)}</span>` : ""} · ${esc(m.base || "")}</div>${m.preparacao ? `<div class="small muted">${esc(m.preparacao)}</div>` : ""}${mar}<div class="plates">${plates}</div></div>`;
+    };
+    body.innerHTML = f.dias.map((d) => `<div class="famday"><div class="d">${esc(d.dia)}</div>${one(d.almoco)}${one(d.jantar)}</div>`).join("") +
+      ((f.preparacao_antecipada || []).length ? `<div class="fammeal" style="margin-top:12px"><div class="b">Preparar antes</div><ul style="margin:6px 0 0; padding-left:18px">${f.preparacao_antecipada.map((x) => `<li class="small">${esc(x)}</li>`).join("")}</ul></div>` : "");
+  }
+
+  async function saveFamily() {
+    await write("family/plan", S.family, mem.family, "plan");
+    renderFamily();
+  }
+
+  /** Escreve as refeições em família por cima de um plano individual. Mexe só nessas refeições. */
+  function applyFamilyToPlan(plan, id, fam = S.family) {
+    if (!fam?.dias?.length || !(fam.pessoas || []).includes(id)) return plan;
+    if (!Array.isArray(plan.dias) || plan.dias.length === 0) plan.dias = DAYS.map((d) => ({ dia: d, refeicoes: [] }));
+    for (const fd of fam.dias) {
+      let dia = plan.dias.find((x) => norm(x.dia) === norm(fd.dia));
+      if (!dia) { dia = { dia: fd.dia, refeicoes: [] }; plan.dias.push(dia); }
+      for (const slot of ["almoco", "jantar"]) {
+        const fm = fd[slot]; const pp = fm?.por_pessoa?.[id];
+        if (!fm || !pp) continue;
+        const meal = normMeal({
+          nome: fm.nome, hora: fm.hora, ordem: pp.ordem, itens: pp.itens,
+          preparacao: fm.preparacao, porque: pp.nota || "", alternativas: [],
+          kcal: pp.kcal, proteina_g: pp.proteina_g, hidratos_g: pp.hidratos_g, gordura_g: pp.gordura_g, fibra_g: pp.fibra_g,
+          familia: true, base_comum: fm.base, ...(fm.marmita ? { marmita: fm.marmita } : {}),
+        });
+        const i = dia.refeicoes.findIndex((m) => norm(m.nome) === norm(fm.nome));
+        if (i >= 0) dia.refeicoes[i] = meal; else dia.refeicoes.push(meal);
+        dia.refeicoes.sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+      }
+    }
+    if ((fam.preparacao_antecipada || []).length) plan.preparacao_antecipada = [...new Set([...(plan.preparacao_antecipada || []), ...fam.preparacao_antecipada])].slice(0, 10);
+    return plan;
+  }
+  /** As refeições em família desta pessoa, para a geração do plano individual as respeitar. */
+  function familyMealsFor(id) {
+    const fam = S.family;
+    if (!fam?.dias?.length || !(fam.pessoas || []).includes(id)) return null;
+    const dias = fam.dias.map((d) => {
+      const r = ["almoco", "jantar"].map((slot) => {
+        const fm = d[slot]; const pp = fm?.por_pessoa?.[id];
+        return fm && pp ? { refeicao: fm.nome, hora: fm.hora, base: fm.base, itens: (pp.itens || []).map((i) => `${i.alimento} ${i.quantidade}`), kcal: pp.kcal, proteina_g: pp.proteina_g } : null;
+      }).filter(Boolean);
+      return r.length ? { dia: d.dia, refeicoes: r } : null;
+    }).filter(Boolean);
+    return dias.length ? dias : null;
+  }
+
+  /** Junta as refeições em família ao plano de cada pessoa, sem tocar no resto do plano. */
+  async function mergeFamilyIntoPlans(fam) {
+    const ids = fam.pessoas || [];
+    for (const id of ids) {
+      const atual = id === S.pid ? S.plan : (S.plans[id] || null);
+      const base = atual?.plan ? JSON.parse(JSON.stringify(atual.plan)) : null;
+      const q = S.profiles[id] || {}; const t = planTargets(q);
+      const plan = base || {
+        metas_diarias: { kcal: t?.energia_alvo_kcal || null, proteina_g: t?.proteina_alvo_g_dia || null, fibra_g: 25, agua_ml: waterGoal(q).ml },
+        racional: `Refeições em família: o jantar${fam.com_almoco ? " e o almoço" : ""} são iguais aos dos outros, com as quantidades de ${nameOf(id)}.`,
+        principios: [], regras_aplicadas: [], suplementos: [], dias_dificeis: {}, preparacao_antecipada: [], lista_compras: [], hidratacao: [],
+        dias: DAYS.map((d) => ({ dia: d, refeicoes: [] })),
+      };
+      applyFamilyToPlan(plan, id, fam);
+      const doc = {
+        ...(atual || {}), profile: id, plan,
+        week_start: atual?.week_start || fam.week_start,
+        version: (atual?.version || 0) + 1,
+        previous: atual?.plan || null,
+        extras: atual?.extras || [],
+        changelog: [...(atual?.changelog || []), { at: new Date().toISOString(), o_que: `Refeições em família (versão ${fam.version})` }].slice(-20),
+      };
+      S.plans = { ...S.plans, [id]: doc };
+      if (id === S.pid) S.plan = doc;
+      await write(`plans/${id}`, doc, mem.plans, id);
+    }
+    renderPlan(); renderHome();
+  }
+
+  async function generateFamily() {
+    const note = (txt) => { $("famNote").hidden = false; $("famNote").textContent = txt; };
+    $("famNote").hidden = true;
+    if (!S.sample) return note("A geração só funciona com a página aberta no claude.ai.");
+    const ids = famChosen();
+    if (ids.length < 2) return note("Escolhe pelo menos duas pessoas para as refeições em família.");
+    const semDados = ids.filter((id) => !S.profiles[id]?.weight_kg);
+    if (semDados.length) return note(`Preenche o peso no perfil de: ${semDados.map(nameOf).join(", ")}.`);
+    if (S.family && !(await askConfirm("Gerar refeições em família novas substitui as atuais nos planos de todos. A versão anterior fica guardada.", "Gerar"))) return;
+    const comAlmoco = !!$("famLunch").checked;
+
+    const ctl = new AbortController(); S.generating = ctl;
+    $("genFamily").disabled = true; $("famProgress").hidden = false;
+    const bar = $("famProgress").firstElementChild;
+    const step = (pct, msg) => { bar.style.width = pct + "%"; $("famMsg").textContent = msg; };
+    const ask = (prompt, msg, pct, tier) => { step(pct, msg); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
+
+    const pessoas = ids.map((id) => {
+      const q = S.profiles[id]; const t = planTargets(q);
+      return {
+        perfil: id, nome: nameOf(id), idade: ageFrom(q.birth_date), sexo: q.sex, peso_kg: q.weight_kg, altura_cm: q.height_cm,
+        objetivo: GOALS[goalOf(q)], energia_alvo_kcal: t?.energia_alvo_kcal ?? null, proteina_alvo_g_dia: t?.proteina_alvo_g_dia ?? null,
+        proteina_por_refeicao: t?.proteina_por_refeicao_g ?? null,
+        nao_come: q.dislikes || [], alergias: q.allergies || [], intolerancias: q.intolerances || [],
+        preferencias: q.preferences || null, saciedade_precoce: q.satiety || null,
+        usa_glp1: !!q.uses_glp1, glp1: q.uses_glp1 ? { substancia: q.glp1_substance, dose: q.glp1_dose, dia_da_injecao: q.glp1_inj_day } : null,
+        regras: (S.pid === id ? S.rules : []).map((r) => r.texto),
+        gostos: id === S.pid ? prefsSummary() : null,
+      };
+    });
+    const head = `És nutricionista e estás a montar as refeições de uma família portuguesa que janta junta, numa app privada. Escreve em português de Portugal.
+
+REGRA CENTRAL: cada refeição em família é UM prato só, o mesmo para toda a gente. O que muda de pessoa para pessoa é (1) a quantidade de cada componente, conforme as metas de cada um, e (2) os componentes que saem do prato de quem não os come. Nunca inventes pratos diferentes para a mesma refeição. Se alguém não come um componente (por exemplo legumes), substitui-o no prato dessa pessoa por mais um componente que ela coma, para não perder energia nem proteína, e diz isso na nota.
+
+PESSOAS (JSON):
+${JSON.stringify(pessoas)}
+
+${PLAN_KNOWLEDGE}`;
+
+    let err = null, fam = null;
+    try {
+      const menu = await ask(`${head}
+
+Passo 1 de ${comAlmoco ? 3 : 3}: escreve a EMENTA da semana (segunda a domingo).
+- O jantar de cada dia é uma refeição completa e prática de fazer para ${ids.length} pessoas, com proteína, legumes e hidratos.
+${comAlmoco ? "- O almoço de cada dia é uma MARMITA, preparada no dia anterior ou ao início da semana (cozinhados em lote ao domingo e à quarta, por exemplo). Diz em que dia se prepara, quanto tempo dura no frigorífico e como se monta e reaquece.\\n" : "- Não escrevas almoços: só jantares.\\n"}- Varia as proteínas ao longo da semana e usa comida portuguesa acessível.
+- Em cada componente diz quem o leva: "todos" ou a lista de perfis (usa os identificadores ${JSON.stringify(ids)}).
+Responde APENAS com JSON válido nesta forma:
+${FAMILY_MENU_SCHEMA}`, "A montar a ementa da semana… (1 de 3)", 10, "complex");
+      const dias0 = Array.isArray(menu?.dias) ? menu.dias : [];
+      if (dias0.length === 0) throw { code: "invalid_json", message: "ementa vazia" };
+
+      const blocos = [DAYS.slice(0, 4), DAYS.slice(4)];
+      const porDia = {};
+      for (let i = 0; i < blocos.length; i++) {
+        const ementa = dias0.filter((d) => blocos[i].some((x) => norm(x) === norm(d.dia)));
+        if (ementa.length === 0) continue;
+        const r = await ask(`${head}
+
+EMENTA JÁ DEFINIDA (respeita-a tal como está):
+${JSON.stringify(ementa)}
+
+Passo ${i + 2} de 3: escreve as QUANTIDADES de cada pessoa para ${blocos[i].join(", ")}.
+- Para cada refeição da ementa, dá a lista de itens de cada pessoa, com gramas e medida caseira, e os macros dessa pessoa.
+- Respeita as metas de cada um: quem quer perder peso leva porções menores de hidratos e gordura, mas a mesma proteína; quem só quer comer equilibrado fica na energia de manutenção.
+- Quem não come um componente não o leva, e recebe mais de outro em troca.
+Responde APENAS com JSON válido nesta forma:
+${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de 3)`, 35 + i * 30);
+        (Array.isArray(r?.dias) ? r.dias : []).forEach((d) => { porDia[norm(d.dia)] = d.refeicoes || []; });
+      }
+
+      const dias = DAYS.map((d) => {
+        const src = dias0.find((x) => norm(x.dia) === norm(d));
+        const qts = porDia[norm(d)] || [];
+        const build = (fm) => {
+          if (!fm) return null;
+          const q = qts.find((x) => norm(x.refeicao) === norm(fm.nome)) || qts.find((x) => /jantar/.test(norm(x.refeicao)) === /jantar/.test(norm(fm.nome)));
+          const por = {};
+          (q?.por_pessoa || []).forEach((x) => {
+            if (!ids.includes(x.perfil)) return;
+            por[x.perfil] = {
+              itens: (x.itens || []).map((i) => ({ alimento: String(i.alimento || ""), quantidade: String(i.quantidade || ""), estado: String(i.estado || ""), medida_caseira: String(i.medida_caseira || ""), grupo: String(i.grupo || "") })).filter((i) => i.alimento),
+              ordem: (x.ordem || []).map(String).slice(0, 6),
+              kcal: Number(x.kcal) || 0, proteina_g: Number(x.proteina_g) || 0, hidratos_g: Number(x.hidratos_g) || 0, gordura_g: Number(x.gordura_g) || 0, fibra_g: Number(x.fibra_g) || 0,
+              nota: String(x.nota || ""),
+            };
+          });
+          if (Object.keys(por).length === 0) return null;
+          return {
+            nome: String(fm.nome || "Jantar"), hora: String(fm.hora || ""), base: String(fm.base || ""),
+            preparacao: String(fm.preparacao || ""),
+            componentes: (fm.componentes || []).map((c) => ({ componente: String(c.componente || ""), alimento: String(c.alimento || ""), grupo: String(c.grupo || ""), quem_leva: c.quem_leva === "todos" ? "todos" : (Array.isArray(c.quem_leva) ? c.quem_leva.filter((x) => ids.includes(x)) : "todos") })),
+            ...(fm.marmita ? { marmita: { preparar_em: String(fm.marmita.preparar_em || ""), conservacao: String(fm.marmita.conservacao || ""), montagem: String(fm.marmita.montagem || "") } } : {}),
+            por_pessoa: por,
+          };
+        };
+        return { dia: d, jantar: build(src?.jantar), ...(comAlmoco ? { almoco: build(src?.almoco) } : {}) };
+      }).filter((d) => d.jantar || d.almoco);
+      if (dias.length === 0) throw { code: "invalid_json", message: "sem refeições" };
+
+      let compras = [];
+      try {
+        const resumo = dias.map((d) => [d.almoco, d.jantar].filter(Boolean).map((m) => `${d.dia} ${m.nome}: ${Object.values(m.por_pessoa).map((pp) => pp.itens.map((i) => `${i.alimento} ${i.quantidade}`).join(", ")).join(" | ")}`).join("\n")).join("\n");
+        const r = await ask(`Soma as quantidades destas refeições de família e escreve a lista de compras da semana, agrupada por categoria (Proteína, Peixe, Legumes, Fruta, Mercearia, Lacticínios, Outros), em português de Portugal e com quantidades práticas de supermercado.
+
+${resumo}
+
+Responde APENAS com JSON: {"lista_compras":[{"categoria":"Proteína","itens":[{"alimento":"peito de frango","quantidade":"1,2 kg"}]}]}`, "A fazer a lista de compras… (3 de 3)", 85, "quick");
+        compras = Array.isArray(r?.lista_compras) ? r.lista_compras : [];
+      } catch (e) { if (e?.code === "cancelled") throw e; console.warn("compras família", e); }
+
+      fam = {
+        week_start: mondayOf(), version: (S.family?.version || 0) + 1,
+        pessoas: ids, com_almoco: comAlmoco,
+        dias,
+        preparacao_antecipada: (menu.preparacao_antecipada || []).map(String).slice(0, 8),
+        lista_compras: compras.map((c) => ({ categoria: String(c.categoria || ""), itens: (c.itens || []).map((x) => typeof x === "string" ? { alimento: x, quantidade: "" } : { alimento: String(x.alimento || ""), quantidade: String(x.quantidade || "") }) })).filter((c) => c.categoria),
+        previous: S.family ? { dias: S.family.dias, pessoas: S.family.pessoas, version: S.family.version } : null,
+        changelog: [...(S.family?.changelog || []), { at: new Date().toISOString(), o_que: "Refeições em família geradas" }].slice(-20),
+        generatedAt: new Date().toISOString(),
+      };
+    } catch (e) { err = e; }
+
+    S.generating = null;
+    $("genFamily").disabled = false; $("famProgress").hidden = true; bar.style.width = "0%";
+    if (err) {
+      if (err.code !== "cancelled") {
+        note(err.code === "invalid_json" ? "As refeições vieram incompletas. Tenta outra vez." : (ERR_COPY[err.code] || "Não foi possível gerar as refeições em família."));
+        S.diag.lastErr = `família: ${err.code || err.message}`; renderDiag();
+      }
+      $("famMsg").textContent = ""; return;
+    }
+    S.family = fam;
+    await saveFamily();
+    await mergeFamilyIntoPlans(fam);
+    $("famMsg").textContent = "Refeições em família geradas ✓"; setTimeout(() => { $("famMsg").textContent = ""; }, 4000);
   }
 
   // ============================================================
@@ -1735,6 +2064,9 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       preparacao: String(m.preparacao || ""), porque: String(m.porque || ""),
       alternativas: (m.alternativas || []).map((a) => ({ em_vez_de: String(a.em_vez_de || ""), trocar_por: String(a.trocar_por || "") })).slice(0, 4),
       kcal: Number(m.kcal) || 0, proteina_g: Number(m.proteina_g) || 0, fibra_g: Number(m.fibra_g) || 0, hidratos_g: Number(m.hidratos_g) || 0, gordura_g: Number(m.gordura_g) || 0,
+      ...(m.familia ? { familia: true } : {}),
+      ...(m.base_comum ? { base_comum: String(m.base_comum) } : {}),
+      ...(m.marmita ? { marmita: { preparar_em: String(m.marmita.preparar_em || ""), conservacao: String(m.marmita.conservacao || ""), montagem: String(m.marmita.montagem || "") } } : {}),
     };
   }
 
@@ -1846,24 +2178,31 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   function renderShopping() {
     const card = $("planShopCard"); if (!card) return;
     const withList = PROFILE_IDS.filter((id) => ((S.plans[id]?.plan?.lista_compras) || []).length > 0);
+    const famList = S.family?.lista_compras || [];
     const prep0 = S.plan?.plan?.preparacao_antecipada || [];
-    card.hidden = withList.length === 0 && prep0.length === 0;
+    card.hidden = withList.length === 0 && famList.length === 0 && prep0.length === 0;
     if (card.hidden) return;
 
-    if (!S.shopWho || (S.shopWho !== "todos" && !withList.includes(S.shopWho))) S.shopWho = withList.includes(S.pid) ? S.pid : (withList[0] || S.pid);
-    $("shopWho").innerHTML = withList.length > 1
-      ? [...withList.map((id) => ({ v: id, t: nameOf(id) })), { v: "todos", t: "As duas" }]
-        .map((o) => `<button type="button" data-shopwho="${o.v}" aria-pressed="${S.shopWho === o.v}">${esc(o.t)}</button>`).join("")
+    const valid = [...withList, ...(famList.length ? ["familia"] : []), ...(withList.length > 1 ? ["todos"] : [])];
+    if (!valid.includes(S.shopWho)) S.shopWho = famList.length ? "familia" : (withList.includes(S.pid) ? S.pid : (withList[0] || S.pid));
+    const opts = [
+      ...(famList.length ? [{ v: "familia", t: "Família" }] : []),
+      ...withList.map((id) => ({ v: id, t: nameOf(id) })),
+      ...(withList.length > 1 ? [{ v: "todos", t: "Todos" }] : []),
+    ];
+    $("shopWho").innerHTML = opts.length > 1
+      ? opts.map((o) => `<button type="button" data-shopwho="${o.v}" aria-pressed="${S.shopWho === o.v}">${esc(o.t)}</button>`).join("")
       : "";
 
-    const chosen = S.shopWho === "todos" ? withList : [S.shopWho];
-    const lists = chosen.filter((id) => S.plans[id]?.plan?.lista_compras).map((id) => ({ label: nameOf(id), lista: S.plans[id].plan.lista_compras }));
+    const lists = S.shopWho === "familia"
+      ? [{ label: "Família", lista: famList }]
+      : (S.shopWho === "todos" ? withList : [S.shopWho]).filter((id) => S.plans[id]?.plan?.lista_compras).map((id) => ({ label: nameOf(id), lista: S.plans[id].plan.lista_compras }));
     const merged = lists.length ? mergeShopping(lists) : [];
-    $("shopNote").textContent = lists.length > 1
-      ? `Somadas as listas de ${lists.map((l) => l.label).join(" e ")}.`
-      : lists.length === 1
-        ? (chosen[0] === S.pid ? (withList.length > 1 ? `Só a lista de ${lists[0].label}.` : "") : `Lista de ${lists[0].label}. Ainda não tens plano próprio.`)
-        : "";
+    $("shopNote").textContent =
+      S.shopWho === "familia" ? "Tudo o que é preciso para as refeições em família da semana."
+        : lists.length > 1 ? `Somadas as listas de ${lists.map((l) => l.label).join(", ")}.`
+          : lists.length === 1 ? (S.shopWho === S.pid ? (opts.length > 1 ? `Só a lista de ${lists[0].label}.` : "") : `Lista de ${lists[0].label}.`)
+            : "";
 
     $("planShop").innerHTML =
       (prep0.length ? `<h3>Preparar de uma vez</h3><ul>${prep0.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "") +
@@ -1911,7 +2250,10 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const macros = `${mm.kcal ? `${mm.kcal} kcal · ` : ""}${mm.proteina_g} g prot · ${mm.fibra_g} g fibra${mm.hidratos_g ? ` · ${mm.hidratos_g} g HC` : ""}${mm.computed ? "" : ' <span title="Valores estimados pelo assistente; itens sem correspondência na tabela">~</span>'}`;
     const pref = !compact && m._day !== undefined ? prefOf(m) : null;
     const tools = !compact && m._day !== undefined ? `<div class="row tools" style="gap:4px"><button type="button" class="btn ghost sm" data-editmeal="${esc(m._day)}|${m._idx}">✎ Editar</button><button type="button" class="btn ghost sm" data-swapmeal="${esc(m._day)}|${m._idx}" title="Pedir outra refeição para este momento">⟳ Trocar</button><span class="likes"><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|1" aria-pressed="${pref?.voto === 1}" title="Gostei">👍</button><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|-1" aria-pressed="${pref?.voto === -1}" title="Não gostei">👎</button></span></div>` : "";
-    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${prep}${why}${alts}${tools}</div>`;
+    const fam = m.familia ? `<span class="tag fam">em família</span>` : "";
+    const base = !compact && m.base_comum ? `<div class="prep">🍲 Base comum: ${esc(m.base_comum)}</div>` : "";
+    const mar = m.marmita?.preparar_em ? `<div class="marmita">🥡 Marmita preparada ${esc(m.marmita.preparar_em)}${m.marmita.conservacao ? ` · ${esc(m.marmita.conservacao)}` : ""}${!compact && m.marmita.montagem ? `<br>${esc(m.marmita.montagem)}` : ""}</div>` : "";
+    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}${fam}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${base}${mar}${prep}${why}${alts}${tools}</div>`;
   }
   function renderTodayMeals() {
     const el = $("todayMeals"); if (!el) return;
@@ -2050,7 +2392,8 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     const meds = (p.meds || []).filter((m) => m.active !== false);
     const ctx = {
       data_de_hoje: localDate(),
-      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), saciedade_precoce: p.satiety || "não indicada", alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
+      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), objetivo: GOALS[goalOf(p)], saciedade_precoce: p.satiety || "não indicada", alergias: p.allergies || [], intolerancias: p.intolerances || [], nao_come: p.dislikes || [], preferencias: p.preferences || null, notas: p.notes || null },
+      agregado: householdContext(),
       glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, dia_da_injecao: p.glp1_inj_day || null, historico_titulacao: p.titrations || [] } : null,
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
@@ -2502,6 +2845,13 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   $("labPick").addEventListener("change", (e) => { S.labPick = e.target.value; renderLabChart(); });
   $("bodyPick").addEventListener("change", (e) => { S.bodyPick = e.target.value; renderBodyChart(); });
   $("genPlan").addEventListener("click", generatePlan);
+  $("genFamily")?.addEventListener("click", generateFamily);
+  $("undoFamily")?.addEventListener("click", async () => {
+    if (!S.family?.previous || !(await askConfirm("Repor as refeições em família anteriores nos planos de todos?", "Repor"))) return;
+    const prev = S.family.previous;
+    S.family = { ...S.family, dias: prev.dias, pessoas: prev.pessoas || S.family.pessoas, version: (S.family.version || 1) + 1, previous: null, changelog: [...(S.family.changelog || []), { at: new Date().toISOString(), o_que: "Repostas as refeições anteriores" }].slice(-20) };
+    await saveFamily(); await mergeFamilyIntoPlans(S.family);
+  });
   $("regenPlan").addEventListener("click", generatePlan);
   $("reviewBtn")?.addEventListener("click", generateReview);
   $("undoPlan").addEventListener("click", async () => {
@@ -2520,7 +2870,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
     renderWho(); subscribeProfile();
   }
 
-  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); renderRules(); renderBody(); renderDiag(); }
+  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderFamily(); renderVitals(); renderDocs(); renderRules(); renderBody(); renderDiag(); }
 
   // ============================================================
   // Arranque
@@ -2528,7 +2878,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, householdContext, familyIds };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();
@@ -2547,8 +2897,13 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
       }, (e) => console.warn("plans all", e));
       db.collection("profiles").onSnapshot((snap) => {
         const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.profiles = next;
-        renderWho(); renderHome(); renderWater(); renderChat(); renderPlan(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
+        renderWho(); renderHome(); renderWater(); renderChat(); renderPlan(); renderFamily(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
       }, (e) => console.warn("profiles", e));
+      db.doc("family/plan").onSnapshot((snap) => {
+        if (S.generating) return;
+        S.family = snap.exists ? thaw(snap.data()) : null;
+        renderFamily();
+      }, (e) => console.warn("family", e));
     }
     if (sample) {
       const lim = await sample.limits().catch((e) => { S.diag.lastErr = `limits: ${e?.code || e?.message || e}`; return null; });

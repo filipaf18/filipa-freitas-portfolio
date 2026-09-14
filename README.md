@@ -17,12 +17,18 @@ nem chave de API.
 - `nutriglp.html` — a página (fragmento; o claude.ai acrescenta o `<head>`).
 - `styles.css` — tokens de cor (claro/escuro) e componentes.
 - `foods.js` — tabela de ~170 alimentos portugueses (kcal, proteína, hidratos, gordura, fibra por 100 g e medidas caseiras) usada para calcular os macros na página.
-- `app.js` — toda a lógica: perfis, Hoje (próxima refeição, adesão, sintomas, alarmes, ciclo da injeção, revisão semanal), Registar (água, corpo, tensão, análises, documentos), Plano (geração em 4 pedidos, refazer um dia, trocar uma refeição, 👍/👎, jantares alinhados entre perfis, lista de compras somada), Chat (ferramentas para regras, tensão, extras e alterações ao plano; memória destilada de 12 em 12 mensagens) e Perfil.
+- `app.js` — toda a lógica: quatro perfis (Filipa, Mãe, Pai, Vitória), Hoje (próxima refeição, adesão, sintomas, alarmes, ciclo da injeção, revisão semanal), Registar (água, corpo, tensão, análises, documentos), Plano (geração em 4 pedidos, refeições em família, refazer um dia, trocar uma refeição, 👍/👎, lista de compras somada), Chat (ferramentas para regras, tensão, extras e alterações ao plano; memória destilada de 12 em 12 mensagens) e Perfil.
+
+Cada perfil tem um objetivo (perder peso, manter e comer equilibrado, ganhar massa) que muda só a
+energia: a proteína, a fibra e o equilíbrio do prato mantêm-se. As **refeições em família** são um
+prato só para toda a gente, com as quantidades de cada um e sem o que cada pessoa não come; os
+almoços saem em marmita, com o dia de preparação e a conservação. Ficam guardadas em `family/plan`
+e são escritas por cima do plano de cada pessoa, sem tocar no resto do plano.
 - `tests/` — testes automáticos com Playwright contra uma base de dados falsa (com snapshots congelados, como no claude.ai) e respostas falsas do Claude: `cd artifact/tests && npm install && npm test` (ou `node run.mjs t08` para um só).
 
 Coleções na base de dados (uma por perfil, `<coleção>/<perfil>`): `profiles`, `water` (`water/<perfil>_<data>`),
 `chat`, `weights`, `labs`, `vitals`, `docs`, `rules`, `body`, `plans`, `adherence`, `symptoms`,
-`reviews`, `prefs`, `diag`. As alterações são sempre aditivas: nunca se muda a forma dos campos existentes.
+`reviews`, `prefs`, `diag`, e a coleção partilhada `family` (documento `family/plan`). As alterações são sempre aditivas: nunca se muda a forma dos campos existentes.
 
 Para republicar depois de editar, publica `artifact/nutriglp.html` para o mesmo URL a partir do
 Claude Code, com `styles.css`, `app.js` e `foods.js` como ficheiros de apoio.

@@ -378,3 +378,23 @@
   .meal .likes [aria-pressed="true"] { background: var(--accent-soft, rgba(37, 99, 235, 0.12)); border-color: var(--accent); }
   .check { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
   .check input { margin-top: 3px; }
+
+  /* refeições em família */
+  .who { flex-wrap: wrap; }
+  .who button { padding: 6px 10px; font-size: 0.86rem; }
+  .famwho { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+  .famwho label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 0.86rem; cursor: pointer; }
+  .famwho label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  .famday { border-top: 1px solid var(--line); padding: 12px 0; }
+  .famday:first-child { border-top: 0; }
+  .famday > .d { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 700; text-transform: capitalize; }
+  .fammeal { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+  .fammeal .b { font-weight: 600; }
+  .fammeal .plates { display: grid; gap: 6px; margin-top: 8px; }
+  .fammeal .plate { display: flex; gap: 8px; align-items: baseline; font-size: 0.84rem; }
+  .fammeal .plate .n { min-width: 74px; font-weight: 600; color: var(--ink-2); }
+  .fammeal .plate.me { color: var(--ink); }
+  .fammeal .plate.me .n { color: var(--accent); }
+  .fammeal .out { color: var(--muted); font-style: italic; }
+  .tag.fam { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  .marmita { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }

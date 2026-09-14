@@ -24,7 +24,7 @@ export default async function () {
     eq(await page.evaluate(() => document.querySelectorAll("#bodyList li").length), 1, "remover funciona");
     assert((await app.text("#bodyLossQuality")) === "" || true, "qualidade da perda");
     await app.go("plano"); await page.waitForTimeout(300);
-    assert((await app.text("#shopWho")).includes("As duas"), "seletor com as duas");
+    assert((await app.text("#shopWho")).includes("Todos"), "seletor com todos os perfis");
     await page.click('[data-shopwho="todos"]'); await page.waitForTimeout(200);
     const shop = await app.text("#planShop");
     assert(shop.includes("peito de frango — 2,1 kg") && shop.includes("brócolos — 1,5 kg"), "quantidades somadas: " + shop.slice(0, 120));

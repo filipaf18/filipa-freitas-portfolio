@@ -128,8 +128,9 @@
   .who button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
   .tabs {
     max-width: 760px; margin: 0 auto; padding: 0 16px 8px;
-    display: flex; gap: 2px; width: 100%;
+    display: flex; gap: 2px; width: 100%; overflow-x: auto; scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
   .tabs button {
     flex: 1; border: 0; background: transparent; padding: 8px 2px; font-size: 0.85rem;
     color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap;
@@ -282,6 +283,20 @@
   .progress > div { height: 100%; background: var(--accent); width: 0; transition: width 0.4s; }
 
   /* ---------- análises ---------- */
+  .deltas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 480px) { .deltas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .delta { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+  .delta .v { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 1.25rem; font-weight: 600; line-height: 1.15; }
+  .delta .k { font-size: 0.74rem; color: var(--muted); }
+  .delta.up .v { color: var(--danger); }
+  .delta.down .v { color: var(--accent); }
+  .split { display: flex; height: 22px; border-radius: 8px; overflow: hidden; }
+  .split > span { display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; color: #fff; }
+  .split .fat { background: #B0413E; }
+  .split .lean { background: var(--water); }
+  .body-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end; }
+  @media (max-width: 560px) { .body-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .body-form .wide { grid-column: 1 / -1; }
   .lab-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end; }
   @media (max-width: 560px) { .lab-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .lab-form .wide { grid-column: 1 / -1; }
@@ -318,6 +333,11 @@
   .doc .s { font-size: 0.88rem; color: var(--ink-2); }
   .doc ul { margin: 2px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--ink-2); }
 
+  .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(12, 18, 16, 0.55); }
+  .modal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; max-width: 380px; width: 100%; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow); }
+  .modal p { font-size: 0.95rem; }
+  .modal .row { justify-content: flex-end; }
+
   .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.9rem; }
   .kv dt { color: var(--muted); }
   .kv dd { margin: 0; font-weight: 600; }
@@ -332,6 +352,7 @@
   <nav class="tabs" role="tablist" id="tabs">
     <button role="tab" data-view="hoje" aria-selected="true">Hoje</button>
     <button role="tab" data-view="agua" aria-selected="false">Água</button>
+    <button role="tab" data-view="corpo" aria-selected="false">Corpo</button>
     <button role="tab" data-view="plano" aria-selected="false">Plano</button>
     <button role="tab" data-view="analises" aria-selected="false">Análises</button>
     <button role="tab" data-view="chat" aria-selected="false">Chat</button>
@@ -413,6 +434,53 @@
       <div class="chart-wrap" id="chart"><div class="tooltip" id="tip"></div></div>
     </div>
     <p class="small muted" id="glp1tip" hidden>Com GLP-1 a sensação de sede diminui e a digestão fica mais lenta. Beber em pequenos goles ao longo do dia ajuda a prevenir desidratação, obstipação e náuseas.</p>
+  </section>
+
+  <!-- ============ CORPO ============ -->
+  <section class="view" id="view-corpo">
+    <div>
+      <h1>Composição corporal</h1>
+      <p class="muted small">Peso, massa gorda, massa magra e água corporal. Se tiveres uma balança de bioimpedância, regista o que ela mostrar. Pesa-te sempre nas mesmas condições: de manhã, em jejum, depois de urinar.</p>
+    </div>
+
+    <div class="card lift" id="bodyNow" hidden>
+      <div class="row between"><h2>Onde estás</h2><span class="small muted" id="bodyLastDate"></span></div>
+      <div class="deltas" id="bodyTiles"></div>
+      <div id="bodySplitWrap" hidden>
+        <p class="small muted" style="margin-bottom:6px">Composição da última medição</p>
+        <div class="split" id="bodySplit"></div>
+      </div>
+      <p class="small" id="bodyLossQuality"></p>
+    </div>
+
+    <div class="card" id="bodyChartCard" hidden>
+      <div class="row between">
+        <h2>Evolução</h2>
+        <select class="input" id="bodyPick" style="width:auto; max-width:60%"></select>
+      </div>
+      <div class="chart-wrap" id="bodyChart"><div class="tooltip" id="bodyTip"></div></div>
+    </div>
+
+    <form class="card" id="bodyForm">
+      <h2>Registar medição</h2>
+      <div class="body-form">
+        <div class="field"><label for="c_date">Data</label><input class="input" id="c_date" type="date" required></div>
+        <div class="field"><label for="c_weight">Peso (kg)</label><input class="input num" id="c_weight" type="number" step="0.1" min="25" max="350" required></div>
+        <div class="field"><label for="c_fat">Massa gorda (%)</label><input class="input num" id="c_fat" type="number" step="0.1" min="3" max="70" placeholder="ex: 38,4"></div>
+        <div class="field"><label for="c_muscle">Massa muscular (kg)</label><input class="input num" id="c_muscle" type="number" step="0.1" min="5" max="120" placeholder="opcional"></div>
+        <div class="field"><label for="c_water">Água corporal (%)</label><input class="input num" id="c_water" type="number" step="0.1" min="20" max="80" placeholder="ex: 45,2"></div>
+        <div class="field"><label for="c_visceral">Gordura visceral</label><input class="input num" id="c_visceral" type="number" step="0.1" min="1" max="60" placeholder="opcional"></div>
+        <div class="field"><label for="c_bone">Massa óssea (kg)</label><input class="input num" id="c_bone" type="number" step="0.1" min="0.5" max="6" placeholder="opcional"></div>
+        <div class="field wide"><label for="c_notes">Notas</label><input class="input" id="c_notes" placeholder="opcional: balança usada, hora, contexto"></div>
+      </div>
+      <div class="row"><button type="submit" class="btn primary">Guardar medição</button><span class="small muted" id="bodyMsg"></span></div>
+      <p class="hint">A massa magra é calculada a partir do peso e da percentagem de gordura. O peso atual do perfil é atualizado com a medição mais recente.</p>
+    </form>
+
+    <div class="card">
+      <h2>Registos</h2>
+      <ul class="list" id="bodyList"></ul>
+    </div>
   </section>
 
   <!-- ============ PLANO ============ -->
@@ -680,6 +748,8 @@
     vitals: [],            // tensão arterial [{id, date, time, sys, dia, pulse, source}]
     docs: [],              // documentos lidos [{id, date, tipo, titulo, resumo, pontos, at}]
     rules: [],             // regras alimentares pessoais [{id, texto, origem, at}]
+    body: [],              // composição corporal [{id, date, weight_kg, fat_pct, muscle_kg, water_pct, visceral, bone_kg, notes}]
+    bodyPick: "weight_kg",
     attachments: [],       // ficheiros escolhidos no chat (File)
     imageLimits: null,
     diag: { sample: null, images: null, tools: null, db: null, saveErr: "", lastErr: "", step: "arranque" },
@@ -696,6 +766,25 @@
   };
 
   const $ = (id) => document.getElementById(id);
+  /** Confirmação dentro da página: confirm() do browser é bloqueado na janela da app. */
+  function askConfirm(texto, okLabel = "Continuar") {
+    return new Promise((resolve) => {
+      const wrap = document.createElement("div");
+      wrap.className = "modal";
+      wrap.innerHTML = `<div class="box" role="dialog" aria-modal="true"><p></p><div class="row"><button type="button" class="btn" data-no>Cancelar</button><button type="button" class="btn primary" data-yes></button></div></div>`;
+      wrap.querySelector("p").textContent = texto;
+      wrap.querySelector("[data-yes]").textContent = okLabel;
+      const done = (v) => { wrap.remove(); document.removeEventListener("keydown", onKey); resolve(v); };
+      const onKey = (e) => { if (e.key === "Escape") done(false); };
+      wrap.addEventListener("click", (e) => {
+        if (e.target === wrap || e.target.closest("[data-no]")) done(false);
+        else if (e.target.closest("[data-yes]")) done(true);
+      });
+      document.addEventListener("keydown", onKey);
+      document.body.appendChild(wrap);
+      wrap.querySelector("[data-yes]").focus();
+    });
+  }
   /** Cópia editável: as leituras da base de dados chegam congeladas. */
   const thaw = (v) => { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch { return v; } };
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -735,7 +824,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -774,6 +863,11 @@
     await write(`vitals/${S.pid}`, { profile: S.pid, entries: S.vitals }, mem.vitals, S.pid);
     renderVitals();
   }
+  async function saveBody() {
+    S.body = [...S.body].sort((a, b) => a.date.localeCompare(b.date)).slice(-400);
+    await write(`body/${S.pid}`, { profile: S.pid, entries: S.body }, mem.body, S.pid);
+    renderBody();
+  }
   async function saveRules() {
     S.rules = S.rules.slice(-40);
     await write(`rules/${S.pid}`, { profile: S.pid, entries: S.rules }, mem.rules, S.pid);
@@ -797,12 +891,12 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.attachments = [];
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = [];
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
-      S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || [];
+      S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -825,6 +919,10 @@
     S.unsub.push(S.db.doc(`vitals/${S.pid}`).onSnapshot((snap) => {
       S.vitals = snap.exists ? (thaw(snap.data().entries) || []) : []; renderVitals();
     }, (e) => console.warn("vitals", e)));
+    S.unsub.push(S.db.doc(`body/${S.pid}`).onSnapshot((snap) => {
+      S.body = snap.exists ? (thaw(snap.data().entries) || []) : [];
+      if (document.activeElement?.form?.id !== "bodyForm") renderBody();
+    }, (e) => console.warn("body", e)));
     S.unsub.push(S.db.doc(`rules/${S.pid}`).onSnapshot((snap) => {
       S.rules = snap.exists ? (thaw(snap.data().entries) || []) : [];
       if (document.activeElement?.id !== "r_text") renderRules();
@@ -1085,37 +1183,61 @@
     renderLabChart();
   }
 
-  function renderLabChart() {
-    const rows = S.labs.filter((e) => labKey(e) === S.labPick).sort((a, b) => a.date.localeCompare(b.date));
-    if (rows.length === 0) return;
-    const last = rows[rows.length - 1]; const o = outOfRange(last);
-    $("labLatest").innerHTML = `Último: <strong class="num">${fmtNum(last.value)} ${esc(last.unit)}</strong> em ${last.date} ${o ? `<span class="flag out">${o === "alto" ? "↑ acima da referência" : "↓ abaixo da referência"}</span>` : (last.lo ?? last.hi) != null ? `<span class="flag ok">✓ dentro da referência</span>` : ""}${rows.length > 1 ? ` · ${rows.length} registos` : ""}`;
-
-    const wrap = $("labChart"); const W = Math.max(300, Math.round(wrap.clientWidth || 720)), H = W < 480 ? 200 : 220, L = 46, R = 16, T = 18, B = 26;
-    const lo = last.lo ?? null, hi = last.hi ?? null;
+  /** Gráfico de linha reutilizável. rows = [{date, value}]; opts = {lo, hi, unit, label, refText}. */
+  function drawSeries(wrap, tip, rows, opts = {}) {
+    if (!wrap || rows.length === 0) { if (wrap) wrap.innerHTML = ""; return; }
+    const W = Math.max(300, Math.round(wrap.clientWidth || 720)), H = W < 480 ? 200 : 220, L = 46, R = 16, T = 18, B = 26;
+    const lo = opts.lo ?? null, hi = opts.hi ?? null;
     const vals = rows.map((r) => r.value).concat(lo !== null ? [lo] : [], hi !== null ? [hi] : []);
-    let vmin = Math.min(...vals), vmax = Math.max(...vals); const span = (vmax - vmin) || Math.abs(vmax) * 0.2 || 1; vmin -= span * 0.25; vmax += span * 0.25; if (vmin < 0 && Math.min(...vals) >= 0) vmin = 0;
+    let vmin = Math.min(...vals), vmax = Math.max(...vals);
+    const span = (vmax - vmin) || Math.abs(vmax) * 0.2 || 1;
+    vmin -= span * 0.25; vmax += span * 0.25;
+    if (vmin < 0 && Math.min(...vals) >= 0) vmin = 0;
     const iw = W - L - R, ih = H - T - B;
     const y = (v) => T + ih - ((v - vmin) / (vmax - vmin)) * ih;
-    const toT = (iso) => new Date(iso).getTime(); const t0 = toT(rows[0].date), t1 = toT(last.date);
-    const x = (iso) => rows.length === 1 ? L + iw / 2 : L + ((toT(iso) - t0) / (t1 - t0)) * (iw - 20) + 10;
-    const ticks = 4; const step = (vmax - vmin) / ticks;
-    let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução de ${esc(labLabel(last))}">`;
+    const toT = (iso) => new Date(iso).getTime();
+    const t0 = toT(rows[0].date), t1 = toT(rows[rows.length - 1].date);
+    const x = (iso) => rows.length === 1 || t1 === t0 ? L + iw / 2 : L + ((toT(iso) - t0) / (t1 - t0)) * (iw - 20) + 10;
+    const ticks = 4, step = (vmax - vmin) / ticks;
+    const last = rows[rows.length - 1];
+    let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução de ${esc(opts.label || "")}">`;
     g += `<g class="grid">`; for (let i = 0; i <= ticks; i++) g += `<line x1="${L}" x2="${W - R}" y1="${y(vmin + step * i)}" y2="${y(vmin + step * i)}"/>`; g += `</g>`;
-    if (lo !== null || hi !== null) { const yTop = y(hi !== null ? hi : vmax), yBot = y(lo !== null ? lo : vmin); g += `<rect class="band" x="${L}" y="${Math.min(yTop, yBot)}" width="${iw}" height="${Math.abs(yBot - yTop)}"/>`; g += `<text class="ref-label" x="${L + 4}" y="${Math.min(yTop, yBot) + 11}">referência ${esc(fmtRange(last))}</text>`; }
-    g += `<g class="axis">`; for (let i = 0; i <= ticks; i++) g += `<text x="${L - 6}" y="${y(vmin + step * i) + 4}" text-anchor="end">${fmtNum(Math.round((vmin + step * i) * 10) / 10)}</text>`;
-    const labelIdx = rows.length <= 4 ? rows.map((_, i) => i) : [0, Math.floor(rows.length / 2), rows.length - 1];
-    labelIdx.forEach((i) => g += `<text x="${x(rows[i].date)}" y="${H - 8}" text-anchor="middle">${rows[i].date.slice(5).replace("-", "/")}/${rows[i].date.slice(2, 4)}</text>`);
+    if (lo !== null || hi !== null) {
+      const yTop = y(hi !== null ? hi : vmax), yBot = y(lo !== null ? lo : vmin);
+      g += `<rect class="band" x="${L}" y="${Math.min(yTop, yBot)}" width="${iw}" height="${Math.abs(yBot - yTop)}"/>`;
+      if (opts.refText) g += `<text class="ref-label" x="${L + 4}" y="${Math.min(yTop, yBot) + 11}">referência ${esc(opts.refText)}</text>`;
+    }
+    g += `<g class="axis">`;
+    for (let i = 0; i <= ticks; i++) g += `<text x="${L - 6}" y="${y(vmin + step * i) + 4}" text-anchor="end">${fmtNum(Math.round((vmin + step * i) * 10) / 10)}</text>`;
+    const idx = rows.length <= 4 ? rows.map((_, i) => i) : [0, Math.floor(rows.length / 2), rows.length - 1];
+    idx.forEach((i) => { g += `<text x="${x(rows[i].date)}" y="${H - 8}" text-anchor="middle">${rows[i].date.slice(5).replace("-", "/")}/${rows[i].date.slice(2, 4)}</text>`; });
     g += `</g>`;
     if (rows.length > 1) g += `<path class="line" d="${rows.map((r, i) => `${i ? "L" : "M"}${x(r.date)},${y(r.value)}`).join(" ")}"/>`;
     rows.forEach((r, i) => { g += `<circle class="pt" cx="${x(r.date)}" cy="${y(r.value)}" r="5" data-i="${i}"/>`; });
     g += `<text class="pt-label" x="${x(last.date)}" y="${y(last.value) - 10}" text-anchor="${rows.length > 1 ? "end" : "middle"}">${fmtNum(last.value)}</text>`;
     g += `</svg>`;
-    const tip = $("labTip"); wrap.innerHTML = g; wrap.appendChild(tip);
+    wrap.innerHTML = g; if (tip) wrap.appendChild(tip);
     wrap.querySelectorAll(".pt").forEach((c) => {
       const r = rows[+c.dataset.i];
-      const show = () => { const bb = c.getBoundingClientRect(); const wb = wrap.getBoundingClientRect(); tip.textContent = `${r.date} · ${fmtNum(r.value)} ${r.unit}`; tip.style.left = `${bb.left - wb.left + bb.width / 2}px`; tip.style.top = `${bb.top - wb.top - 4}px`; tip.style.display = "block"; };
-      c.addEventListener("mouseenter", show); c.addEventListener("touchstart", show, { passive: true }); c.addEventListener("mouseleave", () => tip.style.display = "none");
+      const show = () => {
+        const bb = c.getBoundingClientRect(), wb = wrap.getBoundingClientRect();
+        tip.textContent = `${r.date} · ${fmtNum(r.value)}${opts.unit ? " " + opts.unit : ""}`;
+        tip.style.left = `${bb.left - wb.left + bb.width / 2}px`;
+        tip.style.top = `${bb.top - wb.top - 4}px`;
+        tip.style.display = "block";
+      };
+      c.addEventListener("mouseenter", show); c.addEventListener("touchstart", show, { passive: true });
+      c.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+    });
+  }
+
+  function renderLabChart() {
+    const rows = S.labs.filter((e) => labKey(e) === S.labPick).sort((a, b) => a.date.localeCompare(b.date));
+    if (rows.length === 0) return;
+    const last = rows[rows.length - 1], o = outOfRange(last);
+    $("labLatest").innerHTML = `Último: <strong class="num">${fmtNum(last.value)} ${esc(last.unit)}</strong> em ${last.date} ${o ? `<span class="flag out">${o === "alto" ? "↑ acima da referência" : "↓ abaixo da referência"}</span>` : (last.lo ?? last.hi) != null ? `<span class="flag ok">✓ dentro da referência</span>` : ""}${rows.length > 1 ? ` · ${rows.length} registos` : ""}`;
+    drawSeries($("labChart"), $("labTip"), rows.map((r) => ({ date: r.date, value: r.value })), {
+      lo: last.lo ?? null, hi: last.hi ?? null, unit: last.unit, label: labLabel(last), refText: fmtRange(last),
     });
   }
 
@@ -1124,6 +1246,101 @@
     const m = new Map();
     [...S.labs].sort((a, b) => b.date.localeCompare(a.date)).forEach((e) => { const k = labKey(e); if (!m.has(k)) m.set(k, e); });
     return [...m.values()].map((e) => ({ analise: labLabel(e), valor: e.value, unidade: e.unit, referencia: fmtRange(e) || null, estado: outOfRange(e) || "normal", data: e.date }));
+  }
+
+  // ============================================================
+  // Composição corporal
+  // ============================================================
+  const BODY_METRICS = [
+    { id: "weight_kg", label: "Peso", unit: "kg", better: "down" },
+    { id: "fat_pct", label: "Massa gorda", unit: "%", better: "down" },
+    { id: "fat_kg", label: "Massa gorda", unit: "kg", better: "down", derived: true },
+    { id: "lean_kg", label: "Massa magra", unit: "kg", better: "up", derived: true },
+    { id: "muscle_kg", label: "Massa muscular", unit: "kg", better: "up" },
+    { id: "water_pct", label: "Água corporal", unit: "%", better: "up" },
+    { id: "visceral", label: "Gordura visceral", unit: "", better: "down" },
+    { id: "bone_kg", label: "Massa óssea", unit: "kg", better: "up" },
+  ];
+  const metricOf = (id) => BODY_METRICS.find((m) => m.id === id) || BODY_METRICS[0];
+
+  /** Acrescenta massa gorda e massa magra em kg, calculadas a partir do peso e da percentagem. */
+  function bodyRow(e) {
+    const fat_kg = (e.weight_kg && e.fat_pct) ? Math.round(e.weight_kg * e.fat_pct / 100 * 10) / 10 : null;
+    const lean_kg = (e.weight_kg && fat_kg !== null) ? Math.round((e.weight_kg - fat_kg) * 10) / 10 : null;
+    return { ...e, fat_kg, lean_kg };
+  }
+  const bodySeries = () => S.body.map(bodyRow).sort((a, b) => a.date.localeCompare(b.date));
+  const valuesOf = (id) => bodySeries().filter((r) => r[id] !== null && r[id] !== undefined && r[id] !== "").map((r) => ({ date: r.date, value: Number(r[id]) }));
+
+  function renderBody() {
+    const el = $("bodyList"); if (!el) return;
+    const rows = bodySeries();
+    // registos
+    el.innerHTML = rows.length === 0
+      ? `<li class="muted small">Sem medições. Regista a primeira acima.</li>`
+      : [...rows].reverse().map((r) => {
+          const bits = [r.weight_kg ? `<strong class="num">${fmtNum(r.weight_kg)} kg</strong>` : "",
+            r.fat_pct ? `gordura <strong class="num">${fmtNum(r.fat_pct)} %</strong>` : "",
+            r.lean_kg ? `magra <strong class="num">${fmtNum(r.lean_kg)} kg</strong>` : "",
+            r.muscle_kg ? `músculo <strong class="num">${fmtNum(r.muscle_kg)} kg</strong>` : "",
+            r.water_pct ? `água <strong class="num">${fmtNum(r.water_pct)} %</strong>` : "",
+            r.visceral ? `visceral <strong class="num">${fmtNum(r.visceral)}</strong>` : ""].filter(Boolean);
+          return `<li><span>${bits.join(" · ")} <span class="meta">${r.date}</span>${r.notes ? `<br><span class="meta">${esc(r.notes)}</span>` : ""}</span><button type="button" class="btn ghost sm" data-delbody="${r.id}">remover</button></li>`;
+        }).join("");
+
+    // resumo
+    $("bodyNow").hidden = rows.length === 0;
+    if (rows.length) {
+      const last = rows[rows.length - 1], first = rows[0], prev = rows.length > 1 ? rows[rows.length - 2] : null;
+      $("bodyLastDate").textContent = `medição de ${last.date}`;
+      const tiles = BODY_METRICS.filter((m) => last[m.id] !== null && last[m.id] !== undefined && last[m.id] !== "").map((m) => {
+        const now = Number(last[m.id]);
+        const base = first[m.id] !== null && first[m.id] !== undefined && first !== last ? Number(first[m.id]) : null;
+        const d = base !== null ? Math.round((now - base) * 10) / 10 : null;
+        const cls = d === null || d === 0 ? "" : ((d < 0) === (m.better === "down") ? "down" : "up");
+        const name = m.unit ? `${m.label} (${m.unit})` : m.label;
+        return `<div class="delta ${cls}"><div class="v num">${fmtNum(now)}${m.unit ? " " + m.unit : ""}</div><div class="k">${name}${d !== null ? ` · ${d > 0 ? "+" : ""}${fmtNum(d)} desde o início` : ""}</div></div>`;
+      }).join("");
+      $("bodyTiles").innerHTML = tiles;
+
+      // barra gordura / magra
+      const showSplit = last.fat_kg !== null && last.lean_kg !== null;
+      $("bodySplitWrap").hidden = !showSplit;
+      if (showSplit) {
+        const fp = Math.round(last.fat_pct);
+        $("bodySplit").innerHTML = `<span class="fat" style="width:${fp}%">${fp > 12 ? fmtNum(last.fat_kg) + " kg gorda" : ""}</span><span class="lean" style="width:${100 - fp}%">${100 - fp > 12 ? fmtNum(last.lean_kg) + " kg magra" : ""}</span>`;
+      }
+
+      // qualidade da perda: quanto do peso perdido foi gordura
+      const q = $("bodyLossQuality");
+      if (first !== last && first.weight_kg && last.weight_kg && first.fat_kg !== null && last.fat_kg !== null) {
+        const dW = first.weight_kg - last.weight_kg, dF = first.fat_kg - last.fat_kg, dL = first.lean_kg - last.lean_kg;
+        if (dW > 0.3) {
+          const pctFat = Math.round(dF / dW * 100);
+          const aviso = pctFat >= 75 ? "Bom: a maior parte do que perdeste foi gordura."
+            : pctFat >= 60 ? "Razoável, mas vale a pena reforçar a proteína e o treino de força."
+            : "Uma fatia grande do que perdeste é massa magra. Reforça a proteína e o treino de força, e fala com o médico.";
+          q.innerHTML = `Desde ${first.date} perdeste <strong class="num">${fmtNum(Math.round(dW * 10) / 10)} kg</strong>: <strong class="num">${fmtNum(Math.round(dF * 10) / 10)} kg</strong> de gordura e <strong class="num">${fmtNum(Math.round(dL * 10) / 10)} kg</strong> de massa magra (<strong>${pctFat}%</strong> do peso perdido foi gordura). ${aviso}`;
+          q.hidden = false;
+        } else q.hidden = true;
+      } else q.hidden = true;
+      if (prev) { /* mantido para futura comparação com a medição anterior */ }
+    }
+
+    // gráfico
+    const available = BODY_METRICS.filter((m) => valuesOf(m.id).length > 0);
+    $("bodyChartCard").hidden = available.length === 0;
+    if (available.length) {
+      if (!available.some((m) => m.id === S.bodyPick)) S.bodyPick = available[0].id;
+      $("bodyPick").innerHTML = available.map((m) => `<option value="${m.id}" ${m.id === S.bodyPick ? "selected" : ""}>${esc(m.label)}${m.unit ? ` (${m.unit})` : ""}</option>`).join("");
+      renderBodyChart();
+    }
+    if (!$("c_date").value) $("c_date").value = localDate();
+  }
+
+  function renderBodyChart() {
+    const m = metricOf(S.bodyPick);
+    drawSeries($("bodyChart"), $("bodyTip"), valuesOf(m.id), { unit: m.unit, label: m.label });
   }
 
   // ============================================================
@@ -1373,9 +1590,32 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       tensao_arterial: bpSummary(),
       documentos_de_saude: S.docs.slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
       meta_agua_ml: goal.ml,
-      evolucao_peso: S.weights.slice(-8),
+      composicao_corporal: bodyContext(),
     });
   }
+  /** Resumo da composição corporal para o assistente e para o plano. */
+  function bodyContext() {
+    const rows = bodySeries();
+    if (rows.length === 0) return S.weights.length ? { evolucao_peso: S.weights.slice(-8) } : null;
+    const last = rows[rows.length - 1], first = rows[0];
+    const out = {
+      ultima_medicao: { data: last.date, peso_kg: last.weight_kg, massa_gorda_pct: last.fat_pct, massa_gorda_kg: last.fat_kg, massa_magra_kg: last.lean_kg, massa_muscular_kg: last.muscle_kg, agua_corporal_pct: last.water_pct, gordura_visceral: last.visceral },
+      historico: rows.slice(-8).map((r) => ({ data: r.date, peso_kg: r.weight_kg, massa_gorda_pct: r.fat_pct, massa_magra_kg: r.lean_kg })),
+    };
+    if (first !== last && first.weight_kg && last.weight_kg) {
+      const dW = Math.round((first.weight_kg - last.weight_kg) * 10) / 10;
+      out.desde_o_inicio = { desde: first.date, peso_perdido_kg: dW };
+      if (first.fat_kg !== null && last.fat_kg !== null && dW > 0) {
+        const dF = Math.round((first.fat_kg - last.fat_kg) * 10) / 10;
+        const dL = Math.round((first.lean_kg - last.lean_kg) * 10) / 10;
+        out.desde_o_inicio.gordura_perdida_kg = dF;
+        out.desde_o_inicio.massa_magra_perdida_kg = dL;
+        out.desde_o_inicio.percentagem_da_perda_que_foi_gordura = Math.round(dF / dW * 100);
+      }
+    }
+    return out;
+  }
+
   function bpSummary() {
     const avg = bpAverage(); if (!avg) return null;
     return { media_ultimas_medicoes: avg, ultimas: S.vitals.slice(-6).map(({ date, time, sys, dia, pulse }) => ({ data: date, hora: time || null, sistolica: sys, diastolica: dia, pulso: pulse })), classificacao: bpClass({ sys: avg.sys, dia: avg.dia }) || "normal" };
@@ -1436,6 +1676,7 @@ PROTEÍNA — é a restrição mais importante, resolve-a primeiro
 - Cada aporte precisa de uma fonte rica em leucina (lacticínios, ovos, carne, peixe, soja) para chegar a cerca de 2,5 g de leucina. Leguminosas sozinhas não chegam lá: combina-as sempre com ovo, peixe ou lacticínio na mesma refeição.
 - Só cerca de 43 % das pessoas com GLP-1 chegam a 1,2 g/kg. Trata a proteína como obrigação, não como aspiração.
 - Sem treino de força perde-se massa muscular. Sugere 2 a 3 sessões semanais de corpo inteiro, sem prescrever treino detalhado, e coloca as mais exigentes nos dias 3 a 6 depois da injeção.
+- Se o campo "composicao_corporal" mostrar que menos de 75 % do peso perdido foi gordura, ou que a massa magra está a descer, sobe a proteína para o topo da faixa, não desças mais a energia, e escreve isso no racional com a recomendação de treino de força.
 
 ENERGIA — resolve depois da proteína
 - Défice de 500 a 750 kcal/dia, nunca abaixo do piso indicado em "calculos_de_referencia".
@@ -1558,7 +1799,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     if (!S.sample) { $("planNote").hidden = false; $("planNote").textContent = "A geração do plano só funciona com a página aberta no claude.ai."; return; }
     const p = profile();
     if (!p.weight_kg) { $("planNote").hidden = false; $("planNote").innerHTML = `Preenche pelo menos o <strong>peso atual</strong> no perfil antes de gerar o plano.`; return; }
-    if (S.plan && !confirm("Gerar um plano novo substitui o atual (a versão anterior fica guardada para repor). Continuar?")) return;
+    if (S.plan && !(await askConfirm("Gerar um plano novo substitui o atual. A versão anterior fica guardada e podes repô-la.", "Gerar novo plano"))) return;
     $("planNote").hidden = true;
 
     const ctl = new AbortController(); S.generating = ctl;
@@ -1817,7 +2058,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
-      evolucao_peso: S.weights.slice(-8),
+      composicao_corporal: bodyContext(),
       analises_mais_recentes: latestLabs(),
       regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
       calculos_de_referencia: planTargets(p),
@@ -2061,6 +2302,24 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       $("l_value").value = ""; $("l_notes").value = ""; $("l_value").focus(); setTimeout(() => $("labMsg").textContent = "", 3000);
       return;
     }
+    if (f.id === "bodyForm") {
+      ev.preventDefault();
+      const n = (id) => { const v = String($(id).value).trim().replace(",", "."); if (!v) return null; const x = Number(v); return Number.isFinite(x) ? x : null; };
+      const e = { id: uid(), date: $("c_date").value, weight_kg: n("c_weight"), fat_pct: n("c_fat"), muscle_kg: n("c_muscle"), water_pct: n("c_water"), visceral: n("c_visceral"), bone_kg: n("c_bone"), notes: $("c_notes").value.trim() };
+      if (!e.date || !e.weight_kg) { $("bodyMsg").textContent = "Indica pelo menos a data e o peso."; return; }
+      S.body = [...S.body.filter((x) => x.date !== e.date), e];
+      try {
+        await saveBody();
+        const latest = [...S.body].sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0];
+        if (latest?.weight_kg && latest.weight_kg !== profile().weight_kg) await saveProfile({ ...profile(), weight_kg: latest.weight_kg });
+        S.weights = [...S.weights.filter((w) => w.date !== e.date), { date: e.date, kg: e.weight_kg }].sort((a, b) => a.date.localeCompare(b.date)).slice(-200);
+        await saveWeights();
+        $("bodyMsg").textContent = "Guardado ✓";
+      } catch { $("bodyMsg").textContent = "Não foi possível guardar."; }
+      ["c_fat", "c_muscle", "c_water", "c_visceral", "c_bone", "c_notes"].forEach((id) => { $(id).value = ""; });
+      setTimeout(() => { $("bodyMsg").textContent = ""; }, 3000);
+      return;
+    }
     if (f.id === "rulesForm") {
       ev.preventDefault(); const v = $("r_text").value; $("r_text").value = "";
       await addRule(v, "perfil"); return;
@@ -2099,16 +2358,17 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   $("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage($("chatInput").value); } });
   $("stopChat").addEventListener("click", () => S.streaming?.abort());
   $("clearChat").addEventListener("click", async () => {
-    if (!confirm("Apagar toda a conversa? O assistente deixa de se lembrar dos ajustes anteriores.")) return;
+    if (!(await askConfirm("Apagar toda a conversa? O assistente deixa de se lembrar dos ajustes que já lhe deste.", "Apagar"))) return;
     S.chat = []; S.attachments = []; renderAttachments(); await saveChat(); renderChat();
   });
-  let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderWater(); if (S.labs.length) renderLabChart(); }, 150); });
+  let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderWater(); if (S.labs.length) renderLabChart(); if (S.body.length) renderBodyChart(); }, 150); });
   $("l_marker").addEventListener("change", applyMarkerDefaults);
   $("labPick").addEventListener("change", (e) => { S.labPick = e.target.value; renderLabChart(); });
+  $("bodyPick").addEventListener("change", (e) => { S.bodyPick = e.target.value; renderBodyChart(); });
   $("genPlan").addEventListener("click", generatePlan);
   $("regenPlan").addEventListener("click", generatePlan);
   $("undoPlan").addEventListener("click", async () => {
-    if (!S.plan?.previous || !confirm("Repor a versão anterior do plano?")) return;
+    if (!S.plan?.previous || !(await askConfirm("Repor a versão anterior do plano?", "Repor"))) return;
     S.plan = { ...S.plan, plan: S.plan.previous, previous: null, version: (S.plan.version || 1) + 1, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: "Reposta versão anterior" }].slice(-20) };
     await savePlan();
   });
@@ -2123,7 +2383,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     renderWho(); subscribeProfile();
   }
 
-  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); renderRules(); renderDiag(); }
+  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); renderRules(); renderBody(); renderDiag(); }
 
   // ============================================================
   // Arranque

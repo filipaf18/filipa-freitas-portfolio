@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8f6;
+  --foreground: #1c1f1a;
+  --card: #ffffff;
+  --border: #e3e6df;
+  --accent: #2f6f4e;
+  --accent-soft: #e4f1e9;
+  --muted: #6b7266;
+  --water: #2b7fbf;
+  --water-soft: #e2eef8;
+  --warn-bg: #fff6e0;
+  --warn-fg: #7a4d00;
+  --warn-border: #f1d58a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-muted: var(--muted);
+  --color-water: var(--water);
+  --color-water-soft: var(--water-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #121412;
+    --foreground: #eceeea;
+    --card: #1b1e1b;
+    --border: #2c302b;
+    --accent: #6fbf94;
+    --accent-soft: #1f3328;
+    --muted: #9aa294;
+    --water: #6ab0e8;
+    --water-soft: #1a2a3a;
+    --warn-bg: #3a2d10;
+    --warn-fg: #f5d68a;
+    --warn-border: #6b5220;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-card p-5 shadow-sm;
+  }
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-water {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-accent text-white hover:opacity-90;
+  }
+  .btn-secondary {
+    @apply border border-border bg-card hover:bg-accent-soft;
+  }
+  .btn-water {
+    @apply bg-water text-white hover:opacity-90;
+  }
+  .input {
+    @apply w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none
+      focus:border-accent focus:ring-2 focus:ring-accent/20;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-muted;
+  }
+}

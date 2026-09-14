@@ -26,6 +26,8 @@
     reviews: [],           // revisões semanais [{week_start, texto, propostas, at}]
     prefs: [],             // gostei/não gostei por refeição [{id, at, dia, refeicao, itens, voto}]
     memUpto: null,         // ISO da última mensagem já destilada para regras/preferências
+    promptMax: 65536,      // limites lidos em sample.limits()
+    toolMax: 8,
     distilling: false,
     otherFor: null,        // refeição para a qual se está a escrever "comi outra coisa"
     body: [],              // composição corporal [{id, date, weight_kg, fat_pct, muscle_kg, water_pct, visceral, bone_kg, notes}]
@@ -1934,10 +1936,12 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   }
 
   /** Ferramenta usada pelo chat para alterar refeições do plano guardado. */
+  const MAX_MEAL_CHANGES = 8;
   async function applyMealUpdates(input) {
     if (!S.plan?.plan) throw new Error("Não existe plano. Pede à pessoa para gerar um plano na aba Plano.");
     const changes = Array.isArray(input?.alteracoes) ? input.alteracoes : [];
     if (changes.length === 0) throw new Error("Sem alterações: envia uma lista 'alteracoes'.");
+    if (changes.length > MAX_MEAL_CHANGES) throw new Error(`São ${changes.length} alterações de uma vez e o máximo é ${MAX_MEAL_CHANGES}. Se a mudança vale para a semana inteira (um alimento ou um grupo que a pessoa deixou de comer), guarda a regra com guardar_regra e diz-lhe para gerar um plano novo na aba Plano; a regra já entra nessa geração. Para já, muda só os próximos dias.`);
     const plan = JSON.parse(JSON.stringify(S.plan.plan)); const done = [];
     for (const c of changes) {
       const day = plan.dias.find((d) => norm(d.dia) === norm(c.dia));
@@ -1946,7 +1950,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       if (c.remover) { if (idx >= 0) { day.refeicoes.splice(idx, 1); done.push(`${c.dia}: removida "${c.refeicao}"`); } continue; }
       if (!c.nova) throw new Error(`Falta 'nova' para ${c.dia} / ${c.refeicao}.`);
       const nm = normMeal({ ...c.nova, nome: c.nova.nome || c.refeicao });
-      if (idx >= 0) { day.refeicoes[idx] = nm; done.push(`${c.dia}: "${c.refeicao}" → ${nm.itens.map((i) => `${i.alimento} ${i.quantidade}`).join(", ")}`); }
+      if (idx >= 0) { day.refeicoes[idx] = nm; done.push(`${c.dia}: "${c.refeicao}" → ${nm.itens.slice(0, 5).map((i) => `${i.alimento} ${i.quantidade}`).join(", ")}${nm.itens.length > 5 ? " …" : ""}`); }
       else { day.refeicoes.push(nm); day.refeicoes.sort((a, b) => (a.hora || "").localeCompare(b.hora || "")); done.push(`${c.dia}: adicionada "${nm.nome}"`); }
     }
     S.plan = { ...S.plan, plan, version: (S.plan.version || 1) + 1, previous: S.plan.plan, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: String(input.motivo || "Ajuste pelo chat") }].slice(-20) };
@@ -2003,9 +2007,45 @@ Documentos: quando a pessoa anexa análises ou outros documentos, a página lê-
 
 Plano alimentar: se existir um plano guardado (vem no contexto), é esse que a pessoa segue. Quando ela pedir para trocar, aligeirar ou ajustar refeições (ou relatar sintomas que justifiquem ajustar), usa a ferramenta atualizar_refeicoes para aplicar a mudança diretamente ao plano guardado e depois resume em 2–3 linhas o que mudou. Mantém proteína e fibra equivalentes na troca. Não uses a ferramenta para mudanças que a pessoa ainda não pediu.
 
+Mudanças que valem para a semana toda (deixou de comer um alimento ou um grupo inteiro, alergia nova, horários diferentes): guarda primeiro a regra com guardar_regra e NÃO tentes reescrever o plano todo com atualizar_refeicoes — ela aceita no máximo 8 refeições por chamada. Ajusta quando muito os próximos dias e explica que o plano novo, já com a regra aplicada, se gera na aba Plano em "Gerar novo plano" (ou "Refazer dia", para um dia só). Quando a pessoa exclui um grupo inteiro (legumes, leguminosas, lacticínios, peixe), aceita a decisão dela e diz em duas linhas como compensas a fibra, a proteína e os micronutrientes com o que ela come.
+
 Formato: responde de forma direta e curta, em texto simples (sem títulos nem markdown pesado; podes usar listas com "-"). Quando ajustares o plano, diz claramente o que muda (ex: "amanhã ao jantar troco X por Y, ~150 g").`;
 
-  function contextText() {
+  const byteLen = (s) => new TextEncoder().encode(String(s)).length;
+  /**
+   * O plano para o contexto do chat. Só os dias que interessam vão em detalhe:
+   * mandar a semana inteira refeição a refeição enche o limite de 64 KiB e,
+   * com ferramentas, cada ronda relê tudo outra vez.
+   */
+  function planDigest(level) {
+    if (!S.plan?.plan) return null;
+    const pl = S.plan.plan; const hoje = todayDayName();
+    const amanha = DAYS[(DAYS.indexOf(hoje) + 1) % 7];
+    const full = level === 0 ? [hoje, amanha] : level === 1 ? [hoje] : [];
+    const macrosOf = (m) => (({ kcal, proteina_g, hidratos_g, fibra_g }) => ({ kcal, proteina_g, hidratos_g, fibra_g }))(mealMacros(m));
+    const detalhe = (m) => ({ nome: m.nome, hora: m.hora, ordem: m.ordem, itens: (m.itens || []).map((i) => `${i.alimento} ${i.quantidade}`), ...macrosOf(m) });
+    const resumo = (m) => `${m.nome}${m.hora ? ` ${m.hora}` : ""}: ${(m.itens || []).map((i) => i.alimento).join(", ")}`;
+    const dias = (pl.dias || []).map((d) => full.includes(d.dia)
+      ? { dia: d.dia, totais_calculados: dayMacros(d), refeicoes: (d.refeicoes || []).map(detalhe) }
+      : { dia: d.dia, refeicoes: (d.refeicoes || []).map(level >= 2 ? (m) => m.nome : resumo) });
+    return {
+      versao: S.plan.version, semana: S.plan.week_start, metas_diarias: pl.metas_diarias,
+      ...(level >= 2 ? {} : { hidratacao: pl.hidratacao || [] }),
+      dias_em_detalhe: full, dias,
+      nota: "Os dias sem detalhe trazem só os alimentos. Se precisares do detalhe de um dia, pede-o à pessoa em vez de adivinhar.",
+    };
+  }
+  /** As análises: as que estão fora da referência contam sempre; as normais são cortadas. */
+  function labsDigest(level) {
+    const all = latestLabs();
+    if (all.length === 0) return [];
+    const fora = all.filter((x) => x.estado !== "normal");
+    if (level >= 2) return { total: all.length, fora_da_referencia: fora.slice(0, 10).map((x) => `${x.analise} ${x.valor} ${x.unidade || ""} (${x.estado})`) };
+    if (level === 1) return { total: all.length, fora_da_referencia: fora.slice(0, 15), nota: "só as fora da referência" };
+    return { total: all.length, fora_da_referencia: fora, normais_recentes: all.filter((x) => x.estado === "normal").slice(0, 12) };
+  }
+
+  function contextText(level = 0) {
     const p = profile(); const goal = waterGoal(p); const day = todayDay();
     const meds = (p.meds || []).filter((m) => m.active !== false);
     const ctx = {
@@ -2015,16 +2055,16 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
-      composicao_corporal: bodyContext(),
-      analises_mais_recentes: latestLabs(),
+      composicao_corporal: level >= 2 ? (bodyContext()?.ultima_medicao || null) : bodyContext(),
+      analises_mais_recentes: labsDigest(level),
       regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
       calculos_de_referencia: planTargets(p),
       tensao_arterial: bpSummary(),
-      documentos_de_saude: S.docs.slice(-6).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
-      plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, hidratacao: S.plan.plan.hidratacao || [], dias: S.plan.plan.dias.map((d) => ({ dia: d.dia, totais_calculados: dayMacros(d), refeicoes: d.refeicoes.map((m) => ({ nome: m.nome, hora: m.hora, ordem: m.ordem, itens: m.itens.map((i) => `${i.alimento} ${i.quantidade}`), ...(({ kcal, proteina_g, hidratos_g, fibra_g }) => ({ kcal, proteina_g, hidratos_g, fibra_g }))(mealMacros(m)) })) })) } : null,
+      documentos_de_saude: S.docs.slice(level >= 1 ? -3 : -6).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: String(d.resumo || "").slice(0, level >= 1 ? 140 : 300), ...(level >= 1 ? {} : { pontos: d.pontos }) })),
+      plano_alimentar: planDigest(level),
       fora_do_plano_hoje: (S.plan?.extras || []).filter((x) => x.date === localDate()).map(({ descricao, kcal, proteina_g }) => ({ descricao, kcal, proteina_g })),
-      adesao_ultimos_7_dias: adherenceSummary(7),
-      sintomas_ultimos_7_dias: symptomsSummary(7),
+      adesao_ultimos_7_dias: adherenceSummary(level >= 2 ? 3 : 7),
+      sintomas_ultimos_7_dias: symptomsSummary(level >= 2 ? 3 : 7),
       preferencias_registadas: prefsSummary(),
       ultima_revisao_semanal: lastReview() ? (({ at, resumo, ajustar, propostas }) => ({ data: String(at).slice(0, 10), resumo, ajustar, propostas }))(lastReview()) : null,
       ciclo_da_injecao: cycleInfo(p) ? { dia: cycleInfo(p).d, fase: cycleInfo(p).light ? "dias 0-2, versão leve" : "dias 3-6, melhor tolerância" } : null,
@@ -2065,6 +2105,30 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   /** Acrescenta uma mensagem sem mexer em listas congeladas vindas da base de dados. */
   function pushChat(m) { S.chat = [...S.chat, m]; }
 
+  /** Turnos do chat: instruções + contexto + histórico, dentro do limite de bytes. */
+  function buildTurns(level, historyMax) {
+    const history = S.chat.filter((m) => !m.error && m.content).slice(-historyMax).map((m) => ({ role: m.role, content: String(m.content) }));
+    return [{ role: "user", content: RULES + "\n\n" + contextText(level) }, ...history];
+  }
+  /**
+   * Aperta o contexto até caber. Com ferramentas o orçamento é menor de propósito:
+   * cada ronda relê tudo e as chamadas às ferramentas ainda somam por cima.
+   */
+  const FIT_STEPS = [[0, 40], [0, 16], [1, 12], [1, 6], [2, 6], [2, 2]];
+  function fitTurns(share, fromStep = 0) {
+    const max = S.promptMax || 65536;
+    const budget = Math.floor(max * share);
+    let last = null;
+    for (let i = Math.min(fromStep, FIT_STEPS.length - 1); i < FIT_STEPS.length; i++) {
+      const [level, hist] = FIT_STEPS[i];
+      const turns = buildTurns(level, hist);
+      const size = turns.reduce((a, t) => a + byteLen(t.content), 0);
+      last = { turns, level, size, step: i };
+      if (size <= budget) return last;
+    }
+    return last;
+  }
+
   function renderChat() {
     const log = $("chatLog"); const p = profile();
     if (S.chat.length === 0) {
@@ -2084,8 +2148,18 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     rate_limited: "Chegaste ao limite de utilização do Claude por agora. Tenta mais tarde.",
     session_expired: "A sessão expirou. Volta a iniciar sessão no Claude.",
     refused: "O assistente não pode responder a isto. Se for uma questão de saúde, fala com o teu médico.",
-    prompt_too_large: "A conversa ficou demasiado longa. Limpa a conversa e continua.",
-    empty_completion: "O assistente não devolveu texto. Tenta reformular.",
+    prompt_too_large: "Mesmo resumido, o pedido ficou grande demais. Limpa a conversa, ou pede a alteração dia a dia em vez da semana inteira.",
+    empty_completion: "O assistente não devolveu texto. Tenta reformular ou pedir menos de cada vez.",
+    invalid_request: "O pedido foi mal montado pela app. Mostra o painel de diagnóstico para se perceber o que falhou.",
+    tools_unavailable: "Nesta janela o assistente não pode alterar o plano sozinho. Respondo à mesma; as alterações fazem-se na aba Plano.",
+    upstream_error: "O serviço falhou a meio. Tenta outra vez daqui a pouco.",
+    invalid_json: "A resposta veio incompleta. Tenta outra vez.",
+    not_declared: "A página precisa de ser republicada para voltar a ter o assistente.",
+    capability_disabled: "O assistente não está disponível nesta janela. Abre a app no claude.ai.",
+    capability_removed: "Esta versão do claude.ai não tem esta função. Recarrega a página.",
+    transform_error: "Não foi possível preparar o pedido. Tenta outra vez.",
+    queue_overflow: "Demasiados pedidos ao mesmo tempo. Espera um pouco e tenta outra vez.",
+    image_rejected: "Não consegui usar esse ficheiro. Tenta um PDF ou uma imagem mais pequena.",
   };
 
   async function sendMessage(text) {
@@ -2150,10 +2224,12 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     const bubble = document.createElement("div"); bubble.className = "msg assistant";
     bubble.innerHTML = `<span class="thinking">a pensar…</span>`; log.appendChild(bubble); log.scrollTop = log.scrollHeight;
 
-    const history = S.chat.filter((m) => !m.error).slice(-40).map((m) => ({ role: m.role, content: m.content }));
-    const turns = [{ role: "user", content: RULES + "\n\n" + contextText() }, ...history];
+    const fit = fitTurns(S.toolsOK ? 0.25 : 0.75);
+    let turns = fit.turns;
+    let step = fit.step;
+    S.diag.step = `contexto: ${Math.round(fit.size / 1024)} KB (nível ${fit.level})`;
     let finalText = "", err = null;
-    const tools = S.toolsOK ? [{
+    const toolList = S.toolsOK ? [{
       name: "guardar_regra",
       description: "Guarda de forma permanente uma regra alimentar pessoal que a pessoa quer que seja sempre respeitada (ordem por que come os alimentos, horários, alimentos proibidos, forma de confecionar, etc.). Usa sempre que ela enunciar uma preferência ou regra duradoura, mesmo de passagem. Não uses para pedidos pontuais de um só dia.",
       inputSchema: { type: "object", properties: { regra: { type: "string", description: "A regra numa frase curta e clara, na 2.ª pessoa (ex: 'Comer sempre os legumes primeiro, depois a proteína e os hidratos no fim')" } }, required: ["regra"] },
@@ -2170,7 +2246,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       execute: async (input) => { bubble.innerHTML = `<span class="thinking">a registar…</span>`; return registerExtra(input); },
     }] : []), ...(S.plan?.plan ? [{
       name: "atualizar_refeicoes",
-      description: "Altera refeições do plano alimentar guardado da pessoa e devolve o que foi aplicado. Usa quando a pessoa pede para trocar, aligeirar, adicionar ou remover uma refeição de um dia concreto.",
+      description: "Altera refeições do plano alimentar guardado da pessoa e devolve o que foi aplicado. Usa quando a pessoa pede para trocar, aligeirar, adicionar ou remover uma refeição de um dia concreto. No máximo 8 refeições por chamada: para mudanças que valem para a semana toda, guarda antes a regra com guardar_regra e sugere gerar o plano novo na aba Plano.",
       inputSchema: { type: "object", properties: {
         motivo: { type: "string", description: "Resumo curto do porquê (ex: náuseas, não gosta de peixe)" },
         alteracoes: { type: "array", items: { type: "object", properties: {
@@ -2181,12 +2257,37 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
         }, required: ["dia", "refeicao"] } },
       }, required: ["alteracoes"] },
       execute: async (input) => { bubble.innerHTML = `<span class="thinking">a atualizar o plano…</span>`; return applyMealUpdates(input); },
-    }] : [])] : undefined;
+    }] : [])] : null;
+    const tools = toolList && toolList.length ? toolList.slice(0, S.toolMax || 8) : undefined;
+    const callOnce = (t, withTools) => S.sample(t, {
+      cache: false, signal: ctl.signal, ...(withTools && tools ? { tools } : {}),
+      onText: ({ text: tx }) => { bubble.textContent = tx; log.scrollTop = log.scrollHeight; },
+    });
     try {
-      const res = await S.sample(turns, {
-        cache: false, signal: ctl.signal, ...(tools ? { tools } : {}),
-        onText: ({ text: t }) => { bubble.textContent = t; log.scrollTop = log.scrollHeight; },
-      });
+      let res;
+      try {
+        res = await callOnce(turns, true);
+      } catch (e1) {
+        if (e1?.code === "cancelled") throw e1;
+        // o contexto (ou as rondas das ferramentas) não coube: manda a versão curta
+        if (e1?.code === "prompt_too_large") {
+          // repetir o mesmo tamanho só gastava outra vez: só insiste se houver mesmo o que cortar
+          const menor = fitTurns(0.15, step + 1);
+          if (!menor || menor.size >= fit.size) throw e1;
+          S.diag.lastErr = `chat: prompt_too_large — repetido com contexto de ${Math.round(menor.size / 1024)} KB`; renderDiag();
+          bubble.innerHTML = `<span class="thinking">a resumir o contexto e a tentar outra vez…</span>`;
+          turns = menor.turns; step = menor.step;
+          res = await callOnce(turns, true);
+        } else if (tools && (e1?.code === "tools_unavailable" || e1?.code === "invalid_request" || e1?.code === "empty_completion")) {
+          // sem ferramentas a pessoa fica pelo menos com a resposta escrita
+          S.diag.lastErr = `chat: ${e1.code} — repetido sem ferramentas`; renderDiag();
+          bubble.innerHTML = `<span class="thinking">a escrever a resposta…</span>`;
+          const semFerramentas = turns.map((t, i) => i === turns.length - 1
+            ? { ...t, content: `${t.content}\n\n(Responde agora só em texto, sem ferramentas: diz o que ficou decidido e o que a pessoa deve fazer a seguir na app.)` }
+            : t);
+          res = await callOnce(semFerramentas, false);
+        } else throw e1;
+      }
       finalText = res.text; if (res.truncated) finalText += "\n\n(resposta cortada; pede menos de cada vez)";
     } catch (e) {
       err = e; finalText = e?.text || "";
@@ -2194,7 +2295,8 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       S.streaming = null; $("sendChat").disabled = false; $("stopChat").hidden = true;
     }
     if (err && err.code !== "cancelled") {
-      const copy = ERR_COPY[err.code] || "Falha ao contactar o assistente. Tenta outra vez.";
+      const copy = (ERR_COPY[err.code] || "Falha ao contactar o assistente. Tenta outra vez.") + (err.code ? ` (código: ${err.code})` : "");
+      S.diag.lastErr = `chat: ${err.code || "erro"} ${String(err.message || "").slice(0, 140)}`.trim(); renderDiag();
       if (err.code === "refused") finalText = "";
       pushChat({ role: "assistant", content: (finalText ? finalText + "\n\n" : "") + "⚠️ " + copy, at: new Date().toISOString(), error: true });
     } else if (finalText) {
@@ -2426,7 +2528,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();
@@ -2451,6 +2553,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
     if (sample) {
       const lim = await sample.limits().catch((e) => { S.diag.lastErr = `limits: ${e?.code || e?.message || e}`; return null; });
       S.toolsOK = !!lim?.tools; S.imageLimits = lim?.images || null;
+      S.promptMax = Number(lim?.maxPromptBytes) || 65536; S.toolMax = Number(lim?.tools?.maxCount) || 8;
       S.diag.tools = !!lim?.tools; S.diag.images = !!lim?.images;
       $("fileInput").accept = ["application/pdf", ".pdf", "text/plain", ...(S.imageLimits ? S.imageLimits.mediaTypes : [])].join(",");
       $("attachHint").textContent = S.imageLimits ? "PDF, foto ou imagem de análises, tensão, ECG ou outros documentos." : "PDF de análises, tensão, ECG ou outros documentos (esta conta não permite enviar fotos).";

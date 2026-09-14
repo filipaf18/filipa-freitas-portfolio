@@ -341,6 +341,32 @@
   .edrow.unknown input:first-child { color: var(--muted); border-style: dashed; }
   .modal .row { justify-content: flex-end; }
 
+  /* ---------- hoje ---------- */
+  .tag.cycle { border-color: var(--accent); color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .alert { border-radius: 12px; padding: 12px 14px; font-size: 0.92rem; background: #FBE9E7; color: #7A1E17; border: 1px solid #F1B8B2; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .alert { background: #3A1A17; color: #F6C3BD; border-color: #6E2A24; } }
+  :root[data-theme="dark"] .alert { background: #3A1A17; color: #F6C3BD; border-color: #6E2A24; }
+  .alert strong { font-weight: 700; }
+  .status.soft { background: var(--water-soft); }
+  .hero { border-color: transparent; background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%); }
+  .hero h2 { font-size: 1.35rem; }
+  .hero .when { font-size: 0.9rem; color: var(--muted); }
+  .adh { gap: 8px; }
+  .adh .btn { flex: 1 1 auto; }
+  .adh .btn.done { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .symrows { display: flex; flex-direction: column; gap: 10px; }
+  .symrow { display: flex; flex-direction: column; gap: 6px; }
+  .symrow .k { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+  .symrow .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .symrow .opts button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; font-size: 0.85rem; }
+  .symrow .opts button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .symrow .opts button.warn[aria-pressed="true"] { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .meal .adhrow { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .meal .adhrow .btn { padding: 4px 10px; font-size: 0.78rem; }
+  .meal.done { opacity: 0.6; }
+  .meal.done h3::after { content: " ✓"; color: var(--accent); }
+  .meal.skipped h3 { text-decoration: line-through; }
+
   .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.9rem; }
   .kv dt { color: var(--muted); }
   .kv dd { margin: 0; font-weight: 600; }

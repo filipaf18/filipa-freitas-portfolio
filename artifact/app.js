@@ -21,6 +21,10 @@
     vitals: [],            // tensão arterial [{id, date, time, sys, dia, pulse, source}]
     docs: [],              // documentos lidos [{id, date, tipo, titulo, resumo, pontos, at}]
     rules: [],             // regras alimentares pessoais [{id, texto, origem, at}]
+    adherence: {},         // adesão por dia: { "YYYY-MM-DD": { "<refeição>": { status, texto, at } } }
+    symptoms: {},          // sintomas por dia: { "YYYY-MM-DD": { nauseas, vomitos, transito, energia, apetite, dor_intensa, sem_liquidos, at } }
+    reviews: [],           // revisões semanais [{week_start, texto, propostas, at}]
+    otherFor: null,        // refeição para a qual se está a escrever "comi outra coisa"
     body: [],              // composição corporal [{id, date, weight_kg, fat_pct, muscle_kg, water_pct, visceral, bone_kg, notes}]
     bodyPick: "weight_kg",
     shopWho: null,         // perfil cuja lista de compras está a ser vista, ou "todos"
@@ -101,7 +105,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {}, adherence: {}, symptoms: {}, reviews: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -140,6 +144,22 @@
     await write(`vitals/${S.pid}`, { profile: S.pid, entries: S.vitals }, mem.vitals, S.pid);
     renderVitals();
   }
+  const pruneDays = (obj, keep) => Object.fromEntries(Object.entries(obj || {}).sort(([a], [b]) => a.localeCompare(b)).slice(-keep));
+  async function saveAdherence() {
+    S.adherence = pruneDays(S.adherence, 120);
+    await write(`adherence/${S.pid}`, { profile: S.pid, days: S.adherence }, mem.adherence, S.pid);
+    renderHome();
+  }
+  async function saveSymptoms() {
+    S.symptoms = pruneDays(S.symptoms, 180);
+    await write(`symptoms/${S.pid}`, { profile: S.pid, days: S.symptoms }, mem.symptoms, S.pid);
+    renderHome();
+  }
+  async function saveReviews() {
+    S.reviews = S.reviews.slice(-30);
+    await write(`reviews/${S.pid}`, { profile: S.pid, entries: S.reviews }, mem.reviews, S.pid);
+    renderHome();
+  }
   async function saveBody() {
     S.body = [...S.body].sort((a, b) => a.date.localeCompare(b.date)).slice(-400);
     await write(`body/${S.pid}`, { profile: S.pid, entries: S.body }, mem.body, S.pid);
@@ -169,12 +189,13 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = []; S.edit = { body: null, lab: null, bp: null };
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = []; S.edit = { body: null, lab: null, bp: null }; S.adherence = {}; S.symptoms = {}; S.reviews = []; S.otherFor = null;
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
       S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
+      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || [];
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -197,6 +218,15 @@
     S.unsub.push(S.db.doc(`vitals/${S.pid}`).onSnapshot((snap) => {
       S.vitals = snap.exists ? (thaw(snap.data().entries) || []) : []; renderVitals();
     }, (e) => console.warn("vitals", e)));
+    S.unsub.push(S.db.doc(`adherence/${S.pid}`).onSnapshot((snap) => {
+      S.adherence = snap.exists ? (thaw(snap.data().days) || {}) : {}; renderHome();
+    }, (e) => console.warn("adherence", e)));
+    S.unsub.push(S.db.doc(`symptoms/${S.pid}`).onSnapshot((snap) => {
+      S.symptoms = snap.exists ? (thaw(snap.data().days) || {}) : {}; renderHome();
+    }, (e) => console.warn("symptoms", e)));
+    S.unsub.push(S.db.doc(`reviews/${S.pid}`).onSnapshot((snap) => {
+      S.reviews = snap.exists ? (thaw(snap.data().entries) || []) : []; renderHome();
+    }, (e) => console.warn("reviews", e)));
     S.unsub.push(S.db.doc(`body/${S.pid}`).onSnapshot((snap) => {
       S.body = snap.exists ? (thaw(snap.data().entries) || []) : [];
       if (document.activeElement?.form?.id !== "bodyForm" && !S.edit.body) renderBody();
@@ -324,6 +354,80 @@
   // ============================================================
   // Render: hoje (cabeçalho) e perfil
   // ============================================================
+  // ---------- ciclo da injeção ----------
+  /** Dias passados desde a última injeção (0 = hoje), ou null se não se souber o dia. */
+  function injectionDay(p) {
+    if (!p.uses_glp1 || !p.glp1_inj_day) return null;
+    const inj = DAYS.indexOf(p.glp1_inj_day); if (inj < 0) return null;
+    return (DAYS.indexOf(todayDayName()) - inj + 7) % 7;
+  }
+  function cycleInfo(p) {
+    const d = injectionDay(p); if (d === null) return null;
+    if (d === 0) return { d, label: "Dia da injeção", light: true, tip: "Refeições pequenas, pouca gordura, líquidos entre refeições." };
+    if (d <= 2) return { d, label: `Dia ${d} depois da injeção`, light: true, tip: "Ainda na janela de mais sintomas: versão leve, proteína em cada refeição, goles pequenos." };
+    return { d, label: `Dia ${d} depois da injeção`, light: false, tip: "Janela de melhor tolerância: bom dia para recuperar proteína e para treino de força." };
+  }
+
+  // ---------- sintomas do dia ----------
+  const SYMPTOM_ROWS = [
+    { k: "nauseas", label: "Náuseas", opts: [["0", "nenhumas"], ["1", "ligeiras"], ["2", "moderadas"], ["3", "fortes"]] },
+    { k: "vomitos", label: "Vómitos", opts: [["nao", "não"], ["sim", "sim"]] },
+    { k: "transito", label: "Trânsito intestinal", opts: [["normal", "normal"], ["obstipada", "obstipação"], ["diarreia", "diarreia"]] },
+    { k: "energia", label: "Energia", opts: [["baixa", "baixa"], ["normal", "normal"], ["boa", "boa"]] },
+    { k: "apetite", label: "Apetite", opts: [["nenhum", "nenhum"], ["pouco", "pouco"], ["normal", "normal"]] },
+    { k: "dor_intensa", label: "Dor abdominal intensa", opts: [["nao", "não"], ["sim", "sim"]], warn: "sim" },
+    { k: "sem_liquidos", label: "Não consigo reter líquidos", opts: [["nao", "não"], ["sim", "sim"]], warn: "sim" },
+  ];
+  const todaySymptoms = () => S.symptoms[localDate()] || {};
+  function renderSymptoms() {
+    const el = $("symptomRows"); if (!el) return;
+    const t = todaySymptoms();
+    el.innerHTML = SYMPTOM_ROWS.map((r) => `<div class="symrow"><span class="k">${r.label}</span><div class="opts">${r.opts.map(([v, l]) => `<button type="button" class="${r.warn === v ? "warn" : ""}" data-sym="${r.k}" data-val="${v}" aria-pressed="${String(t[r.k]) === v}">${l}</button>`).join("")}</div></div>`).join("");
+    $("symptomSaved").textContent = t.at ? `guardado ${fmtTime(t.at)}` : "";
+  }
+  async function setSymptom(k, v) {
+    const t = { ...todaySymptoms(), [k]: v, at: new Date().toISOString() };
+    if (String(t[k]) === String(todaySymptoms()[k])) delete t[k]; // voltar a carregar desmarca
+    S.symptoms = { ...S.symptoms, [localDate()]: t };
+    await saveSymptoms();
+  }
+  /** Sinais de alarme a partir dos sintomas dos últimos dias. */
+  function alarms() {
+    const t = todaySymptoms(); const out = [];
+    if (t.dor_intensa === "sim") out.push("Dor abdominal intensa, sobretudo se irradiar para as costas, pode ser pancreatite. Contacta o médico hoje ou vai à urgência.");
+    if (t.sem_liquidos === "sim") out.push("Não conseguir reter líquidos leva a desidratação e pode afetar os rins. Se durar mais de 24 horas, contacta o médico.");
+    const last3 = [0, 1, 2].map((i) => S.symptoms[addDays(localDate(), -i)] || {});
+    if (last3.slice(0, 2).every((x) => x.vomitos === "sim")) out.push("Vómitos em dois dias seguidos: fala com o médico. Enquanto isso, líquidos claros em goles de 30 a 50 ml de 15 em 15 minutos.");
+    if (last3.every((x) => String(x.nauseas) === "3")) out.push("Náuseas fortes há três dias: vale a pena discutir com o médico o ritmo da titulação.");
+    return out;
+  }
+
+  // ---------- adesão ----------
+  const todayAdherence = () => S.adherence[localDate()] || {};
+  async function setAdherence(mealName, status, texto) {
+    const day = { ...todayAdherence() };
+    if (status === null) delete day[mealName]; else day[mealName] = { status, ...(texto ? { texto } : {}), at: new Date().toISOString() };
+    S.adherence = { ...S.adherence, [localDate()]: day };
+    await saveAdherence();
+  }
+  /** Refeições de hoje segundo o plano, ordenadas pela hora. */
+  const todayMeals = () => ((S.plan?.plan?.dias || []).find((x) => x.dia === todayDayName())?.refeicoes || []).slice().sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+  function nextMeal() {
+    const meals = todayMeals(); if (meals.length === 0) return null;
+    const adh = todayAdherence(); const now = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
+    const pending = meals.filter((m) => !adh[m.nome]);
+    if (pending.length === 0) return { done: true };
+    // a primeira pendente cuja hora ainda não passou há mais de 2 horas; senão a primeira pendente
+    const soon = pending.find((m) => !m.hora || m.hora >= addMinutes(now, -120));
+    return { meal: soon || pending[0], overdue: !!(soon && soon.hora && soon.hora < now) };
+  }
+  const addMinutes = (hm, delta) => { const [h, m] = hm.split(":").map(Number); const t = ((h * 60 + m + delta) % 1440 + 1440) % 1440; return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`; };
+  function adherenceButtons(m, compact) {
+    const st = todayAdherence()[m.nome]?.status;
+    const b = (v, l) => `<button type="button" class="btn sm ${st === v ? "done" : ""}" data-adh="${esc(m.nome)}" data-st="${v}">${l}</button>`;
+    return `${b("comi", "Comi ✓")}${b("outro", "Comi outra coisa")}${b("saltei", "Saltei")}`;
+  }
+
   function renderHome() {
     const p = profile();
     $("greet").textContent = `Olá, ${p.name || DEFAULT_NAMES[S.pid]}`;
@@ -331,12 +435,61 @@
     const missing = []; if (!p.weight_kg) missing.push("peso atual"); if (!p.height_cm) missing.push("altura"); if (!p.birth_date) missing.push("data de nascimento");
     $("missingNote").hidden = missing.length === 0;
     $("missingNote").innerHTML = `Para metas e sugestões mais precisas, completa o perfil: <strong>${esc(missing.join(", "))}</strong>. <a href="#" data-goto="perfil">Ir ao perfil</a>`;
+
+    // ciclo da injeção
+    const cy = cycleInfo(p);
+    $("cycleTag").hidden = !cy; if (cy) $("cycleTag").textContent = cy.label;
+
+    // alarmes
+    const al = alarms();
+    $("alarmBanner").hidden = al.length === 0;
+    $("alarmBanner").innerHTML = al.length ? `<strong>Sinal de alarme.</strong> ${al.map(esc).join(" ")}` : "";
+
+    // dia leve: sintomas de hoje ou dias 0–2 do ciclo
+    const t = todaySymptoms(); const dd = S.plan?.plan?.dias_dificeis || {};
+    const tips = [];
+    if (Number(t.nauseas) >= 2) tips.push(...(dd.nauseas || []).slice(0, 3));
+    if (t.transito === "obstipada") tips.push(...(dd.obstipacao || []).slice(0, 2));
+    if (t.transito === "diarreia") tips.push(...(dd.diarreia || []).slice(0, 2));
+    if (t.apetite === "nenhum") tips.push(...(dd.sem_apetite || []).slice(0, 2));
+    if (cy?.light) tips.push(...(dd.dia_da_injecao || []).slice(0, 2));
+    const note = $("lightDayNote");
+    if (tips.length || cy) {
+      note.hidden = false;
+      note.innerHTML = `${cy ? `<strong>${esc(cy.label)}.</strong> ${esc(cy.tip)} ` : ""}${tips.length ? `<ul style="margin:6px 0 0; padding-left:18px">${[...new Set(tips)].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`;
+    } else note.hidden = true;
+
+    // próxima refeição
+    const nm = nextMeal(); const hasPlan = !!S.plan?.plan;
+    $("noPlanCard").hidden = hasPlan; $("nextMealCard").hidden = !hasPlan;
+    if (hasPlan) {
+      if (!nm) { $("nextMealLabel").textContent = "Hoje"; $("nextMealBody").innerHTML = `<p class="muted small">O plano não tem refeições para hoje.</p>`; $("nextMealActions").innerHTML = ""; }
+      else if (nm.done) { $("nextMealLabel").textContent = "Refeições de hoje"; $("nextMealBody").innerHTML = `<h2>Tudo registado ✓</h2><p class="when">Boa. Amanhã há mais.</p>`; $("nextMealActions").innerHTML = ""; }
+      else {
+        const m = nm.meal; const mm = mealMacros(m);
+        $("nextMealLabel").textContent = nm.overdue ? "Refeição em atraso" : "Próxima refeição";
+        $("nextMealBody").innerHTML = `<h2>${esc(m.nome)}</h2><p class="when">${m.hora ? `às ${esc(m.hora)} · ` : ""}${mm.kcal} kcal · ${mm.proteina_g} g proteína</p>
+          ${(m.ordem || []).length ? `<div class="order">Ordem: ${m.ordem.map((o, i) => `${i ? '<span class="arrow">→</span> ' : ""}<b>${esc(o)}</b>`).join(" ")}</div>` : ""}
+          <ul class="items">${(m.itens || []).map((i) => `<li><span><span class="grp g-${grupoOf(i.grupo)}"></span>${esc(i.alimento)}${i.medida_caseira ? ` <span class="meta muted">(${esc(i.medida_caseira)})</span>` : ""}</span><span class="qty num">${esc(i.quantidade)}</span></li>`).join("")}</ul>`;
+        $("nextMealActions").innerHTML = adherenceButtons(m);
+      }
+      $("nextMealOther").hidden = !S.otherFor;
+    }
+
+    // refeições de hoje com adesão + resumo
     renderTodayMeals();
+    const adh = todayAdherence(); const meals = todayMeals();
+    const n = Object.values(adh); const c = n.filter((x) => x.status === "comi").length, o = n.filter((x) => x.status === "outro").length, sk = n.filter((x) => x.status === "saltei").length;
+    $("adherenceSummary").textContent = meals.length ? `${c} seguida${c === 1 ? "" : "s"}${o ? `, ${o} diferente${o === 1 ? "" : "s"}` : ""}${sk ? `, ${sk} saltada${sk === 1 ? "" : "s"}` : ""} de ${meals.length}` : "";
+
+    renderSymptoms();
+    renderReviewCard();
     $("chatSummary").textContent = S.chat.length ? `${S.chat.length} mensagens guardadas. Continua a conversa.` : "Fala com o assistente sobre o teu plano, sintomas ou preferências.";
     const age = ageFrom(p.birth_date); const imc = bmi(p.height_cm, p.weight_kg);
     const bits = []; if (age !== null) bits.push(`${age} anos`); if (imc) bits.push(`IMC ${imc}`); if (p.weight_kg && p.target_kg) bits.push(`${p.weight_kg} kg → objetivo ${p.target_kg} kg`);
     $("profileSummary").textContent = bits.length ? bits.join(" · ") : "Completa os dados para veres o resumo.";
   }
+  function renderReviewCard() { /* preenchido na revisão semanal */ const el = $("reviewCard"); if (el && typeof renderReview === "function") renderReview(); }
 
   function renderProfileForm() {
     const p = profile(); const f = (n) => $("profileForm").elements.namedItem(n);
@@ -947,6 +1100,9 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       documentos_de_saude: S.docs.slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
       meta_agua_ml: goal.ml,
       composicao_corporal: bodyContext(),
+      adesao_ultimos_14_dias: adherenceSummary(14),
+      sintomas_ultimos_14_dias: symptomsSummary(14),
+      ultima_revisao_semanal: S.reviews.length ? S.reviews[S.reviews.length - 1] : null,
     });
   }
   /** Resumo da composição corporal para o assistente e para o plano. */
@@ -1507,6 +1663,26 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       merged.map((c) => `<h3>${esc(c.categoria)}</h3><ul>${c.itens.map((x) => `<li>${esc(x.alimento)}${x.quantidade ? ` — <strong>${esc(x.quantidade)}</strong>` : ""}${x.detalhe ? `<br><span class="meta muted">${esc(x.detalhe)}</span>` : ""}</li>`).join("")}</ul>`).join("");
   }
 
+  /** Adesão dos últimos N dias, compacta, para o assistente. */
+  function adherenceSummary(n) {
+    const out = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = addDays(localDate(), -i); const day = S.adherence[d]; if (!day) continue;
+      const items = Object.entries(day).map(([meal, v]) => `${meal}: ${v.status}${v.texto ? ` (${v.texto})` : ""}`);
+      if (items.length) out.push({ data: d, refeicoes: items });
+    }
+    return out;
+  }
+  function symptomsSummary(n) {
+    const out = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = addDays(localDate(), -i); const t = S.symptoms[d]; if (!t) continue;
+      const { at, ...rest } = t; void at;
+      if (Object.keys(rest).length) out.push({ data: d, ...rest });
+    }
+    return out;
+  }
+
   /** Data (YYYY-MM-DD) de um dia da semana do plano, na semana corrente. */
   function dateOfPlanDay(day) { const i = DAYS.indexOf(day); return addDays(mondayOf(), i < 0 ? 0 : i); }
   const GRUPOS = ["proteina", "legumes", "hidratos", "gordura", "fruta", "lacticinio"];
@@ -1532,9 +1708,10 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   function renderTodayMeals() {
     const el = $("todayMeals"); if (!el) return;
     if (!S.plan?.plan) { el.innerHTML = `<p class="muted small">Ainda não há plano. <a href="#" data-goto="plano">Gerar plano semanal</a>.</p>`; renderTodaySchedule(); return; }
-    const day = S.plan.plan.dias.find((x) => x.dia === todayDayName());
+    const meals = todayMeals(); const adh = todayAdherence();
     const extras = (S.plan.extras || []).filter((x) => x.date === localDate());
-    el.innerHTML = (day && day.refeicoes.length ? day.refeicoes.map((m) => mealHtml(m, true)).join("") : `<p class="muted small">Sem refeições para hoje.</p>`) +
+    const one = (m) => { const st = adh[m.nome]?.status; const cls = st === "comi" ? "done" : st === "saltei" ? "skipped" : ""; const html = mealHtml(m, true).replace('<div class="meal">', `<div class="meal ${cls}">`); const extra = st === "outro" && adh[m.nome].texto ? `<div class="prep">↪ ${esc(adh[m.nome].texto)}</div>` : ""; return html.replace(/<\/div>$/, `${extra}<div class="adhrow">${adherenceButtons(m, true)}</div></div>`); };
+    el.innerHTML = (meals.length ? meals.map(one).join("") : `<p class="muted small">Sem refeições para hoje.</p>`) +
       (extras.length ? `<div class="meal"><div class="head"><h3>Fora do plano</h3></div>${extras.map((x) => `<div class="extra"><span>${esc(x.descricao)}</span><span class="muted small num">${x.kcal ? `~${Math.round(x.kcal)} kcal` : ""}</span></div>`).join("")}</div>` : "");
     renderTodaySchedule();
   }
@@ -1640,6 +1817,9 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       documentos_de_saude: S.docs.slice(-6).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
       plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, hidratacao: S.plan.plan.hidratacao || [], dias: S.plan.plan.dias.map((d) => ({ dia: d.dia, totais_calculados: dayMacros(d), refeicoes: d.refeicoes.map((m) => ({ nome: m.nome, hora: m.hora, ordem: m.ordem, itens: m.itens.map((i) => `${i.alimento} ${i.quantidade}`), ...(({ kcal, proteina_g, hidratos_g, fibra_g }) => ({ kcal, proteina_g, hidratos_g, fibra_g }))(mealMacros(m)) })) })) } : null,
       fora_do_plano_hoje: (S.plan?.extras || []).filter((x) => x.date === localDate()).map(({ descricao, kcal, proteina_g }) => ({ descricao, kcal, proteina_g })),
+      adesao_ultimos_7_dias: adherenceSummary(7),
+      sintomas_ultimos_7_dias: symptomsSummary(7),
+      ciclo_da_injecao: cycleInfo(p) ? { dia: cycleInfo(p).d, fase: cycleInfo(p).light ? "dias 0-2, versão leve" : "dias 3-6, melhor tolerância" } : null,
       dia_da_semana_hoje: todayDayName(),
     };
     return `Contexto atual desta utilizadora (JSON, atualizado a cada mensagem):\n${JSON.stringify(ctx)}`;
@@ -1820,11 +2000,19 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach],[data-editmeal]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
     if (t.dataset.sub) { setSub(t.dataset.sub); return; }
+    if (t.dataset.sym) { await setSymptom(t.dataset.sym, t.dataset.val); return; }
+    if (t.dataset.adh) {
+      const name = t.dataset.adh, st = t.dataset.st;
+      if (st === "outro") { S.otherFor = name; $("nextMealOther").hidden = false; $("otherText").value = todayAdherence()[name]?.texto || ""; $("otherText").focus(); return; }
+      const cur = todayAdherence()[name]?.status;
+      await setAdherence(name, cur === st ? null : st);
+      return;
+    }
     if (t.dataset.editmeal) { const [d, i] = t.dataset.editmeal.split("|"); openMealEditor(d, +i); return; }
     if (t.dataset.attach !== undefined) { setView("chat"); $("fileInput").click(); return; }
     if (t.dataset.goto) { ev.preventDefault(); setView(t.dataset.goto); return; }
@@ -1928,6 +2116,12 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (!S.streaming) $("sendChat").disabled = false;
     renderDiag();
   }
+  $("otherSave").addEventListener("click", async () => {
+    const name = S.otherFor; if (!name) return;
+    const texto = $("otherText").value.trim();
+    S.otherFor = null; $("nextMealOther").hidden = true;
+    await setAdherence(name, "outro", texto);
+  });
   $("attachBtn").addEventListener("click", () => $("fileInput").click());
   const addFiles = (list) => {
     const max = 25 * 1024 * 1024; let rejected = 0;

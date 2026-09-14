@@ -23,14 +23,41 @@
   <!-- ============ HOJE ============ -->
   <section class="view active" id="view-hoje">
     <div>
-      <h1 id="greet">Olá</h1>
+      <div class="row between" style="align-items:flex-start">
+        <h1 id="greet">Olá</h1>
+        <span class="tag cycle" id="cycleTag" hidden></span>
+      </div>
       <p class="muted" id="glp1line"></p>
     </div>
+    <div class="alert" id="alarmBanner" hidden></div>
     <div class="status" id="missingNote" hidden></div>
+    <div class="status soft" id="lightDayNote" hidden></div>
 
-    <div class="card lift">
+    <!-- herói: a próxima refeição -->
+    <div class="card lift hero" id="nextMealCard" hidden>
       <div class="row between">
-        <h2>Água de hoje</h2>
+        <span class="eyebrow" id="nextMealLabel">Próxima refeição</span>
+        <button class="btn ghost sm" data-goto="plano">Plano →</button>
+      </div>
+      <div id="nextMealBody"></div>
+      <div class="row adh" id="nextMealActions"></div>
+      <div id="nextMealOther" hidden>
+        <div class="row" style="gap:6px; flex-wrap:nowrap">
+          <input class="input" id="otherText" placeholder="O que comeste em vez disso?" maxlength="160">
+          <button type="button" class="btn sm primary" id="otherSave">Guardar</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="noPlanCard" hidden>
+      <h2>Ainda não há plano</h2>
+      <p class="muted small">Preenche o perfil e gera o plano semanal. Depois o "Hoje" passa a mostrar a próxima refeição e o horário de água.</p>
+      <div class="row"><button class="btn primary" data-goto="plano">Ir ao plano</button></div>
+    </div>
+
+    <!-- água -->
+    <div class="card">
+      <div class="row between">
+        <h2>Água</h2>
         <button class="btn ghost sm" data-goto="agua">Histórico →</button>
       </div>
       <div class="hero-num">
@@ -39,16 +66,29 @@
         <span class="muted num" style="margin-left:auto" id="todayPct">0%</span>
       </div>
       <div class="bar"><div id="todayBar" style="width:0%"></div></div>
-      <div class="row" id="quickAdd1"></div>
       <div id="todaySchedule"></div>
+      <details><summary class="small muted" style="cursor:pointer">Registar outra quantidade</summary><div class="row" id="quickAdd1" style="margin-top:8px"></div></details>
     </div>
 
+    <!-- como te sentes -->
+    <div class="card" id="symptomCard">
+      <div class="row between"><h2>Como te sentes hoje?</h2><span class="small muted" id="symptomSaved"></span></div>
+      <div class="symrows" id="symptomRows"></div>
+      <p class="hint">Isto ajusta as sugestões do dia e alimenta a revisão semanal. Os sinais de alarme mostram um aviso no topo.</p>
+    </div>
+
+    <!-- refeições de hoje com adesão -->
     <div class="card" id="todayMealsCard">
       <div class="row between">
         <h2>Refeições de hoje</h2>
-        <button class="btn ghost sm" data-goto="plano">Plano →</button>
+        <span class="small muted" id="adherenceSummary"></span>
       </div>
       <div id="todayMeals"></div>
+    </div>
+
+    <div class="card" id="reviewCard" hidden>
+      <div class="row between"><h2>Revisão da semana</h2><button class="btn ghost sm" id="reviewBtn">Gerar</button></div>
+      <div id="reviewBody" class="small"></div>
     </div>
 
     <div class="grid-2">
@@ -58,12 +98,10 @@
       </a>
       <a class="card link" href="#" data-goto="perfil">
         <h2>Perfil</h2>
-        <p class="muted small">Dados base, GLP-1 e titulação, medicação, suplementos, alimentação.</p>
+        <p class="muted small">Dados base, GLP-1 e titulação, medicação, suplementos, regras alimentares.</p>
       </a>
     </div>
   </section>
-
-
 
   <!-- ============ REGISTAR ============ -->
   <section class="view" id="view-registar">

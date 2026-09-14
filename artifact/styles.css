@@ -223,6 +223,9 @@
   .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); gap: 2px; }
   .seg button { border: 0; background: transparent; border-radius: 8px; padding: 5px 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
   .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+  .subnav { flex-wrap: wrap; }
+  .subnav button { flex: 1 1 auto; }
+  .sub { display: flex; flex-direction: column; gap: 20px; }
 
   /* ---------- chat ---------- */
   .chat-log { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; padding-right: 2px; }

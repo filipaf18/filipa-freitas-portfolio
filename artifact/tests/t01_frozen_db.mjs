@@ -12,7 +12,7 @@ export default async function () {
   const { page } = app;
   try {
     await page.click('[data-pid="mae"]'); await page.waitForTimeout(400);
-    await page.click('[data-view="chat"]');
+    await app.go("chat");
     const pdf = path.join(here, "fixtures", "analises.pdf"); fs.writeFileSync(pdf, makePdf(["Analises Clinicas - Lab Central", "Colheita: 10/09/2026", "Hemoglobina glicada (HbA1c)  5,4 %  (4,0-5,7)", "Colesterol LDL  148 mg/dL  (<115)", "Ferritina  9 ng/mL  (15-150)", "Tensao arterial: 138/88 mmHg, pulso 72"]));
     await page.setInputFiles("#fileInput", pdf); await page.click("#sendChat"); await page.waitForTimeout(2500);
     assert((await app.text("#chatLog")).includes("3 análises registadas"), "leitura do PDF regista as 3 análises (a HbA1c antiga é de outra data)");
@@ -23,10 +23,10 @@ export default async function () {
     eq(d["vitals/mae"].entries.length, 3, "tensões: antiga + PDF + chat");
     eq(d["labs/mae"].entries.length, 4, "análises: antiga + 3 do PDF");
     // análise manual, corpo, água, perfil
-    await page.click('[data-view="analises"]'); await page.selectOption("#l_marker", "ferritina"); await page.fill("#l_value", "11"); await page.click('#labForm button[type=submit]'); await page.waitForTimeout(300);
-    await page.click('[data-view="corpo"]'); await page.fill("#c_weight", "77.5"); await page.fill("#c_fat", "38"); await page.fill("#c_muscle", "34"); await page.click('#bodyForm button[type=submit]'); await page.waitForTimeout(400);
-    await page.click('[data-view="hoje"]'); await page.click('[data-ml="250"]'); await page.waitForTimeout(300);
-    await page.click('[data-view="plano"]'); await page.click("#genPlan"); await page.waitForTimeout(2500);
+    await app.go("analises"); await page.selectOption("#l_marker", "ferritina"); await page.fill("#l_value", "11"); await page.click('#labForm button[type=submit]'); await page.waitForTimeout(300);
+    await app.go("corpo"); await page.fill("#c_weight", "77.5"); await page.fill("#c_fat", "38"); await page.fill("#c_muscle", "34"); await page.click('#bodyForm button[type=submit]'); await page.waitForTimeout(400);
+    await app.go("hoje"); await page.click('[data-ml="250"]'); await page.waitForTimeout(300);
+    await app.go("plano"); await page.click("#genPlan"); await page.waitForTimeout(2500);
     const d2 = await app.dump();
     eq(d2["labs/mae"].entries.length, 5, "análise manual guardada");
     eq(d2["body/mae"].entries.length, 1, "medição corporal guardada");

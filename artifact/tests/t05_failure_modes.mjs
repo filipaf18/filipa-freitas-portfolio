@@ -5,7 +5,7 @@ export default async function () {
   const app = await open({ store: { ...PROFILES }, sample: null });
   const { page } = app;
   try {
-    await page.click('[data-view="chat"]'); await page.fill("#chatInput", "olá"); await page.click("#sendChat"); await page.waitForTimeout(400);
+    await app.go("chat"); await page.fill("#chatInput", "olá"); await page.click("#sendChat"); await page.waitForTimeout(400);
     assert((await app.text("#sampleNote")).includes("não está disponível"), "nota de assistente indisponível");
     assert(!(await page.isDisabled("#sendChat")), "botão Enviar continua ativo");
     assert((await app.text("#diagText")).includes("chat (sample): não"), "diagnóstico mostra o estado");

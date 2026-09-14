@@ -5,7 +5,7 @@ export default async function () {
   const app = await open({ store: { ...PROFILES }, sampleJson: PLAN_JSON });
   const { page } = app;
   try {
-    await page.click('[data-view="plano"]'); await page.click("#genPlan"); await page.waitForTimeout(2200);
+    await app.go("plano"); await page.click("#genPlan"); await page.waitForTimeout(2200);
     assert((await app.text("#planMeta")).includes("Versão 1"), "primeiro plano");
     await page.click("#regenPlan"); await page.waitForTimeout(300);
     assert(await page.isVisible(".modal"), "diálogo próprio aparece");

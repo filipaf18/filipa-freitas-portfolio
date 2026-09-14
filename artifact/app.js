@@ -36,6 +36,7 @@
     toolsOK: false,
     range: 7,
     view: "hoje",
+    sub: null,
     unsub: [],
     streaming: null,       // AbortController
     memory: false,         // sem db: guarda em memória
@@ -222,12 +223,28 @@
     $("who").innerHTML = PROFILE_IDS.map((id) =>
       `<button type="button" data-pid="${id}" aria-pressed="${id === S.pid}">${esc(S.profiles[id]?.name || DEFAULT_NAMES[id])}</button>`).join("");
   }
+  // "Registar" agrupa as secções de registo; os nomes antigos continuam a funcionar como atalhos.
+  const SUBS = ["agua", "corpo", "tensao", "analises", "docs"];
   function setView(v) {
+    let sub = null;
+    if (SUBS.includes(v)) { sub = v; v = "registar"; }
     S.view = v;
     document.querySelectorAll(".view").forEach((el) => el.classList.toggle("active", el.id === `view-${v}`));
     document.querySelectorAll("#tabs [role=tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === v)));
-    if (v === "chat") setTimeout(() => $("chatLog").scrollTop = $("chatLog").scrollHeight, 0);
+    if (v === "registar") setSub(sub || S.sub || (() => { try { return localStorage.getItem("nutriglp.sub"); } catch { return null; } })() || "agua");
+    if (v === "chat") setTimeout(() => { $("chatLog").scrollTop = $("chatLog").scrollHeight; }, 0);
     window.scrollTo({ top: 0 });
+  }
+  function setSub(name) {
+    if (!SUBS.includes(name)) name = "agua";
+    S.sub = name;
+    try { localStorage.setItem("nutriglp.sub", name); } catch {}
+    document.querySelectorAll("#view-registar .sub").forEach((el) => { el.hidden = el.dataset.sub !== name; });
+    document.querySelectorAll("#subnav [data-sub]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sub === name)));
+    // os gráficos medem a largura do contentor: redesenhar quando a secção fica visível
+    if (name === "agua") renderWater();
+    if (name === "corpo" && S.body.length) renderBodyChart();
+    if (name === "analises" && S.labs.length) renderLabChart();
   }
 
   // ============================================================
@@ -1667,10 +1684,12 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
+    if (t.dataset.sub) { setSub(t.dataset.sub); return; }
+    if (t.dataset.attach !== undefined) { setView("chat"); $("fileInput").click(); return; }
     if (t.dataset.goto) { ev.preventDefault(); setView(t.dataset.goto); return; }
     if (t.dataset.ml) { t.disabled = true; try { await addWater(t.dataset.ml); } finally { t.disabled = false; } return; }
     if (t.dataset.del !== undefined) { await removeWater(+t.dataset.del); return; }

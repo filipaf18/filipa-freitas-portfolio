@@ -13,7 +13,7 @@ export default async function () {
   const app = await open({ store });
   const { page } = app;
   try {
-    await page.click('[data-view="corpo"]'); await page.waitForTimeout(300);
+    await app.go("corpo"); await page.waitForTimeout(300);
     assert((await app.text("#bodyList")).includes("músculo 34 % (22,1 kg)"), "registo antigo em kg converte para percentagem");
     await page.click('[data-editbody="b2"]'); await page.waitForTimeout(200);
     eq(await page.inputValue("#c_muscle"), "34.3", "editar carrega a percentagem");
@@ -23,7 +23,7 @@ export default async function () {
     await page.click('[data-delbody="b1"]'); await page.waitForTimeout(400);
     eq(await page.evaluate(() => document.querySelectorAll("#bodyList li").length), 1, "remover funciona");
     assert((await app.text("#bodyLossQuality")) === "" || true, "qualidade da perda");
-    await page.click('[data-view="plano"]'); await page.waitForTimeout(300);
+    await app.go("plano"); await page.waitForTimeout(300);
     assert((await app.text("#shopWho")).includes("As duas"), "seletor com as duas");
     await page.click('[data-shopwho="todos"]'); await page.waitForTimeout(200);
     const shop = await app.text("#planShop");

@@ -10,10 +10,8 @@
   </div>
   <nav class="tabs" role="tablist" id="tabs">
     <button role="tab" data-view="hoje" aria-selected="true">Hoje</button>
-    <button role="tab" data-view="agua" aria-selected="false">Água</button>
-    <button role="tab" data-view="corpo" aria-selected="false">Corpo</button>
+    <button role="tab" data-view="registar" aria-selected="false">Registar</button>
     <button role="tab" data-view="plano" aria-selected="false">Plano</button>
-    <button role="tab" data-view="analises" aria-selected="false">Análises</button>
     <button role="tab" data-view="chat" aria-selected="false">Chat</button>
     <button role="tab" data-view="perfil" aria-selected="false">Perfil</button>
   </nav>
@@ -65,8 +63,26 @@
     </div>
   </section>
 
-  <!-- ============ ÁGUA ============ -->
-  <section class="view" id="view-agua">
+
+
+  <!-- ============ REGISTAR ============ -->
+  <section class="view" id="view-registar">
+    <div>
+      <h1>Registar</h1>
+      <p class="muted small">Água, peso e composição corporal, tensão, análises e documentos, tudo num sítio.</p>
+    </div>
+    <div class="row" style="gap:8px">
+      <button type="button" class="btn sm" data-goto="chat" data-attach>📎 Anexar documento</button>
+    </div>
+    <div class="seg subnav" role="tablist" id="subnav">
+      <button type="button" data-sub="agua" aria-pressed="false">Água</button>
+      <button type="button" data-sub="corpo" aria-pressed="false">Corpo</button>
+      <button type="button" data-sub="tensao" aria-pressed="false">Tensão</button>
+      <button type="button" data-sub="analises" aria-pressed="false">Análises</button>
+      <button type="button" data-sub="docs" aria-pressed="false">Documentos</button>
+    </div>
+
+    <div class="sub" data-sub="agua" hidden>
     <div>
       <h1>Hidratação</h1>
       <p class="muted small" id="goalExplain"></p>
@@ -93,10 +109,9 @@
       <div class="chart-wrap" id="chart"><div class="tooltip" id="tip"></div></div>
     </div>
     <p class="small muted" id="glp1tip" hidden>Com GLP-1 a sensação de sede diminui e a digestão fica mais lenta. Beber em pequenos goles ao longo do dia ajuda a prevenir desidratação, obstipação e náuseas.</p>
-  </section>
+    </div>
 
-  <!-- ============ CORPO ============ -->
-  <section class="view" id="view-corpo">
+    <div class="sub" data-sub="corpo" hidden>
     <div>
       <h1>Composição corporal</h1>
       <p class="muted small">Peso, massa gorda, massa magra e água corporal. Se tiveres uma balança de bioimpedância, regista o que ela mostrar. Pesa-te sempre nas mesmas condições: de manhã, em jejum, depois de urinar.</p>
@@ -139,6 +154,71 @@
     <div class="card">
       <h2>Registos</h2>
       <ul class="list" id="bodyList"></ul>
+    </div>
+    </div>
+
+    <div class="sub" data-sub="tensao" hidden>
+      <div>
+        <h1>Tensão arterial</h1>
+        <p class="muted small">Regista as medições de tensão. Podes também dizê-las no chat: "hoje tive 128/82".</p>
+      </div>
+    <form class="card" id="bpForm">
+      <div class="row between"><h2>Tensão arterial</h2><span class="small muted" id="bpAvg"></span></div>
+      <div class="bp-form">
+        <div class="field"><label for="b_date">Data</label><input class="input" id="b_date" type="date" required></div>
+        <div class="field"><label for="b_time">Hora</label><input class="input" id="b_time" type="time"></div>
+        <div class="field"><label for="b_sys">Sistólica</label><input class="input num" id="b_sys" type="number" min="60" max="260" required placeholder="120"></div>
+        <div class="field"><label for="b_dia">Diastólica</label><input class="input num" id="b_dia" type="number" min="30" max="160" required placeholder="80"></div>
+        <div class="field"><label for="b_pulse">Pulso</label><input class="input num" id="b_pulse" type="number" min="30" max="220" placeholder="70"></div>
+        <button type="submit" class="btn">Adicionar</button>
+      </div>
+      <ul class="list" id="bpList"></ul>
+    </form>
+    </div>
+
+    <div class="sub" data-sub="analises" hidden>
+      <div>
+        <h1>Análises clínicas</h1>
+        <p class="muted small">Regista os valores de cada análise. Os intervalos de referência são indicativos; prevalecem os do teu laboratório.</p>
+      </div>
+    <form class="card" id="labForm">
+      <h2>Registar valor</h2>
+      <div class="lab-form">
+        <div class="field"><label for="l_date">Data da colheita</label><input class="input" id="l_date" type="date" required></div>
+        <div class="field wide-sm"><label for="l_marker">Análise</label><select class="input" id="l_marker"></select></div>
+        <div class="field" id="l_customWrap" hidden><label for="l_custom">Nome</label><input class="input" id="l_custom" placeholder="ex: Zinco"></div>
+        <div class="field"><label for="l_value">Valor</label><input class="input num" id="l_value" type="number" step="any" required></div>
+        <div class="field"><label for="l_unit">Unidade</label><input class="input" id="l_unit"></div>
+        <div class="field"><label for="l_lo">Ref. mín.</label><input class="input num" id="l_lo" type="number" step="any" placeholder="—"></div>
+        <div class="field"><label for="l_hi">Ref. máx.</label><input class="input num" id="l_hi" type="number" step="any" placeholder="—"></div>
+        <div class="field wide"><label for="l_notes">Notas</label><input class="input" id="l_notes" placeholder="opcional: laboratório, jejum, contexto"></div>
+      </div>
+      <div class="row"><button type="submit" class="btn primary">Adicionar</button><span class="small muted" id="labMsg"></span></div>
+    </form>
+    <div class="card" id="labChartCard" hidden>
+      <div class="row between">
+        <h2>Evolução</h2>
+        <select class="input" id="labPick" style="width:auto; max-width: 60%"></select>
+      </div>
+      <p class="small" id="labLatest"></p>
+      <div class="chart-wrap" id="labChart"><div class="tooltip" id="labTip"></div></div>
+    </div>
+    <div class="card">
+      <h2>Registos</h2>
+      <div id="labList"></div>
+    </div>
+    </div>
+
+    <div class="sub" data-sub="docs" hidden>
+      <div>
+        <h1>Documentos de saúde</h1>
+        <p class="muted small">Relatórios de análises, registos de tensão, eletrocardiogramas ou outros documentos lidos pelo assistente.</p>
+      </div>
+    <div class="card">
+      <h2>Documentos de saúde</h2>
+      <p class="small muted">Envia relatórios de análises, registos de tensão, eletrocardiogramas ou outros documentos pelo <a href="#" data-goto="chat">chat</a> com o clipe 📎 (foto, imagem ou PDF). O assistente lê, regista os valores aqui e guarda um resumo que o plano passa a ter em conta.</p>
+      <div id="docList"></div>
+    </div>
     </div>
   </section>
 
@@ -205,56 +285,6 @@
     </div>
   </section>
 
-  <!-- ============ ANÁLISES ============ -->
-  <section class="view" id="view-analises">
-    <div>
-      <h1>Análises clínicas</h1>
-      <p class="muted small">Regista os valores de cada análise. Os intervalos de referência são indicativos; prevalecem os do teu laboratório.</p>
-    </div>
-    <form class="card" id="labForm">
-      <h2>Registar valor</h2>
-      <div class="lab-form">
-        <div class="field"><label for="l_date">Data da colheita</label><input class="input" id="l_date" type="date" required></div>
-        <div class="field wide-sm"><label for="l_marker">Análise</label><select class="input" id="l_marker"></select></div>
-        <div class="field" id="l_customWrap" hidden><label for="l_custom">Nome</label><input class="input" id="l_custom" placeholder="ex: Zinco"></div>
-        <div class="field"><label for="l_value">Valor</label><input class="input num" id="l_value" type="number" step="any" required></div>
-        <div class="field"><label for="l_unit">Unidade</label><input class="input" id="l_unit"></div>
-        <div class="field"><label for="l_lo">Ref. mín.</label><input class="input num" id="l_lo" type="number" step="any" placeholder="—"></div>
-        <div class="field"><label for="l_hi">Ref. máx.</label><input class="input num" id="l_hi" type="number" step="any" placeholder="—"></div>
-        <div class="field wide"><label for="l_notes">Notas</label><input class="input" id="l_notes" placeholder="opcional: laboratório, jejum, contexto"></div>
-      </div>
-      <div class="row"><button type="submit" class="btn primary">Adicionar</button><span class="small muted" id="labMsg"></span></div>
-    </form>
-    <div class="card" id="labChartCard" hidden>
-      <div class="row between">
-        <h2>Evolução</h2>
-        <select class="input" id="labPick" style="width:auto; max-width: 60%"></select>
-      </div>
-      <p class="small" id="labLatest"></p>
-      <div class="chart-wrap" id="labChart"><div class="tooltip" id="labTip"></div></div>
-    </div>
-    <div class="card">
-      <h2>Registos</h2>
-      <div id="labList"></div>
-    </div>
-    <form class="card" id="bpForm">
-      <div class="row between"><h2>Tensão arterial</h2><span class="small muted" id="bpAvg"></span></div>
-      <div class="bp-form">
-        <div class="field"><label for="b_date">Data</label><input class="input" id="b_date" type="date" required></div>
-        <div class="field"><label for="b_time">Hora</label><input class="input" id="b_time" type="time"></div>
-        <div class="field"><label for="b_sys">Sistólica</label><input class="input num" id="b_sys" type="number" min="60" max="260" required placeholder="120"></div>
-        <div class="field"><label for="b_dia">Diastólica</label><input class="input num" id="b_dia" type="number" min="30" max="160" required placeholder="80"></div>
-        <div class="field"><label for="b_pulse">Pulso</label><input class="input num" id="b_pulse" type="number" min="30" max="220" placeholder="70"></div>
-        <button type="submit" class="btn">Adicionar</button>
-      </div>
-      <ul class="list" id="bpList"></ul>
-    </form>
-    <div class="card">
-      <h2>Documentos de saúde</h2>
-      <p class="small muted">Envia relatórios de análises, registos de tensão, eletrocardiogramas ou outros documentos pelo <a href="#" data-goto="chat">chat</a> com o clipe 📎 (foto, imagem ou PDF). O assistente lê, regista os valores aqui e guarda um resumo que o plano passa a ter em conta.</p>
-      <div id="docList"></div>
-    </div>
-  </section>
 
   <!-- ============ CHAT ============ -->
   <section class="view" id="view-chat">

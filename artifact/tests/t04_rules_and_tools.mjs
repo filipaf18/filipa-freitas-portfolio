@@ -7,12 +7,12 @@ export default async function () {
   try {
     const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
     await page.evaluate((d) => { window.__todayName = d; }, DAYS[(new Date().getDay() + 6) % 7]);
-    await page.click('[data-view="perfil"]'); await page.fill("#r_text", "Jantar até às 20h"); await page.click('#rulesForm button[type=submit]'); await page.waitForTimeout(300);
-    await page.click('[data-view="chat"]'); await page.fill("#chatInput", "como sempre os legumes primeiro"); await page.click("#sendChat"); await page.waitForTimeout(900);
+    await app.go("perfil"); await page.fill("#r_text", "Jantar até às 20h"); await page.click('#rulesForm button[type=submit]'); await page.waitForTimeout(300);
+    await app.go("chat"); await page.fill("#chatInput", "como sempre os legumes primeiro"); await page.click("#sendChat"); await page.waitForTimeout(900);
     const d = await app.dump();
     eq(d["rules/filipa"].entries.length, 2, "duas regras guardadas (perfil + chat)");
-    await page.click('[data-view="plano"]'); await page.click("#genPlan"); await page.waitForTimeout(2500);
-    await page.click('[data-view="chat"]'); await page.fill("#chatInput", "comi um pastel de nata ao lanche"); await page.click("#sendChat"); await page.waitForTimeout(1200);
+    await app.go("plano"); await page.click("#genPlan"); await page.waitForTimeout(2500);
+    await app.go("chat"); await page.fill("#chatInput", "comi um pastel de nata ao lanche"); await page.click("#sendChat"); await page.waitForTimeout(1200);
     const res = await page.evaluate(() => window.__toolResults);
     assert(res.some((r) => r.registado?.descricao === "pastel de nata"), "extra registado");
     assert(res.some((r) => r.aplicado?.[0]?.includes("Jantar")), "jantar de hoje ajustado: " + JSON.stringify(res).slice(0, 200));

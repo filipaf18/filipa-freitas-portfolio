@@ -89,7 +89,14 @@ export async function open({ store = {}, sample = null, sampleJson = null, limit
   const calls = () => page.evaluate(() => window.__calls);
   const dump = () => page.evaluate(() => window.__store);
   const text = async (sel) => ((await page.textContent(sel)) || "").replace(/\s+/g, " ").trim();
-  return { page, browser, errs, close, calls, dump, text };
+  /** Vai a um separador; "agua", "corpo", "tensao", "analises" e "docs" ficam dentro de "Registar". */
+  const go = async (view) => {
+    const subs = ["agua", "corpo", "tensao", "analises", "docs"];
+    if (subs.includes(view)) { await page.click('[data-view="registar"]'); await page.click(`[data-sub="${view}"]`); }
+    else await page.click(`[data-view="${view}"]`);
+    await page.waitForTimeout(150);
+  };
+  return { page, browser, errs, close, calls, dump, text, go };
 }
 
 export function assert(cond, msg) { if (!cond) throw new Error("FALHOU: " + msg); }

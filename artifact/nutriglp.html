@@ -278,6 +278,28 @@
   .date-group { display: flex; flex-direction: column; gap: 4px; }
   .date-group h3 { padding-top: 6px; }
 
+  /* ---------- anexos, horário de água, extras ---------- */
+  .attach-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .attach { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 4px 10px; font-size: 0.8rem; max-width: 100%; }
+  .attach span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+  .attach button { border: 0; background: transparent; color: var(--muted); padding: 0 2px; font-size: 1rem; line-height: 1; }
+  .sched { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+  .sched li { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 0.9rem; }
+  .sched li:first-child { border-top: 0; }
+  .sched .h { font-weight: 700; color: var(--water); }
+  .sched .n { color: var(--muted); font-size: 0.82rem; }
+  .sched li.done { opacity: 0.55; }
+  .sched li.done .h::after { content: " ✓"; }
+  .extra { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 0.9rem; }
+  .extra:first-child { border-top: 0; }
+  .bp-form { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
+  @media (max-width: 640px) { .bp-form { grid-template-columns: repeat(3, minmax(0, 1fr)); } .bp-form .btn { grid-column: span 3; } }
+  .doc { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .doc:first-child { border-top: 0; }
+  .doc .t { font-weight: 700; }
+  .doc .s { font-size: 0.88rem; color: var(--ink-2); }
+  .doc ul { margin: 2px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--ink-2); }
+
   .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.9rem; }
   .kv dt { color: var(--muted); }
   .kv dd { margin: 0; font-weight: 600; }
@@ -322,6 +344,7 @@
       </div>
       <div class="bar"><div id="todayBar" style="width:0%"></div></div>
       <div class="row" id="quickAdd1"></div>
+      <div id="todaySchedule"></div>
     </div>
 
     <div class="card" id="todayMealsCard">
@@ -392,6 +415,15 @@
         <div class="targets" id="planTargets"></div>
         <p class="rationale" id="planRationale"></p>
       </div>
+      <div class="card">
+        <div class="row between"><h2>Água ao longo do dia</h2><span class="small muted num" id="planWaterTotal"></span></div>
+        <ul class="sched" id="planWater"></ul>
+        <p class="small muted" id="planWaterNote"></p>
+      </div>
+      <div class="card" id="planExtrasCard" hidden>
+        <div class="row between"><h2>Fora do plano</h2><span class="small muted" id="planExtrasDay"></span></div>
+        <div id="planExtras"></div>
+      </div>
       <div class="card lift">
         <div class="days" id="planDays"></div>
         <div id="planMealsList"></div>
@@ -402,7 +434,7 @@
         <button class="btn ghost sm" id="undoPlan" hidden>Repor versão anterior</button>
         <span class="small muted" id="genMsg"></span>
       </div>
-      <p class="small muted">Para ajustar refeições concretas, usa o <a href="#" data-goto="chat">chat</a>: "troca o jantar de terça", "hoje tive náuseas, aligeira amanhã". O plano atualiza-se aqui.</p>
+      <p class="small muted">Para ajustar refeições concretas, usa o <a href="#" data-goto="chat">chat</a>: "troca o jantar de terça", "hoje tive náuseas, aligeira amanhã", "comi um pastel de nata ao lanche". O plano atualiza-se aqui.</p>
     </div>
   </section>
 
@@ -438,6 +470,23 @@
       <h2>Registos</h2>
       <div id="labList"></div>
     </div>
+    <form class="card" id="bpForm">
+      <div class="row between"><h2>Tensão arterial</h2><span class="small muted" id="bpAvg"></span></div>
+      <div class="bp-form">
+        <div class="field"><label for="b_date">Data</label><input class="input" id="b_date" type="date" required></div>
+        <div class="field"><label for="b_time">Hora</label><input class="input" id="b_time" type="time"></div>
+        <div class="field"><label for="b_sys">Sistólica</label><input class="input num" id="b_sys" type="number" min="60" max="260" required placeholder="120"></div>
+        <div class="field"><label for="b_dia">Diastólica</label><input class="input num" id="b_dia" type="number" min="30" max="160" required placeholder="80"></div>
+        <div class="field"><label for="b_pulse">Pulso</label><input class="input num" id="b_pulse" type="number" min="30" max="220" placeholder="70"></div>
+        <button type="submit" class="btn">Adicionar</button>
+      </div>
+      <ul class="list" id="bpList"></ul>
+    </form>
+    <div class="card">
+      <h2>Documentos de saúde</h2>
+      <p class="small muted">Envia relatórios de análises, registos de tensão, eletrocardiogramas ou outros documentos pelo <a href="#" data-goto="chat">chat</a> com o clipe 📎 (foto, imagem ou PDF). O assistente lê, regista os valores aqui e guarda um resumo que o plano passa a ter em conta.</p>
+      <div id="docList"></div>
+    </div>
   </section>
 
   <!-- ============ CHAT ============ -->
@@ -451,9 +500,14 @@
       <div class="chat-log" id="chatLog"></div>
       <div class="chips" id="chips"></div>
       <form class="composer" id="composer">
+        <div class="attach-list" id="attachList"></div>
         <textarea class="input" id="chatInput" rows="2" placeholder="Escreve aqui… (Enter envia, Shift+Enter nova linha)"></textarea>
         <div class="row between">
-          <button type="button" class="btn ghost sm" id="clearChat">Limpar conversa</button>
+          <div class="row" style="gap:4px">
+            <input type="file" id="fileInput" multiple hidden>
+            <button type="button" class="btn ghost sm" id="attachBtn" hidden>📎 Anexar documento</button>
+            <button type="button" class="btn ghost sm" id="clearChat">Limpar conversa</button>
+          </div>
           <div class="row">
             <button type="button" class="btn sm" id="stopChat" hidden>Parar</button>
             <button type="submit" class="btn primary" id="sendChat">Enviar</button>
@@ -560,6 +614,10 @@
     chat: [],              // [{role, content, at}]
     weights: [],           // [{date, kg}]
     labs: [],              // [{id, date, marker, label, value, unit, lo, hi, notes}]
+    vitals: [],            // tensão arterial [{id, date, time, sys, dia, pulse, source}]
+    docs: [],              // documentos lidos [{id, date, tipo, titulo, resumo, pontos, at}]
+    attachments: [],       // ficheiros escolhidos no chat (File)
+    imageLimits: null,
     plan: null,            // {week_start, version, plan:{...}, previous, changelog}
     planDay: null,
     labPick: null,
@@ -606,7 +664,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -629,6 +687,18 @@
     if (S.db) await S.db.doc(`labs/${S.pid}`).set(body); else mem.labs[S.pid] = body;
     renderLabs();
   }
+  async function saveVitals() {
+    S.vitals = [...S.vitals].sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || ""))).slice(-500);
+    const body = { profile: S.pid, entries: S.vitals };
+    if (S.db) await S.db.doc(`vitals/${S.pid}`).set(body); else mem.vitals[S.pid] = body;
+    renderVitals();
+  }
+  async function saveDocs() {
+    S.docs = S.docs.slice(-50);
+    const body = { profile: S.pid, entries: S.docs };
+    if (S.db) await S.db.doc(`docs/${S.pid}`).set(body); else mem.docs[S.pid] = body;
+    renderDocs();
+  }
   async function savePlan() {
     const body = { ...S.plan, profile: S.pid };
     if (S.db) await S.db.doc(`plans/${S.pid}`).set(body); else mem.plans[S.pid] = body;
@@ -643,12 +713,12 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null;
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.attachments = [];
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: w[k].entries, total: w[k].total });
       S.chat = mem.chat[S.pid]?.messages || []; S.weights = mem.weights[S.pid]?.entries || [];
-      S.labs = mem.labs[S.pid]?.entries || []; S.plan = mem.plans[S.pid] || null;
+      S.labs = mem.labs[S.pid]?.entries || []; S.plan = mem.plans[S.pid] || null; S.vitals = mem.vitals[S.pid]?.entries || []; S.docs = mem.docs[S.pid]?.entries || [];
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -668,6 +738,12 @@
       S.labs = snap.exists ? (snap.data().entries || []) : [];
       if (document.activeElement?.form?.id !== "labForm") renderLabs();
     }, (e) => console.warn("labs", e)));
+    S.unsub.push(S.db.doc(`vitals/${S.pid}`).onSnapshot((snap) => {
+      S.vitals = snap.exists ? (snap.data().entries || []) : []; renderVitals();
+    }, (e) => console.warn("vitals", e)));
+    S.unsub.push(S.db.doc(`docs/${S.pid}`).onSnapshot((snap) => {
+      S.docs = snap.exists ? (snap.data().entries || []) : []; renderDocs();
+    }, (e) => console.warn("docs", e)));
     S.unsub.push(S.db.doc(`plans/${S.pid}`).onSnapshot((snap) => {
       if (S.generating) return;
       S.plan = snap.exists ? snap.data() : null;
@@ -716,6 +792,7 @@
       ? `<li class="muted small">Ainda não registaste água hoje.</li>`
       : [...day.entries].reverse().map((e, i) => `<li><span><strong class="num">${e.ml} ml</strong> <span class="meta">às ${fmtTime(e.at)}</span></span><button type="button" class="btn ghost sm" data-del="${day.entries.length - 1 - i}">remover</button></li>`).join("");
     renderChart(goal.ml);
+    renderTodaySchedule();
   }
 
   function renderChart(goalMl) {
@@ -860,6 +937,26 @@
     { id: "pcr", label: "PCR (proteína C reativa)", unit: "mg/L", lo: null, hi: 5 },
     { id: "outro", label: "Outra análise…", unit: "", lo: null, hi: null },
   ];
+  const ALIASES = {
+    hba1c: ["hba1c", "a1c", "glicada", "glicosilada"], glicemia_jejum: ["glicemia", "glucose", "glicose"], insulina: ["insulina"],
+    colesterol_total: ["colesterol total", "colesterol"], ldl: ["ldl"], hdl: ["hdl"], trigliceridos: ["triglic"],
+    creatinina: ["creatinina"], egfr: ["egfr", "tfg", "filtracao glomerular", "ckd-epi", "ckd epi"], ureia: ["ureia", "urea"], acido_urico: ["acido urico", "urato"],
+    alt: ["alt", "tgp", "alanina"], ast: ["ast", "tgo", "aspartato"], ggt: ["ggt", "gama gt", "gama-gt", "gamaglutamil"], bilirrubina_total: ["bilirrubina total"], albumina: ["albumina"],
+    lipase: ["lipase"], amilase: ["amilase"], hemoglobina: ["hemoglobina"], ferro: ["ferro serico", "ferro"], ferritina: ["ferritina"], transferrina_sat: ["saturacao"],
+    b12: ["b12", "cobalamina"], folato: ["folico", "folato"], vit_d: ["vitamina d", "25-oh", "25 oh", "25(oh)", "calcidiol", "hidroxivitamina"],
+    tsh: ["tsh", "tirotropina"], t4_livre: ["t4 livre", "ft4", "t4l", "tiroxina livre"], sodio: ["sodio", "na+"], potassio: ["potassio", "k+"], magnesio: ["magnesio"], calcio: ["calcio"], pcr: ["pcr", "proteina c"],
+  };
+  const NOT = { hemoglobina: ["glic", "a1c", "corpuscular", "hcm", "chcm"], colesterol_total: ["ldl", "hdl", "nao"], ferro: ["ferritina", "transferrina", "saturacao", "capacidade"], calcio: ["ionizado"], glicemia_jejum: ["pos", "2h", "120", "urina"] };
+  const specificFirst = ["hba1c", "ldl", "hdl", "trigliceridos", "colesterol_total", "transferrina_sat", "ferritina", "ferro", "t4_livre", "tsh", "bilirrubina_total", "vit_d", "folato", "b12", "egfr", "creatinina", "ureia", "acido_urico", "alt", "ast", "ggt", "albumina", "lipase", "amilase", "insulina", "glicemia_jejum", "hemoglobina", "sodio", "potassio", "magnesio", "calcio", "pcr"];
+  /** Liga o nome de uma análise (como vem no documento) a um marcador conhecido. */
+  function matchMarker(name) {
+    const n = norm(name);
+    for (const id of specificFirst) {
+      if ((NOT[id] || []).some((x) => n.includes(x))) continue;
+      if ((ALIASES[id] || []).some((a) => n.includes(a))) return id;
+    }
+    return "outro";
+  }
   const markerOf = (id) => MARKERS.find((m) => m.id === id);
   const labLabel = (e) => e.marker === "outro" ? (e.label || "Outra") : (markerOf(e.marker)?.label || e.label || e.marker);
   const labKey = (e) => e.marker === "outro" ? "outro:" + (e.label || "").toLowerCase() : e.marker;
@@ -939,6 +1036,127 @@
   }
 
   // ============================================================
+  // Tensão arterial e documentos
+  // ============================================================
+  const bpClass = (e) => (e.sys >= 140 || e.dia >= 90) ? "alta" : (e.sys >= 130 || e.dia >= 85) ? "elevada" : (e.sys < 90 || e.dia < 60) ? "baixa" : null;
+  function bpAverage(n = 7) {
+    const last = S.vitals.slice(-n); if (last.length === 0) return null;
+    return { n: last.length, sys: Math.round(last.reduce((a, e) => a + e.sys, 0) / last.length), dia: Math.round(last.reduce((a, e) => a + e.dia, 0) / last.length), pulse: last.some((e) => e.pulse) ? Math.round(last.filter((e) => e.pulse).reduce((a, e) => a + e.pulse, 0) / last.filter((e) => e.pulse).length) : null };
+  }
+  function renderVitals() {
+    const el = $("bpList"); if (!el) return;
+    const rows = [...S.vitals].reverse().slice(0, 12);
+    el.innerHTML = rows.length === 0 ? `<li class="muted small">Sem registos. Podes também dizer no chat "hoje tive 128/82".</li>` :
+      rows.map((e) => { const c = bpClass(e); return `<li><span><strong class="num">${e.sys}/${e.dia}</strong> mmHg${e.pulse ? ` <span class="meta num">· ${e.pulse} bpm</span>` : ""} <span class="meta">${e.date}${e.time ? " " + e.time : ""}${e.source ? " · " + esc(e.source) : ""}</span> ${c ? `<span class="flag ${c === "alta" || c === "elevada" ? "out" : "ok"}">${c}</span>` : ""}</span><button type="button" class="btn ghost sm" data-delbp="${e.id}">remover</button></li>`; }).join("");
+    const avg = bpAverage(); $("bpAvg").textContent = avg ? `média das últimas ${avg.n}: ${avg.sys}/${avg.dia}` : "";
+    if (!$("b_date").value) $("b_date").value = localDate();
+  }
+  function renderDocs() {
+    const el = $("docList"); if (!el) return;
+    const rows = [...S.docs].reverse();
+    el.innerHTML = rows.length === 0 ? `<p class="muted small">Ainda não enviaste documentos.</p>` :
+      rows.map((d) => `<div class="doc"><div class="row between"><span class="t">${esc(d.titulo || d.tipo)} <span class="meta muted small">· ${d.date || "sem data"} · ${esc(tipoLabel(d.tipo))}</span></span><button type="button" class="btn ghost sm" data-deldoc="${d.id}">remover</button></div><div class="s">${esc(d.resumo || "")}</div>${(d.pontos || []).length ? `<ul>${d.pontos.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>`).join("");
+  }
+  const tipoLabel = (t) => ({ analises: "análises", tensao_arterial: "tensão arterial", ecg: "eletrocardiograma", outro: "documento" }[t] || t);
+
+  // ---- leitura de documentos (imagens / PDF) com o Claude ----
+  let pdfjsPromise = null;
+  function loadScript(src) { return new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("script " + src)); document.head.appendChild(el); }); }
+  async function loadPdfJs() {
+    if (window.pdfjsLib) return window.pdfjsLib;
+    if (!pdfjsPromise) pdfjsPromise = (async () => {
+      const cands = [["https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"], ["https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js", "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"]];
+      for (const [lib, worker] of cands) { try { await loadScript(lib); window.pdfjsLib.GlobalWorkerOptions.workerSrc = worker; return window.pdfjsLib; } catch { /* tenta o seguinte */ } }
+      throw new Error("pdfjs");
+    })();
+    return pdfjsPromise;
+  }
+  async function pdfToImages(file, maxPages = 6) {
+    const pdfjs = await loadPdfJs();
+    const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+    const out = []; const n = Math.min(pdf.numPages, maxPages);
+    for (let i = 1; i <= n; i++) {
+      const page = await pdf.getPage(i); const vp0 = page.getViewport({ scale: 1 }); const scale = Math.min(2, 1400 / Math.max(vp0.width, vp0.height)); const vp = page.getViewport({ scale });
+      const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      await page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+      out.push(await new Promise((r) => c.toBlob(r, "image/png")));
+    }
+    return { images: out, pages: pdf.numPages };
+  }
+  async function filesToImages(files) {
+    const images = []; const notes = [];
+    for (const f of files) {
+      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) { const r = await pdfToImages(f); images.push(...r.images); if (r.pages > r.images.length) notes.push(`${f.name}: só as primeiras ${r.images.length} de ${r.pages} páginas foram lidas`); }
+      else if (f.type.startsWith("image/")) images.push(f);
+      else notes.push(`${f.name}: formato não suportado (usa foto, imagem ou PDF)`);
+    }
+    return { images, notes };
+  }
+
+  const EXTRACT_PROMPT = `Lê o(s) documento(s) de saúde nas imagens (relatório de análises, registo de tensão arterial, eletrocardiograma, relatório médico, receita, etc.) e extrai a informação em português de Portugal.
+Responde APENAS com JSON com esta estrutura:
+{"documentos":[{"tipo":"analises|tensao_arterial|ecg|outro","data":"YYYY-MM-DD ou null","titulo":"título curto (ex: Análises Hospital X)","resumo":"2 a 4 frases com o essencial, sem repetir todos os valores",
+"analises":[{"analise":"nome exatamente como no documento","valor":5.6,"unidade":"%","ref_min":null,"ref_max":5.7}],
+"tensao":[{"data":"YYYY-MM-DD","hora":"HH:MM ou null","sistolica":128,"diastolica":82,"pulso":70}],
+"relevante_para_nutricao":["pontos concretos e curtos que um nutricionista deve ter em conta (ex: LDL alto, ferritina baixa, hipertensão, alteração no ECG, medicação nova)"]}]}
+Regras: um objeto por documento distinto; valores numéricos com ponto decimal; inclui o intervalo de referência quando aparece; em análises inclui todos os parâmetros com valor numérico (hemograma, bioquímica, lípidos, tiroide, vitaminas, urina); se não for um documento de saúde, tipo "outro" e explica no resumo; não inventes valores que não estejam visíveis.`;
+
+  /** Regista no estado o que foi extraído; devolve um resumo em texto para o chat. */
+  async function registerExtraction(docsArr, sourceLabel) {
+    const lines = [];
+    for (const d of docsArr) {
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(d.data || "")) ? d.data : localDate();
+      let added = 0, skipped = 0, flagged = [];
+      for (const a of (d.analises || [])) {
+        const value = Number(String(a.valor).replace(",", ".")); if (!Number.isFinite(value) || !a.analise) continue;
+        const mk = matchMarker(a.analise); const def = markerOf(mk);
+        const unit = String(a.unidade || (mk !== "outro" ? def.unit : "")).trim();
+        const sameUnit = mk !== "outro" && norm(unit) === norm(def.unit);
+        const num = (v) => { if (v === null || v === undefined || v === "") return null; const n = Number(String(v).replace(",", ".")); return Number.isFinite(n) ? n : null; };
+        const lo = num(a.ref_min) ?? (sameUnit ? def.lo : null), hi = num(a.ref_max) ?? (sameUnit ? def.hi : null);
+        const e = { id: uid(), date, marker: mk, label: mk === "outro" ? String(a.analise).trim() : def.label, value, unit, lo, hi, notes: `de "${d.titulo || sourceLabel}"` };
+        if (S.labs.some((x) => x.date === date && labKey(x) === labKey(e))) { skipped++; continue; }
+        S.labs.push(e); added++; const o = outOfRange(e); if (o) flagged.push(`${labLabel(e)} ${fmtNum(value)} ${unit} (${o})`);
+      }
+      let bp = 0;
+      for (const t of (d.tensao || [])) {
+        const sys = Number(t.sistolica), dia = Number(t.diastolica); if (!Number.isFinite(sys) || !Number.isFinite(dia)) continue;
+        const bdate = /^\d{4}-\d{2}-\d{2}$/.test(String(t.data || "")) ? t.data : date; const time = /^\d{2}:\d{2}$/.test(String(t.hora || "")) ? t.hora : "";
+        if (S.vitals.some((x) => x.date === bdate && x.time === time && x.sys === sys && x.dia === dia)) continue;
+        S.vitals.push({ id: uid(), date: bdate, time, sys, dia, pulse: Number(t.pulso) || null, source: d.titulo || sourceLabel }); bp++;
+      }
+      S.docs.push({ id: uid(), date, tipo: d.tipo || "outro", titulo: String(d.titulo || sourceLabel), resumo: String(d.resumo || ""), pontos: (d.relevante_para_nutricao || []).map(String).slice(0, 8), at: new Date().toISOString() });
+      const parts = [`${tipoLabel(d.tipo || "outro")}${d.titulo ? ` "${d.titulo}"` : ""} de ${date}`];
+      if (added) parts.push(`${added} análises registadas${skipped ? ` (${skipped} já existiam)` : ""}`);
+      else if (skipped) parts.push(`${skipped} análises já estavam registadas`);
+      if (bp) parts.push(`${bp} medições de tensão registadas`);
+      lines.push("• " + parts.join(": "));
+      if (flagged.length) lines.push("  Fora da referência: " + flagged.join("; "));
+      if (d.resumo) lines.push("  " + d.resumo);
+    }
+    await Promise.all([saveLabs(), saveVitals(), saveDocs()]);
+    return lines.join("\n");
+  }
+
+  async function ingestAttachments(files, bubble) {
+    const lim = S.imageLimits; if (!lim) throw { code: "images_unavailable", message: "sem imagens" };
+    bubble.innerHTML = `<span class="thinking">a preparar o documento…</span>`;
+    const { images, notes } = await filesToImages(files);
+    if (images.length === 0) throw { code: "image_rejected", message: notes.join("; ") || "sem imagens" };
+    const allDocs = [];
+    for (let i = 0; i < images.length; i += lim.maxCount) {
+      const batch = images.slice(i, i + lim.maxCount);
+      bubble.innerHTML = `<span class="thinking">a ler o documento${images.length > lim.maxCount ? ` (${Math.floor(i / lim.maxCount) + 1}/${Math.ceil(images.length / lim.maxCount)})` : ""}…</span>`;
+      const res = await S.sample.json(EXTRACT_PROMPT, { images: batch, cache: false, signal: S.streaming?.signal });
+      const arr = Array.isArray(res?.documentos) ? res.documentos : (res && (res.tipo || res.analises)) ? [res] : [];
+      allDocs.push(...arr);
+    }
+    if (allDocs.length === 0) throw { code: "invalid_json", message: "sem documentos" };
+    const summary = await registerExtraction(allDocs, files.map((f) => f.name).join(", "));
+    return "Li o que enviaste e registei:\n" + summary + (notes.length ? "\n" + notes.map((n) => "⚠️ " + n).join("\n") : "") + "\n\nPodes ver tudo na aba Análises. O plano e as minhas sugestões passam a ter isto em conta.";
+  }
+
+  // ============================================================
   // Plano alimentar
   // ============================================================
   const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
@@ -954,12 +1172,18 @@
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       analises_mais_recentes: latestLabs(),
+      tensao_arterial: bpSummary(),
+      documentos_de_saude: S.docs.slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
       meta_agua_ml: goal.ml,
       evolucao_peso: S.weights.slice(-8),
     });
   }
+  function bpSummary() {
+    const avg = bpAverage(); if (!avg) return null;
+    return { media_ultimas_medicoes: avg, ultimas: S.vitals.slice(-6).map(({ date, time, sys, dia, pulse }) => ({ data: date, hora: time || null, sistolica: sys, diastolica: dia, pulso: pulse })), classificacao: bpClass({ sys: avg.sys, dia: avg.dia }) || "normal" };
+  }
 
-  const PLAN_SCHEMA = `{"metas_diarias":{"kcal":1500,"proteina_g":95,"fibra_g":28,"agua_ml":2300},"racional":"2 a 4 frases: como o plano tem em conta o perfil, GLP-1, análises e objetivo","dias":[{"dia":"segunda","refeicoes":[{"nome":"Pequeno-almoço","hora":"08:00","itens":[{"alimento":"iogurte grego natural","quantidade":"170 g"},{"alimento":"aveia","quantidade":"30 g"}],"kcal":320,"proteina_g":24,"fibra_g":5}]}]}`;
+  const PLAN_SCHEMA = `{"metas_diarias":{"kcal":1500,"proteina_g":95,"fibra_g":28,"agua_ml":2300},"racional":"2 a 4 frases: como o plano tem em conta o perfil, GLP-1, análises, tensão, documentos e objetivo","hidratacao":[{"hora":"07:30","quantidade_ml":250,"nota":"ao acordar, em goles"},{"hora":"10:30","quantidade_ml":250,"nota":"entre refeições"}],"dias":[{"dia":"segunda","refeicoes":[{"nome":"Pequeno-almoço","hora":"08:00","itens":[{"alimento":"iogurte grego natural","quantidade":"170 g"},{"alimento":"aveia","quantidade":"30 g"}],"kcal":320,"proteina_g":24,"fibra_g":5}]}]}`;
 
   async function generatePlan() {
     if (!S.sample) { $("planNote").hidden = false; $("planNote").textContent = "A geração do plano só funciona com a página aberta no claude.ai."; return; }
@@ -979,6 +1203,8 @@ Regras:
 - Com GLP-1: 4–5 refeições pequenas, pouco volume, pouca gordura e fritos, sem refeições muito pesadas; reforça hidratação.
 - Ajusta às análises: glicemia/HbA1c elevadas → hidratos de baixo índice glicémico e menos açúcar; LDL/triglicéridos altos → menos gordura saturada, mais ómega-3 e fibra solúvel; ferritina/B12/vitamina D baixas → alimentos ricos nesses nutrientes; função renal reduzida → moderar proteína e sal; ácido úrico alto → menos vísceras, marisco e álcool.
 - Respeita alergias, intolerâncias e preferências. Varia as refeições ao longo da semana, mas mantém-nas simples de preparar e reaproveita ingredientes.
+- Tensão arterial elevada/alta ou hipertensão: sal < 5 g/dia (sem sal à mesa, poucos enchidos, queijos curados e produtos processados), mais potássio (legumes, fruta, leguminosas), padrão tipo DASH/mediterrânico. Alterações no ECG ou outros documentos médicos: segue o que lá está descrito e evita estimulantes em excesso (café, bebidas energéticas) quando relevante.
+- HIDRATAÇÃO: inclui "hidratacao", um horário diário de água (hora, quantidade_ml, nota curta) cuja soma iguala a meta de água (meta_agua_ml). Com GLP-1: 8–10 momentos de 150–250 ml em pequenos goles, água ou infusões sem açúcar; evita beber mais de 150 ml nos 30 minutos antes e durante as refeições (agrava o enfartamento e as náuseas); reforça os momentos entre refeições e ao acordar; nota sobre dias de mais náuseas (goles frequentes, água fresca, caldos com sal) e obstipação (água + fibra). Sem GLP-1: 6–8 momentos.
 - Cada refeição tem no máximo 5 itens. Nomes curtos. Dias na ordem: segunda, terça, quarta, quinta, sexta, sábado, domingo.
 
 Dados da pessoa (JSON):
@@ -999,8 +1225,9 @@ ${PLAN_SCHEMA}`;
     }
     // normalizar
     const days = DAYS.map((d) => { const found = data.dias.find((x) => norm(x.dia) === norm(d)) || data.dias[DAYS.indexOf(d)] || { refeicoes: [] }; return { dia: d, refeicoes: (found.refeicoes || []).map(normMeal) }; });
-    const plan = { metas_diarias: data.metas_diarias || {}, racional: String(data.racional || ""), dias: days };
-    S.plan = { week_start: mondayOf(), version: (S.plan?.version || 0) + 1, plan, previous: S.plan?.plan || null, changelog: [{ at: new Date().toISOString(), o_que: "Plano gerado" }], generatedAt: new Date().toISOString() };
+    const hidr = (Array.isArray(data.hidratacao) ? data.hidratacao : []).map((h) => ({ hora: String(h.hora || ""), quantidade_ml: Math.round(Number(h.quantidade_ml) || 0), nota: String(h.nota || "") })).filter((h) => h.quantidade_ml > 0).sort((a, b) => a.hora.localeCompare(b.hora));
+    const plan = { metas_diarias: data.metas_diarias || {}, racional: String(data.racional || ""), hidratacao: hidr, dias: days };
+    S.plan = { week_start: mondayOf(), version: (S.plan?.version || 0) + 1, plan, previous: S.plan?.plan || null, extras: (S.plan?.extras || []).filter((x) => x.date >= addDays(localDate(), -7)), changelog: [{ at: new Date().toISOString(), o_que: "Plano gerado" }], generatedAt: new Date().toISOString() };
     S.planDay = todayDayName();
     await savePlan(); $("genMsg").textContent = "Plano gerado ✓"; setTimeout(() => $("genMsg").textContent = "", 3000);
   }
@@ -1025,15 +1252,42 @@ ${PLAN_SCHEMA}`;
     const tot = day.refeicoes.reduce((a, m) => ({ k: a.k + (m.kcal || 0), p: a.p + (m.proteina_g || 0), f: a.f + (m.fibra_g || 0) }), { k: 0, p: 0, f: 0 });
     $("dayTotals").textContent = `Total do dia: ~${Math.round(tot.k)} kcal · ${Math.round(tot.p)} g proteína · ${Math.round(tot.f)} g fibra`;
     $("undoPlan").hidden = !S.plan.previous;
+    // água ao longo do dia
+    const h = pl.hidratacao || [];
+    $("planWater").innerHTML = h.length ? h.map((x) => `<li><span class="h num">${esc(x.hora)}</span><span>${esc(x.nota)}</span><span class="num"><strong>${x.quantidade_ml} ml</strong></span></li>`).join("") : `<li class="muted small">Este plano não tem horário de água. Gera um plano novo para o incluir.</li>`;
+    $("planWaterTotal").textContent = h.length ? `${h.reduce((a, x) => a + x.quantidade_ml, 0)} ml/dia` : "";
+    $("planWaterNote").textContent = profile().uses_glp1 ? "Com GLP-1: goles pequenos, pouca água durante as refeições, mais entre refeições. Em dias de náuseas, água fresca em goles frequentes." : "";
+    // fora do plano (dia selecionado)
+    const dayDate = dateOfPlanDay(S.planDay);
+    const extras = (S.plan.extras || []).filter((x) => x.date === dayDate);
+    $("planExtrasCard").hidden = extras.length === 0;
+    $("planExtrasDay").textContent = dayDate;
+    $("planExtras").innerHTML = extras.map((x) => `<div class="extra"><span>${esc(x.descricao)}${x.kcal ? ` <span class="muted small num">~${Math.round(x.kcal)} kcal · ${Math.round(x.proteina_g || 0)} g prot</span>` : ""}</span><button type="button" class="btn ghost sm" data-delextra="${x.id}">remover</button></div>`).join("");
   }
+  /** Data (YYYY-MM-DD) de um dia da semana do plano, na semana corrente. */
+  function dateOfPlanDay(day) { const i = DAYS.indexOf(day); return addDays(mondayOf(), i < 0 ? 0 : i); }
   function mealHtml(m) {
     return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${m.kcal ? `${Math.round(m.kcal)} kcal · ` : ""}${Math.round(m.proteina_g || 0)} g prot · ${Math.round(m.fibra_g || 0)} g fibra</span></div><ul class="items">${(m.itens || []).map((i) => `<li><span>${esc(i.alimento)}</span><span class="qty num">${esc(i.quantidade)}</span></li>`).join("")}</ul></div>`;
   }
   function renderTodayMeals() {
     const el = $("todayMeals"); if (!el) return;
-    if (!S.plan?.plan) { el.innerHTML = `<p class="muted small">Ainda não há plano. <a href="#" data-goto="plano">Gerar plano semanal</a>.</p>`; return; }
+    if (!S.plan?.plan) { el.innerHTML = `<p class="muted small">Ainda não há plano. <a href="#" data-goto="plano">Gerar plano semanal</a>.</p>`; renderTodaySchedule(); return; }
     const day = S.plan.plan.dias.find((x) => x.dia === todayDayName());
-    el.innerHTML = day && day.refeicoes.length ? day.refeicoes.map(mealHtml).join("") : `<p class="muted small">Sem refeições para hoje.</p>`;
+    const extras = (S.plan.extras || []).filter((x) => x.date === localDate());
+    el.innerHTML = (day && day.refeicoes.length ? day.refeicoes.map(mealHtml).join("") : `<p class="muted small">Sem refeições para hoje.</p>`) +
+      (extras.length ? `<div class="meal"><div class="head"><h3>Fora do plano</h3></div>${extras.map((x) => `<div class="extra"><span>${esc(x.descricao)}</span><span class="muted small num">${x.kcal ? `~${Math.round(x.kcal)} kcal` : ""}</span></div>`).join("")}</div>` : "");
+    renderTodaySchedule();
+  }
+  function renderTodaySchedule() {
+    const el = $("todaySchedule"); if (!el) return;
+    const h = S.plan?.plan?.hidratacao || [];
+    if (h.length === 0) { el.innerHTML = ""; return; }
+    const entries = todayDay().entries; const now = new Date(); const nowHM = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    // marca como feito, por ordem, tantos momentos quantos os registos de hoje
+    const done = Math.min(h.length, entries.length);
+    let next = h.findIndex((x, i) => i >= done);
+    el.innerHTML = `<div class="row between" style="margin-top:4px"><span class="eyebrow">Horário de água</span>${next >= 0 ? `<span class="small muted">próximo: <strong class="num">${esc(h[next].hora)} · ${h[next].quantidade_ml} ml</strong>${h[next].hora <= nowHM ? " (agora)" : ""}</span>` : `<span class="small muted">todos os momentos registados ✓</span>`}</div>
+      <ul class="sched">${h.map((x, i) => `<li class="${i < done ? "done" : ""}"><span class="h num">${esc(x.hora)}</span><span>${esc(x.nota)}<br><span class="n num">${x.quantidade_ml} ml</span></span><button type="button" class="btn water sm num" data-ml="${x.quantidade_ml}" ${i < done ? "disabled" : ""}>Bebi</button></li>`).join("")}</ul>`;
   }
 
   /** Ferramenta usada pelo chat para alterar refeições do plano guardado. */
@@ -1057,6 +1311,23 @@ ${PLAN_SCHEMA}`;
     return { ok: true, versao: S.plan.version, aplicado: done };
   }
 
+  async function registerExtra(input) {
+    if (!S.plan) throw new Error("Não existe plano; regista primeiro um plano na aba Plano.");
+    const desc = String(input?.descricao || "").trim(); if (!desc) throw new Error("Falta 'descricao'.");
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(input.data || "")) ? input.data : localDate();
+    const x = { id: uid(), date, descricao: desc, kcal: Number(input.kcal_estimado) || null, proteina_g: Number(input.proteina_g) || null, at: new Date().toISOString() };
+    S.plan = { ...S.plan, extras: [...(S.plan.extras || []), x].slice(-60) };
+    await savePlan();
+    return { ok: true, registado: x, total_extras_hoje_kcal: (S.plan.extras || []).filter((e) => e.date === localDate()).reduce((a, e) => a + (e.kcal || 0), 0) };
+  }
+  async function registerBP(input) {
+    const sys = Number(input?.sistolica), dia = Number(input?.diastolica);
+    if (!Number.isFinite(sys) || !Number.isFinite(dia)) throw new Error("Indica sistolica e diastolica numéricas.");
+    const e = { id: uid(), date: /^\d{4}-\d{2}-\d{2}$/.test(String(input.data || "")) ? input.data : localDate(), time: /^\d{2}:\d{2}$/.test(String(input.hora || "")) ? input.hora : "", sys, dia, pulse: Number(input.pulso) || null, source: "chat" };
+    S.vitals.push(e); await saveVitals();
+    return { ok: true, registado: e, classificacao: bpClass(e) || "normal", media_ultimas: bpAverage() };
+  }
+
   // ============================================================
   // Chat
   // ============================================================
@@ -1077,6 +1348,14 @@ Limites de segurança (obrigatórios):
 - Recomenda contactar o médico/nutricionista perante vómitos persistentes, dor abdominal intensa, incapacidade de beber líquidos, sinais de desidratação, hipoglicemias, perda de peso muito rápida, ou qualquer sintoma novo ou preocupante.
 - Não sugiras dietas abaixo de ~1200 kcal/dia nem suplementos novos sem sugerir validação profissional.
 
+Fora do plano: quando a pessoa disser que comeu ou bebeu algo que não estava no plano (ex: "comi um pastel de nata", "jantei fora, pizza"), 1) regista com a ferramenta registar_extra (com estimativa de kcal e proteína), 2) ajusta o resto do dia (ou o dia seguinte, se já for à noite) com atualizar_refeicoes, compensando em energia e mantendo a proteína, sem cortar refeições inteiras nem descer abaixo de ~1200 kcal, e 3) explica em 2–3 linhas, sem culpabilizar. Um extra pequeno pode não precisar de compensação: diz isso.
+
+Tensão arterial: quando a pessoa indicar uma medição (ex: "hoje 135/85"), regista-a com registar_tensao e comenta brevemente; valores ≥ 140/90 repetidos ou ≥ 180/110 uma vez: aconselha contacto médico.
+
+Documentos: quando a pessoa anexa análises ou outros documentos, a página lê-os e regista antes de te chegar a mensagem; os dados atualizados vêm no contexto. Comenta o que é relevante para a alimentação e propõe ajustes ao plano se fizer sentido.
+
+Água: o plano tem um horário de água (hidratacao) com horas e quantidades; usa-o nas tuas sugestões e, com GLP-1, lembra goles pequenos, pouca água às refeições e mais entre refeições.
+
 Plano alimentar: se existir um plano guardado (vem no contexto), é esse que a pessoa segue. Quando ela pedir para trocar, aligeirar ou ajustar refeições (ou relatar sintomas que justifiquem ajustar), usa a ferramenta atualizar_refeicoes para aplicar a mudança diretamente ao plano guardado e depois resume em 2–3 linhas o que mudou. Mantém proteína e fibra equivalentes na troca. Não uses a ferramenta para mudanças que a pessoa ainda não pediu.
 
 Formato: responde de forma direta e curta, em texto simples (sem títulos nem markdown pesado; podes usar listas com "-"). Quando ajustares o plano, diz claramente o que muda (ex: "amanhã ao jantar troco X por Y, ~150 g").`;
@@ -1093,7 +1372,11 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
       evolucao_peso: S.weights.slice(-8),
       analises_mais_recentes: latestLabs(),
-      plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, dias: S.plan.plan.dias } : null,
+      tensao_arterial: bpSummary(),
+      documentos_de_saude: S.docs.slice(-6).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
+      plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, hidratacao: S.plan.plan.hidratacao || [], dias: S.plan.plan.dias } : null,
+      fora_do_plano_hoje: (S.plan?.extras || []).filter((x) => x.date === localDate()).map(({ descricao, kcal, proteina_g }) => ({ descricao, kcal, proteina_g })),
+      dia_da_semana_hoje: todayDayName(),
     };
     return `Contexto atual desta utilizadora (JSON, atualizado a cada mensagem):\n${JSON.stringify(ctx)}`;
   }
@@ -1124,24 +1407,53 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   };
 
   async function sendMessage(text) {
-    text = String(text || "").trim(); if (!text || S.streaming) return;
+    text = String(text || "").trim();
+    const files = S.attachments.slice();
+    if ((!text && files.length === 0) || S.streaming) return;
     if (!S.sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat só funciona com a página aberta no claude.ai."; return; }
-    $("chatInput").value = "";
-    S.chat.push({ role: "user", content: text, at: new Date().toISOString() });
-    renderChat();
-    await saveChat();
-
+    $("chatInput").value = ""; S.attachments = []; renderAttachments();
     const log = $("chatLog");
-    const bubble = document.createElement("div"); bubble.className = "msg assistant";
-    bubble.innerHTML = `<span class="thinking">a pensar…</span>`; log.appendChild(bubble); log.scrollTop = log.scrollHeight;
-
     const ctl = new AbortController(); S.streaming = ctl;
     $("sendChat").disabled = true; $("stopChat").hidden = false; $("clearChat").disabled = true;
+
+    // 1) documentos anexados: ler e registar antes da conversa
+    if (files.length) {
+      S.chat.push({ role: "user", content: `📎 ${files.map((f) => f.name).join(", ")}${text ? "\n" + text : ""}`, at: new Date().toISOString() });
+      renderChat(); await saveChat();
+      const b0 = document.createElement("div"); b0.className = "msg assistant"; log.appendChild(b0);
+      let summary = "", e0 = null;
+      try { summary = await ingestAttachments(files, b0); } catch (e) { e0 = e; }
+      if (e0) {
+        const copy = e0.code === "cancelled" ? "" : e0.code === "image_rejected" ? `Não consegui usar o ficheiro (${e0.message || "formato ou tamanho"}). Envia uma foto nítida ou um PDF.` : e0.code === "images_unavailable" ? "Esta conta não permite enviar imagens ao Claude a partir da página." : e0.code === "invalid_json" ? "Não consegui extrair dados do documento. Tenta uma imagem mais nítida ou só a página com os valores." : (ERR_COPY[e0.code] || `Falha a ler o documento${e0.message ? ` (${e0.message})` : ""}.`);
+        if (copy) S.chat.push({ role: "assistant", content: "⚠️ " + copy, at: new Date().toISOString(), error: true });
+      } else {
+        S.chat.push({ role: "assistant", content: summary, at: new Date().toISOString() });
+      }
+      renderChat(); if (!e0) await saveChat();
+      if (!text || e0) { S.streaming = null; $("sendChat").disabled = false; $("stopChat").hidden = true; renderChat(); return; }
+    } else {
+      S.chat.push({ role: "user", content: text, at: new Date().toISOString() });
+      renderChat();
+      await saveChat();
+    }
+
+    const bubble = document.createElement("div"); bubble.className = "msg assistant";
+    bubble.innerHTML = `<span class="thinking">a pensar…</span>`; log.appendChild(bubble); log.scrollTop = log.scrollHeight;
 
     const history = S.chat.filter((m) => !m.error).slice(-40).map((m) => ({ role: m.role, content: m.content }));
     const turns = [{ role: "user", content: RULES + "\n\n" + contextText() }, ...history];
     let finalText = "", err = null;
-    const tools = (S.toolsOK && S.plan?.plan) ? [{
+    const tools = S.toolsOK ? [{
+      name: "registar_tensao",
+      description: "Regista uma medição de tensão arterial da pessoa (sistólica/diastólica em mmHg, pulso opcional) e devolve a classificação e a média recente. Usa quando a pessoa indica uma medição.",
+      inputSchema: { type: "object", properties: { sistolica: { type: "number" }, diastolica: { type: "number" }, pulso: { type: "number" }, data: { type: "string", description: "YYYY-MM-DD, por omissão hoje" }, hora: { type: "string", description: "HH:MM" } }, required: ["sistolica", "diastolica"] },
+      execute: async (input) => registerBP(input),
+    }, ...(S.plan?.plan ? [{
+      name: "registar_extra",
+      description: "Regista algo que a pessoa comeu ou bebeu fora do plano (descrição, estimativa de kcal e proteína) no dia indicado, por omissão hoje. Devolve o total de extras do dia. Usa antes de ajustar o resto do dia com atualizar_refeicoes.",
+      inputSchema: { type: "object", properties: { descricao: { type: "string" }, kcal_estimado: { type: "number" }, proteina_g: { type: "number" }, data: { type: "string", description: "YYYY-MM-DD" } }, required: ["descricao", "kcal_estimado"] },
+      execute: async (input) => { bubble.innerHTML = `<span class="thinking">a registar…</span>`; return registerExtra(input); },
+    }] : []), ...(S.plan?.plan ? [{
       name: "atualizar_refeicoes",
       description: "Altera refeições do plano alimentar guardado da pessoa e devolve o que foi aplicado. Usa quando a pessoa pede para trocar, aligeirar, adicionar ou remover uma refeição de um dia concreto.",
       inputSchema: { type: "object", properties: {
@@ -1154,7 +1466,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
         }, required: ["dia", "refeicao"] } },
       }, required: ["alteracoes"] },
       execute: async (input) => { bubble.innerHTML = `<span class="thinking">a atualizar o plano…</span>`; return applyMealUpdates(input); },
-    }] : undefined;
+    }] : [])] : undefined;
     try {
       const res = await S.sample(turns, {
         cache: false, signal: ctl.signal, ...(tools ? { tools } : {}),
@@ -1181,7 +1493,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -1194,6 +1506,9 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (t.dataset.delmed) { const p = profile(); await saveProfile({ ...p, meds: (p.meds || []).filter((x) => x.id !== t.dataset.delmed) }); return; }
     if (t.dataset.dellab) { S.labs = S.labs.filter((x) => x.id !== t.dataset.dellab); await saveLabs(); return; }
     if (t.dataset.day) { S.planDay = t.dataset.day; renderPlan(); return; }
+    if (t.dataset.delbp) { S.vitals = S.vitals.filter((x) => x.id !== t.dataset.delbp); await saveVitals(); return; }
+    if (t.dataset.deldoc) { S.docs = S.docs.filter((x) => x.id !== t.dataset.deldoc); await saveDocs(); return; }
+    if (t.dataset.delextra) { S.plan = { ...S.plan, extras: (S.plan.extras || []).filter((x) => x.id !== t.dataset.delextra) }; await savePlan(); return; }
     if (t.dataset.togglemed) { const p = profile(); await saveProfile({ ...p, meds: (p.meds || []).map((x) => x.id === t.dataset.togglemed ? { ...x, active: x.active === false } : x) }); return; }
   });
 
@@ -1233,14 +1548,32 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       $("l_value").value = ""; $("l_notes").value = ""; $("l_value").focus(); setTimeout(() => $("labMsg").textContent = "", 3000);
       return;
     }
+    if (f.id === "bpForm") {
+      ev.preventDefault();
+      const e = { id: uid(), date: $("b_date").value, time: $("b_time").value, sys: Number($("b_sys").value), dia: Number($("b_dia").value), pulse: Number($("b_pulse").value) || null, source: "" };
+      if (!e.date || !e.sys || !e.dia) return;
+      S.vitals.push(e); await saveVitals(); $("b_sys").value = ""; $("b_dia").value = ""; $("b_pulse").value = "";
+      return;
+    }
     if (f.id === "composer") { ev.preventDefault(); sendMessage($("chatInput").value); return; }
   });
 
+  function renderAttachments() {
+    $("attachList").innerHTML = S.attachments.map((f, i) => `<span class="attach">📄 <span>${esc(f.name)}</span><button type="button" data-rmatt="${i}" aria-label="Remover anexo">×</button></span>`).join("");
+    $("sendChat").disabled = false;
+  }
+  $("attachBtn").addEventListener("click", () => $("fileInput").click());
+  $("fileInput").addEventListener("change", (e) => {
+    const max = (S.imageLimits?.maxInputBytes || 20 * 1024 * 1024);
+    for (const f of e.target.files) { if (f.size > max) { alert(`${f.name} é demasiado grande.`); continue; } S.attachments.push(f); }
+    e.target.value = ""; renderAttachments();
+  });
+  $("attachList").addEventListener("click", (e) => { const b = e.target.closest("[data-rmatt]"); if (b) { S.attachments.splice(+b.dataset.rmatt, 1); renderAttachments(); } });
   $("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage($("chatInput").value); } });
   $("stopChat").addEventListener("click", () => S.streaming?.abort());
   $("clearChat").addEventListener("click", async () => {
     if (!confirm("Apagar toda a conversa? O assistente deixa de se lembrar dos ajustes anteriores.")) return;
-    S.chat = []; await saveChat(); renderChat();
+    S.chat = []; S.attachments = []; renderAttachments(); await saveChat(); renderChat();
   });
   let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderWater(); if (S.labs.length) renderLabChart(); }, 150); });
   $("l_marker").addEventListener("change", applyMarkerDefaults);
@@ -1263,7 +1596,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     renderWho(); subscribeProfile();
   }
 
-  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); }
+  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); }
 
   // ============================================================
   // Arranque
@@ -1285,7 +1618,10 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
         renderWho(); renderHome(); renderWater(); renderChat(); renderPlan(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
       }, (e) => console.warn("profiles", e));
     }
-    if (sample) { const lim = await sample.limits().catch(() => null); S.toolsOK = !!lim?.tools; }
+    if (sample) {
+      const lim = await sample.limits().catch(() => null); S.toolsOK = !!lim?.tools; S.imageLimits = lim?.images || null;
+      if (S.imageLimits) { $("attachBtn").hidden = false; $("fileInput").accept = [...S.imageLimits.mediaTypes, "application/pdf"].join(","); }
+    }
     if (!sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat com o assistente só está disponível com a página aberta no claude.ai."; }
     subscribeProfile();
   })();

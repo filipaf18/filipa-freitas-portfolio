@@ -8,7 +8,18 @@ com ou sem tratamento com GLP-1 (ex.: Mounjaro/tirzepatida).
 > ⚠️ Esta app é uma ferramenta de apoio pessoal e **não substitui** acompanhamento médico ou
 > nutricional profissional, sobretudo em mudanças de dose de GLP-1 ou sintomas novos.
 
-## Estado atual (MVP)
+## Versão sem custos: Artifact no claude.ai
+
+A versão em uso está em [`artifact/nutriglp.html`](artifact/nutriglp.html), publicada como
+Artifact no claude.ai (base de dados da artifact + chat via a capacidade `sample`). Não precisa
+de Supabase, Vercel nem chave de API. Inclui perfis, hidratação com horário, análises, tensão
+arterial, leitura de documentos (fotos/PDF) pelo chat, plano semanal e ajustes pelo chat.
+Para republicar depois de editar o ficheiro, publica-o de novo para o mesmo URL a partir do
+Claude Code.
+
+A versão Next.js + Supabase abaixo fica como alternativa com logins separados.
+
+## Estado atual (MVP Next.js)
 
 | Funcionalidade | Estado |
 | --- | --- |

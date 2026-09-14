@@ -498,7 +498,93 @@
     const bits = []; if (age !== null) bits.push(`${age} anos`); if (imc) bits.push(`IMC ${imc}`); if (p.weight_kg && p.target_kg) bits.push(`${p.weight_kg} kg → objetivo ${p.target_kg} kg`);
     $("profileSummary").textContent = bits.length ? bits.join(" · ") : "Completa os dados para veres o resumo.";
   }
-  function renderReviewCard() { /* preenchido na revisão semanal */ const el = $("reviewCard"); if (el && typeof renderReview === "function") renderReview(); }
+  function renderReviewCard() { if ($("reviewCard")) renderReview(); }
+
+  // ---------- revisão semanal ----------
+  /** Números da semana calculados na página (últimos 7 dias, hoje incluído). */
+  function weekStats(n = 7) {
+    const today = localDate(); const from = addDays(today, -(n - 1));
+    const inWeek = (d) => d >= from && d <= today;
+    // adesão
+    let comi = 0, outro = 0, saltei = 0; const diasComRegisto = new Set();
+    Object.entries(S.adherence).forEach(([d, meals]) => { if (!inWeek(d)) return; Object.values(meals).forEach((v) => { if (v.status === "comi") comi++; else if (v.status === "outro") outro++; else if (v.status === "saltei") saltei++; diasComRegisto.add(d); }); });
+    const totalAdh = comi + outro + saltei;
+    // água
+    const goal = waterGoal(profile()).ml; const dias = [];
+    for (let i = n - 1; i >= 0; i--) { const d = addDays(today, -i); const w = S.water.get(d); if (w && w.total > 0) dias.push(w.total); }
+    const aguaMedia = dias.length ? Math.round(dias.reduce((a, b) => a + b, 0) / dias.length) : null;
+    // peso e composição
+    const rows = bodySeries().filter((r) => r.weight_kg); const ws = S.weights.filter((w) => w.kg);
+    const serie = rows.length >= 2 ? rows.map((r) => ({ date: r.date, kg: r.weight_kg })) : ws.map((w) => ({ date: w.date, kg: w.kg }));
+    const recent = serie.filter((x) => x.date >= addDays(today, -13));
+    const peso = recent.length >= 2 ? { de: recent[0].kg, para: recent[recent.length - 1].kg, delta_kg: Math.round((recent[recent.length - 1].kg - recent[0].kg) * 10) / 10, desde: recent[0].date } : (serie.length ? { atual: serie[serie.length - 1].kg, nota: "sem duas pesagens nos últimos 14 dias" } : null);
+    // tensão
+    const bpWeek = S.vitals.filter((v) => inWeek(v.date)); const bpPrev = S.vitals.filter((v) => v.date < from && v.date >= addDays(from, -n));
+    const avg = (list) => list.length ? { n: list.length, sis: Math.round(list.reduce((a, e) => a + e.sys, 0) / list.length), dia: Math.round(list.reduce((a, e) => a + e.dia, 0) / list.length) } : null;
+    // sintomas
+    const sym = { dias_registados: 0, nauseas_moderadas_ou_fortes: 0, vomitos: 0, obstipacao: 0, diarreia: 0, energia_baixa: 0, sem_apetite: 0, alarmes: 0 };
+    Object.entries(S.symptoms).forEach(([d, t]) => { if (!inWeek(d)) return; sym.dias_registados++; if (Number(t.nauseas) >= 2) sym.nauseas_moderadas_ou_fortes++; if (t.vomitos === "sim") sym.vomitos++; if (t.transito === "obstipada") sym.obstipacao++; if (t.transito === "diarreia") sym.diarreia++; if (t.energia === "baixa") sym.energia_baixa++; if (t.apetite === "nenhum") sym.sem_apetite++; if (t.dor_intensa === "sim" || t.sem_liquidos === "sim") sym.alarmes++; });
+    // fora do plano e preferências
+    const extras = (S.plan?.extras || []).filter((x) => inWeek(x.date));
+    const prefs = S.prefs.filter((p) => inWeek(String(p.at).slice(0, 10)));
+    return {
+      periodo: { de: from, a: today },
+      adesao: { refeicoes_registadas: totalAdh, seguidas: comi, diferentes: outro, saltadas: saltei, percentagem_seguida: totalAdh ? Math.round(comi / totalAdh * 100) : null, dias_com_registo: diasComRegisto.size },
+      agua: { media_ml_dia: aguaMedia, meta_ml: goal, dias_com_registo: dias.length, percentagem_da_meta: aguaMedia ? Math.round(aguaMedia / goal * 100) : null },
+      peso,
+      tensao: { esta_semana: avg(bpWeek), semana_anterior: avg(bpPrev) },
+      sintomas: sym,
+      fora_do_plano: extras.map(({ date, descricao, kcal }) => ({ data: date, descricao, kcal })),
+      preferencias: { gostei: prefs.filter((p) => p.voto === 1).map((p) => `${p.refeicao}: ${p.itens}`), nao_gostei: prefs.filter((p) => p.voto === -1).map((p) => `${p.refeicao}: ${p.itens}`) },
+      plano: S.plan?.plan ? { versao: S.plan.version, metas_diarias: S.plan.plan.metas_diarias } : null,
+    };
+  }
+  const lastReview = () => S.reviews.length ? S.reviews[S.reviews.length - 1] : null;
+  function renderReview() {
+    const card = $("reviewCard"); const body = $("reviewBody"); if (!card || !body) return;
+    const st = weekStats(); const has = st.adesao.refeicoes_registadas || st.agua.dias_com_registo || st.sintomas.dias_registados || st.peso || S.plan?.plan;
+    card.hidden = !has; if (!has) return;
+    const r = lastReview();
+    const stale = !r || String(r.at).slice(0, 10) < addDays(localDate(), -6);
+    $("reviewBtn").textContent = r ? "Nova revisão" : "Gerar revisão";
+    const num = (v, suf = "") => v === null || v === undefined ? "—" : `${fmtNum(v)}${suf}`;
+    const stats = `<div class="deltas">
+      <div class="delta"><div class="v num">${num(st.adesao.percentagem_seguida, " %")}</div><div class="k">plano seguido<br><span class="muted">${st.adesao.refeicoes_registadas} refeições registadas</span></div></div>
+      <div class="delta"><div class="v num">${num(st.agua.media_ml_dia, " ml")}</div><div class="k">água por dia<br><span class="muted">meta ${st.agua.meta_ml} ml</span></div></div>
+      <div class="delta"><div class="v num">${st.peso?.delta_kg !== undefined ? (st.peso.delta_kg > 0 ? "+" : "") + fmtNum(st.peso.delta_kg) + " kg" : num(st.peso?.atual, " kg")}</div><div class="k">peso<br><span class="muted">${st.peso?.desde ? `desde ${st.peso.desde}` : st.peso?.nota || "sem pesagens"}</span></div></div>
+      <div class="delta"><div class="v num">${st.tensao.esta_semana ? `${st.tensao.esta_semana.sis}/${st.tensao.esta_semana.dia}` : "—"}</div><div class="k">tensão média<br><span class="muted">${st.tensao.esta_semana ? `${st.tensao.esta_semana.n} medições` : "sem medições"}</span></div></div>
+    </div>`;
+    const list = (title, arr) => (arr || []).length ? `<p style="margin:8px 0 2px"><strong>${title}</strong></p><ul style="margin:0; padding-left:18px">${arr.map((x) => `<li>${esc(typeof x === "string" ? x : `${x.o_que}${x.porque ? ` — ${x.porque}` : ""}`)}</li>`).join("")}</ul>` : "";
+    const rev = r ? `<div class="review" style="margin-top:10px"><p class="muted small">Revisão de ${esc(String(r.at).slice(0, 10))} · semana ${esc(r.week_start || "")}</p><p>${esc(r.resumo || "")}</p>${list("Correu bem", r.correu_bem)}${list("A ajustar", r.ajustar)}${list("Propostas para o plano", r.propostas)}${r.para_o_medico ? `<p class="small" style="margin-top:8px">🩺 <strong>Para falar com o médico:</strong> ${esc(r.para_o_medico)}</p>` : ""}${(r.propostas || []).length && S.plan?.plan ? `<div class="row" style="margin-top:8px"><button type="button" class="btn sm" data-chip>Aplica as propostas da revisão semanal ao plano</button></div>` : ""}</div>` : "";
+    const hint = stale ? `<p class="small muted" style="margin-top:8px">${r ? "Já passou uma semana desde a última revisão." : "Ao fim de alguns dias de registos, gera a revisão: o assistente lê a adesão, a água, o peso, a tensão e os sintomas e propõe ajustes ao plano."}</p>` : "";
+    body.innerHTML = stats + rev + hint;
+    $("reviewNote") && ($("reviewNote").hidden = true);
+  }
+  async function generateReview() {
+    if (!S.sample) { $("reviewBody").insertAdjacentHTML("beforeend", `<p class="small" style="color:var(--danger)">A revisão só funciona com a página aberta no claude.ai.</p>`); return; }
+    const btn = $("reviewBtn"); btn.disabled = true; btn.textContent = "A rever…";
+    const st = weekStats(); const p = profile();
+    const prompt = `És nutricionista a acompanhar uma pessoa numa app familiar privada, em português de Portugal. Faz a REVISÃO SEMANAL dela: lê os números da semana e o contexto, e escreve uma revisão curta, concreta e encorajadora, com propostas de ajuste ao plano alimentar que a app vai usar na próxima geração do plano.
+
+Regras: fala com a pessoa por tu; não uses as palavras prescrever, tratamento ou terapêutica; não alteres medicação; se houver sinais de alarme (vómitos repetidos, dor abdominal intensa, não reter líquidos, perda de peso acima de 1,5 kg por semana com pouca massa gorda) diz-lhe para falar com o médico. Se faltarem registos, diz o que vale a pena registar na próxima semana em vez de inventar números.
+
+NÚMEROS DA SEMANA (calculados pela app):
+${JSON.stringify(st)}
+
+${contextText()}
+
+Responde APENAS com JSON válido nesta forma:
+{"resumo":"3 a 5 frases","correu_bem":["..."],"ajustar":["..."],"propostas":[{"o_que":"ajuste concreto ao plano","porque":"1 frase"}],"para_o_medico":"frase curta ou null"}`;
+    try {
+      const res = await S.sample.json(prompt, { cache: false, modelTier: "default" });
+      if (!res || !res.resumo) throw { code: "invalid_json" };
+      const entry = { id: uid(), at: new Date().toISOString(), week_start: mondayOf(), stats: st, resumo: String(res.resumo), correu_bem: (res.correu_bem || []).map(String).slice(0, 6), ajustar: (res.ajustar || []).map(String).slice(0, 6), propostas: (res.propostas || []).map((x) => typeof x === "string" ? { o_que: x, porque: "" } : { o_que: String(x.o_que || ""), porque: String(x.porque || "") }).filter((x) => x.o_que).slice(0, 6), para_o_medico: res.para_o_medico ? String(res.para_o_medico) : null };
+      S.reviews = [...S.reviews, entry].slice(-12);
+      await saveReviews(); renderReview();
+    } catch (e) {
+      if (e?.code !== "cancelled") { renderReview(); $("reviewBody").insertAdjacentHTML("beforeend", `<p class="small" style="color:var(--danger)">${esc(e?.code === "invalid_json" ? "A revisão veio incompleta. Tenta outra vez." : (ERR_COPY[e?.code] || "Não foi possível gerar a revisão. Tenta outra vez."))}</p>`); S.diag.lastErr = `revisão: ${e?.code || e?.message}`; renderDiag(); }
+    } finally { btn.disabled = false; if (btn.textContent === "A rever…") btn.textContent = lastReview() ? "Nova revisão" : "Gerar revisão"; }
+  }
 
   function renderProfileForm() {
     const p = profile(); const f = (n) => $("profileForm").elements.namedItem(n);
@@ -1111,7 +1197,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       composicao_corporal: bodyContext(),
       adesao_ultimos_14_dias: adherenceSummary(14),
       sintomas_ultimos_14_dias: symptomsSummary(14),
-      ultima_revisao_semanal: S.reviews.length ? S.reviews[S.reviews.length - 1] : null,
+      ultima_revisao_semanal: lastReview() ? (({ at, resumo, ajustar, propostas, stats }) => ({ data: String(at).slice(0, 10), resumo, ajustar, propostas_a_aplicar_neste_plano: propostas, adesao: stats?.adesao, agua: stats?.agua, peso: stats?.peso }))(lastReview()) : null,
       preferencias_registadas: prefsSummary(),
     });
   }
@@ -1932,6 +2018,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       adesao_ultimos_7_dias: adherenceSummary(7),
       sintomas_ultimos_7_dias: symptomsSummary(7),
       preferencias_registadas: prefsSummary(),
+      ultima_revisao_semanal: lastReview() ? (({ at, resumo, ajustar, propostas }) => ({ data: String(at).slice(0, 10), resumo, ajustar, propostas }))(lastReview()) : null,
       ciclo_da_injecao: cycleInfo(p) ? { dia: cycleInfo(p).d, fase: cycleInfo(p).light ? "dias 0-2, versão leve" : "dias 3-6, melhor tolerância" } : null,
       dia_da_semana_hoje: todayDayName(),
     };
@@ -2266,6 +2353,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   $("bodyPick").addEventListener("change", (e) => { S.bodyPick = e.target.value; renderBodyChart(); });
   $("genPlan").addEventListener("click", generatePlan);
   $("regenPlan").addEventListener("click", generatePlan);
+  $("reviewBtn")?.addEventListener("click", generateReview);
   $("undoPlan").addEventListener("click", async () => {
     if (!S.plan?.previous || !(await askConfirm("Repor a versão anterior do plano?", "Repor"))) return;
     S.plan = { ...S.plan, plan: S.plan.previous, previous: null, version: (S.plan.version || 1) + 1, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: "Reposta versão anterior" }].slice(-20) };
@@ -2290,7 +2378,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

@@ -575,6 +575,15 @@
         <div class="field"><label for="f_height">Altura (cm)</label><input class="input num" id="f_height" name="height_cm" type="number" step="0.5" min="100" max="250"></div>
         <div class="field"><label for="f_weight">Peso atual (kg)</label><input class="input num" id="f_weight" name="weight_kg" type="number" step="0.1" min="25" max="350"></div>
         <div class="field"><label for="f_target">Peso objetivo (kg)</label><input class="input num" id="f_target" name="target_kg" type="number" step="0.1" min="25" max="350"></div>
+        <div class="field"><label for="f_satiety">Saciedade precoce</label>
+          <select class="input" id="f_satiety" name="satiety">
+            <option value="">—</option>
+            <option value="nenhuma">Nenhuma: como as refeições todas</option>
+            <option value="ligeira">Ligeira: encho-me um pouco antes</option>
+            <option value="moderada">Moderada: sobra comida no prato</option>
+            <option value="grave">Grave: como muito pouco de cada vez</option>
+          </select>
+          <span class="hint">Muda a ordem das refeições no plano.</span></div>
         <div class="field"><label for="f_water">Meta de água (ml)</label><input class="input num" id="f_water" name="water_goal_ml" type="number" step="50" min="500" max="6000" placeholder="automática"><span class="hint">Vazio = calculada pelo peso e GLP-1.</span></div>
       </div>
 
@@ -586,6 +595,8 @@
           <datalist id="glp1list"><option value="tirzepatida (Mounjaro)"><option value="semaglutido (Ozempic)"><option value="semaglutido (Wegovy)"><option value="liraglutido (Saxenda)"><option value="dulaglutido (Trulicity)"></datalist></div>
         <div class="field"><label for="f_dose">Dose atual</label><input class="input" id="f_dose" name="glp1_dose" placeholder="5 mg / semana"></div>
         <div class="field"><label for="f_start">Início do tratamento</label><input class="input" id="f_start" name="glp1_start" type="date"></div>
+        <div class="field"><label for="f_injday">Dia da injeção</label>
+          <select class="input" id="f_injday" name="glp1_inj_day"><option value="">—</option><option value="segunda">Segunda</option><option value="terça">Terça</option><option value="quarta">Quarta</option><option value="quinta">Quinta</option><option value="sexta">Sexta</option><option value="sábado">Sábado</option><option value="domingo">Domingo</option></select></div>
       </div>
 
       <h2>Alimentação</h2>
@@ -709,10 +720,14 @@
   // ============================================================
   function waterGoal(p) {
     if (p.water_goal_ml) return { ml: p.water_goal_ml, why: "meta definida manualmente" };
-    const w = p.weight_kg || 60; let g = w * 33; const parts = [`${w} kg × 33 ml`];
-    if (p.uses_glp1) { g = Math.max(g * 1.15, 2000); parts.push("+15 % por GLP-1 (mín. 2000 ml)"); }
+    const w = p.weight_kg || 60;
+    const female = (p.sex || "feminino") !== "masculino";
+    const piso = female ? 2000 : 2500;
+    let g = Math.max(w * 33, piso);
+    const parts = [`${w} kg × 33 ml, mínimo ${piso} ml`];
+    if (p.uses_glp1) { g = g * 1.15; parts.push("+15 % por GLP-1, que reduz a sede"); }
     g = Math.round(Math.min(3500, Math.max(1500, g)) / 50) * 50;
-    return { ml: g, why: parts.join(" ") };
+    return { ml: g, why: parts.join(" · ") };
   }
 
   const profile = () => S.profiles[S.pid] || { name: DEFAULT_NAMES[S.pid] };
@@ -937,6 +952,7 @@
     f("height_cm").value = p.height_cm ?? ""; f("weight_kg").value = p.weight_kg ?? ""; f("target_kg").value = p.target_kg ?? ""; f("water_goal_ml").value = p.water_goal_ml ?? "";
     f("uses_glp1").checked = !!p.uses_glp1; $("glp1Fields").hidden = !p.uses_glp1;
     f("glp1_substance").value = p.glp1_substance || ""; f("glp1_dose").value = p.glp1_dose || ""; f("glp1_start").value = p.glp1_start || "";
+    f("glp1_inj_day").value = p.glp1_inj_day || ""; f("satiety").value = p.satiety || "";
     f("allergies").value = (p.allergies || []).join(", "); f("intolerances").value = (p.intolerances || []).join(", ");
     f("preferences").value = p.preferences || ""; f("notes").value = p.notes || "";
     $("f_water").placeholder = `automática: ${waterGoal({ ...p, water_goal_ml: null }).ml}`;
@@ -965,6 +981,8 @@
       glp1_substance: uses ? f.glp1_substance.value.trim() || null : null,
       glp1_dose: uses ? f.glp1_dose.value.trim() || null : null,
       glp1_start: uses ? f.glp1_start.value || null : null,
+      glp1_inj_day: uses ? f.glp1_inj_day.value || null : null,
+      satiety: f.satiety.value || null,
       allergies: list(f.allergies.value), intolerances: list(f.intolerances.value),
       preferences: f.preferences.value.trim(), notes: f.notes.value.trim(),
       titrations: p.titrations || [], meds: p.meds || [],
@@ -1345,11 +1363,12 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
   function planPromptContext() {
     const p = profile(); const goal = waterGoal(p); const meds = (p.meds || []).filter((m) => m.active !== false);
     return JSON.stringify({
-      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
-      glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, titulacao: (p.titrations || []).slice(-6) } : null,
+      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), saciedade_precoce: p.satiety || "não indicada", alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
+      glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, dia_da_injecao: p.glp1_inj_day || null, titulacao: (p.titrations || []).slice(-6) } : null,
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
+      calculos_de_referencia: planTargets(p),
       analises_mais_recentes: latestLabs(),
       tensao_arterial: bpSummary(),
       documentos_de_saude: S.docs.slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
@@ -1371,69 +1390,147 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
   // (PMC9821052); revisão sistemática sobre ordem das refeições (PMC13007804)
   // e ensaio cruzado em diabetes tipo 2 (PMC4742500).
   // ---------------------------------------------------------------------------
+  /**
+   * Cálculos de referência feitos na página, para o modelo não ter de fazer aritmética.
+   * Peso ideal = 25 × altura²; peso ajustado = ideal + 0,25 × excesso (convenção ASPEN/ESPEN).
+   * Proteína = max(1,4 × ajustado; 1,5 × ideal), com piso de 80 g (mulher) / 100 g (homem).
+   */
+  function planTargets(p) {
+    const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm;
+    if (!w) return null;
+    const female = (p.sex || "feminino") !== "masculino";
+    const ideal = h ? 25 * Math.pow(h / 100, 2) : w;
+    const adj = w > ideal ? ideal + 0.25 * (w - ideal) : w;
+    const prot = Math.max(1.4 * adj, 1.5 * ideal, female ? 80 : 100);
+    const perMeal = 0.4 * adj;
+    const liquid = waterGoal(p).ml;
+    return {
+      peso_ideal_kg: Math.round(ideal * 10) / 10,
+      peso_ajustado_kg: Math.round(adj * 10) / 10,
+      proteina_alvo_g_dia: Math.round(prot),
+      proteina_por_refeicao_g: `${Math.round(perMeal)} g (usa 25–35 g; 35–40 g se tiver 65 anos ou mais)`,
+      energia_piso_kcal: female ? 1200 : 1500,
+      liquidos_alvo_ml: liquid,
+      fibra_alvo_g: "22 a 28",
+      ritmo_de_perda_alvo: "0,5 a 1,0 kg por semana",
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Base clínica usada na geração do plano. Principais fontes:
+  // advisory conjunto ACLM/ASN/OMA/TOS 2025 sobre nutrição com GLP-1; ESPEN/UEG
+  // (peso ajustado); AHA/ACC/TOS 2013 (faixas de energia); STEP 1 (NEJM 2021) e
+  // SURMOUNT-1 (composição corporal); consenso multidisciplinar sobre efeitos
+  // gastrointestinais dos agonistas GLP-1; Shukla 2015 e revisão sistemática de
+  // 2026 (ordem dos alimentos); Buffey 2022 (caminhada pós-refeição);
+  // meta-análise de UDCA e gordura na litíase por perda rápida de peso; EFSA
+  // (água e fibra); Roda dos Alimentos (DGS) e IAN-AF 2015-2016.
+  // Nenhum ensaio aleatorizado testou uma intervenção nutricional em utilizadores
+  // de GLP-1: quase tudo abaixo é consenso de peritos ou extrapolação.
+  // ---------------------------------------------------------------------------
   const PLAN_KNOWLEDGE = `BASE CLÍNICA A APLICAR (segue-a, ajustando ao caso):
 
-PROTEÍNA E MASSA MUSCULAR
-- 1,2–1,6 g/kg de peso corporal por dia; usa o topo da faixa (1,5–1,6) em perda de peso ativa ou com GLP-1, e o fundo se houver doença renal ou ureia/creatinina alteradas.
-- Se o IMC for superior a 30, calcula sobre um peso ajustado = peso ideal + 0,25 × (peso atual − peso ideal), para não exagerar a dose de proteína.
-- Distribui por refeição: 0,3–0,4 g/kg em cada refeição principal, ou seja tipicamente 25–40 g, nunca menos de 20 g. Inclui uma fonte rica em leucina (lacticínios, ovos, carne, peixe, soja) para atingir 2,5–3 g de leucina por refeição principal.
-- Sem exercício de resistência perde-se massa muscular: sugere 2 a 3 sessões semanais de força nas notas, sem prescrever treino detalhado.
+PROTEÍNA — é a restrição mais importante, resolve-a primeiro
+- O alvo diário e o alvo por refeição já vêm calculados no campo "calculos_de_referencia". Usa-os.
+- Distribui por 3 a 4 aportes. Nunca menos de 20 g numa refeição principal.
+- Cada aporte precisa de uma fonte rica em leucina (lacticínios, ovos, carne, peixe, soja) para chegar a cerca de 2,5 g de leucina. Leguminosas sozinhas não chegam lá: combina-as sempre com ovo, peixe ou lacticínio na mesma refeição.
+- Só cerca de 43 % das pessoas com GLP-1 chegam a 1,2 g/kg. Trata a proteína como obrigação, não como aspiração.
+- Sem treino de força perde-se massa muscular. Sugere 2 a 3 sessões semanais de corpo inteiro, sem prescrever treino detalhado, e coloca as mais exigentes nos dias 3 a 6 depois da injeção.
 
-ENERGIA
-- Défice moderado de 400–600 kcal/dia face às necessidades estimadas. Nunca abaixo de 1200 kcal/dia numa mulher nem 1500 numa homem. Com GLP-1 o apetite já está suprimido: o risco é comer a menos, não a mais.
-- Se não houver objetivo de perda, planeia manutenção.
+ENERGIA — resolve depois da proteína
+- Défice de 500 a 750 kcal/dia, nunca abaixo do piso indicado em "calculos_de_referencia".
+- Se a proteína ultrapassar 35 % da energia planeada, AUMENTA a energia; nunca baixes a proteína.
+- Ritmo alvo 0,5 a 1,0 kg por semana. Acima de 1,5 kg por semana aumenta o risco de cálculos na vesícula e de queda de cabelo: escreve isso no racional se o objetivo for agressivo.
 
-ORDEM DAS REFEIÇÕES
-- Por omissão, em todas as refeições principais: legumes ou sopa primeiro, depois proteína e gordura, hidratos de carbono no fim, fruta no fim ou como sobremesa. Reduz o pico de glicemia pós-refeição (em diabetes tipo 2 mediram-se reduções de cerca de 29 % aos 30 min e 37 % aos 60 min; em pessoas sem diabetes o efeito é menor mas na mesma direção).
-- Preenche sempre o campo "ordem" de cada refeição. Se a pessoa tiver uma regra própria sobre a ordem, é essa que vale.
+GORDURA — dois limites em sentidos opostos
+- Por refeição, mantém-na baixa nos dias de mais sintomas (menos de 15 g), porque a gordura é o principal desencadeante de náusea com esvaziamento gástrico lento.
+- Mas NÃO faças refeições sem gordura: em perda de peso rápida a vesícula precisa de contrair. Garante pelo menos 7 a 10 g de gordura em duas refeições por dia, de preferência azeite. Refeições ultra-magras aumentam o risco de cálculos biliares.
 
-GLP-1 (tirzepatida, semaglutido, liraglutido, dulaglutido)
-- 4 a 6 refeições pequenas, pouco volumosas. Evita fritos, molhos gordos, refeições muito grandes e ultraprocessados: pioram náuseas e enfartamento.
-- Come devagar, mastiga bem, para ao primeiro sinal de saciedade.
-- Nas 24–72 h após a injeção e em cada subida de dose, aligeira: menos gordura, menos volume, texturas mais moles, mais líquidos entre refeições.
-- Líquidos: pouco durante as refeições (o estômago esvazia devagar); a maior parte da água entre refeições.
-- Se houver muita náusea, batidos com pelo menos 20 g de proteína e menos de 200 kcal são melhor tolerados do que uma refeição sólida.
+ORDEM DAS REFEIÇÕES — depende da saciedade precoce, não é sempre igual
+- Sem saciedade precoce ou ligeira: legumes ou sopa primeiro, depois proteína e gordura, hidratos no fim, fruta no fim. Reduz o pico de glicemia (em diabetes tipo 2 mediram-se menos 29 % aos 30 min e menos 37 % aos 60 min; em pessoas sem diabetes o efeito é menor).
+- Saciedade precoce moderada ou grave, ou seja quando a pessoa não termina as refeições: PROTEÍNA PRIMEIRO, depois legumes, hidratos no fim. Encher o estômago com legumes volumosos faz perder o alvo proteico, que é o risco maior.
+- A proteína nunca é o último item de uma refeição.
+- Se a pessoa tiver uma regra própria sobre a ordem, cumpre a regra dela. Se essa regra colidir com saciedade precoce grave, cumpre-a na mesma e explica a tensão no racional.
+- A sopa antes da refeição é líquido pré-refeição. Com saciedade precoce moderada ou grave, passa a sopa para depois da proteína, reduz para 150 a 200 ml, ou transforma-a em refeição completa com leguminosas e frango ou peixe desfiado.
 
-FIBRA E TRÂNSITO
-- 25–30 g/dia. Aumenta de forma gradual e sempre acompanhada de água, senão agrava inchaço e obstipação.
-- Obstipação: fibra solúvel (aveia, psílio, kiwi, ameixa, leguminosas bem cozidas), água, movimento.
-- Diarreia: reduz temporariamente fibra insolúvel, fritos e lactose; arroz, banana, maçã cozida, batata.
+OUTROS HÁBITOS COM EVIDÊNCIA
+- Comer devagar, pelo menos 20 minutos por refeição principal, pousando os talheres. Com GLP-1 o objetivo não é comer menos, é evitar sobrecarregar o estômago.
+- Caminhada de 10 a 15 minutos começada até 30 minutos depois da refeição principal: baixa a glicemia pós-refeição cerca de 17 % e alivia inchaço e refluxo.
+- Jantar pelo menos 3 horas antes de deitar, alvo realista em Portugal entre as 19h30 e as 20h00.
 
-MICRONUTRIENTES EM RISCO com ingestão reduzida e GLP-1: vitamina D (o mais frequente), ferro, cálcio, vitamina B12, folato, tiamina, magnésio, potássio. Há relatos de défice grave de tiamina. Preenche o plano com alimentos ricos nos que estiverem baixos nas análises e diz isso no racional. Não prescrevas suplementos novos; sugere falar com o médico.
+GLP-1 — ciclo semanal da injeção
+- Dias 0 a 2 depois da injeção: 4 a 6 mini-refeições, 20 a 25 g de proteína cada, menos de 15 g de gordura por refeição, volume pequeno, texturas simples, alimentos frios ou à temperatura ambiente (libertam menos cheiro e dão menos náusea). Sem fritos, enchidos, natas, molhos, picante, álcool nem gaseificadas.
+- Dias 3 a 6: melhor tolerância. É aqui que se recupera proteína e micronutrientes, com leguminosas, peixe gordo, carne e mais hortícolas.
+- Semana de subida de dose: repete o padrão dos dias 0 a 2 durante 5 a 7 dias. Não introduzas alimentos novos nem aumentes a fibra nessa semana.
+
+SINTOMAS
+- Náusea: refeições de 150 a 250 g, gordura baixa, alimentos frios, sólidos secos simples ao acordar, chá de gengibre entre refeições, sem líquidos à refeição.
+- Vómitos: líquidos claros em goles de 30 a 50 ml de 15 em 15 minutos, depois soluções de rehidratação oral, depois alimentos leves. Nunca compensar com uma refeição grande.
+- Saciedade precoce: alimentos com muita proteína por caloria (peixe, frango, queijo fresco magro, requeijão, atum em água, claras); batido com 25 a 30 g de proteína em 200 a 250 ml nos piores dias.
+- Obstipação: fibra solúvel primeiro (aveia, psílio, kiwi, ameixa, leguminosas bem cozidas), mais água, caminhada.
+- Diarreia: menos fibra insolúvel e menos adoçantes tipo sorbitol, maltitol e xilitol (frequentes em produtos sem açúcar e barras proteicas); arroz, banana, maçã cozida, batata, cenoura cozida.
+- Refluxo: refeições pequenas, última refeição 3 horas antes de deitar, ficar de pé ou sentada 60 minutos depois de comer, menos gordura, fritos, picante, chocolate, hortelã-pimenta, café, citrinos e gaseificadas. Nesta pessoa não sugiras vinagre antes das refeições.
+- Arrotos com cheiro a enxofre: distribui as crucíferas, o alho, a cebola e os ovos por vários dias em vez de os concentrar numa refeição.
+- Inchaço: reduz primeiro os fermentáveis rápidos (inulina, chicória, frutanos, poliois), não a fibra total. Demolha e lava bem as leguminosas e começa por 2 colheres de sopa cozinhadas.
+- Cansaço: verifica primeiro se a energia e a proteína planeadas estão a ser mesmo comidas, antes de pensar em análises.
+- Queda de cabelo: aparece 2 a 4 meses depois de perda rápida, é reversível, e o principal fator é a velocidade da perda. Reforça proteína, ferro, zinco e vitamina D e abranda o ritmo.
+
+FIBRA
+- 22 a 28 g por dia, pelo menos metade solúvel. Em Portugal a média real é 17,8 g, por isso sobe devagar: mais 3 a 5 g por semana, sempre com mais 250 ml de água por cada 5 g. Não aumentes a fibra na semana de subida de dose.
+
+LÍQUIDOS
+- O alvo está calculado em "calculos_de_referencia". Distribui por 8 a 10 momentos.
+- Parar de beber 30 minutos antes da refeição e retomar 30 a 60 minutos depois: o líquido ocupa um estômago que já esvazia devagar e desloca a proteína.
+- Soluções de rehidratação oral só em dias de vómitos ou diarreia. Em dias normais não são precisas bebidas com eletrólitos.
+- Há relatos de lesão renal aguda em quem desidratou com sintomas gastrointestinais. Leva a hidratação a sério.
+
+MICRONUTRIENTES EM RISCO: vitamina D (o mais frequente, 7,5 % aos 6 meses e 13,6 % aos 12), ferro e ferritina (mais baixas do que em comparadores), cálcio, vitamina B12, tiamina (há casos de encefalopatia de Wernicke após vómitos prolongados), folato, magnésio e potássio. Mais de 60 % dos utilizadores não chega às necessidades de cálcio e ferro. Enche o plano com alimentos ricos nos que estiverem baixos nas análises e diz isso no racional. Não prescrevas suplementos novos.
 
 ANÁLISES E CONDIÇÕES
-- Glicemia em jejum ou HbA1c elevadas: hidratos de baixo índice glicémico, sempre acompanhados de proteína e legumes, menos açúcar livre.
-- LDL ou colesterol total altos: menos gordura saturada (carnes gordas, enchidos, manteiga, queijos curados, natas), mais fibra solúvel, azeite, frutos secos, peixe gordo 2 a 3 vezes por semana.
-- Triglicéridos altos: menos açúcar, menos álcool, menos farinhas refinadas.
-- Ferritina, ferro ou hemoglobina baixos: carne vermelha magra, leguminosas, vegetais verde-escuros, sempre com fonte de vitamina C na mesma refeição; separa o café e o chá das refeições principais em pelo menos 1 hora.
-- Vitamina D baixa: peixe gordo, ovos, cogumelos, lacticínios enriquecidos.
-- B12 ou folato baixos: carne, peixe, ovos, lacticínios, leguminosas, vegetais de folha verde.
-- Função renal reduzida (eGFR abaixo de 60) ou ureia alta: proteína no limite inferior da faixa, menos sal, e diz explicitamente no racional que a dose de proteína deve ser confirmada pelo médico.
+- Glicemia em jejum ou HbA1c elevadas: hidratos de baixo índice glicémico sempre acompanhados de proteína e legumes, menos açúcar livre.
+- LDL ou colesterol total altos: menos gordura saturada (carnes gordas, enchidos, manteiga, natas, queijos curados), mais fibra solúvel, azeite, frutos secos e peixe gordo 2 a 3 vezes por semana.
+- Triglicéridos altos: menos açúcar, álcool e farinhas refinadas.
+- Ferritina, ferro ou hemoglobina baixos: amêijoa, berbigão, mexilhão, fígado, carne vermelha magra, leguminosas e vegetais verde-escuros, sempre com cerca de 50 mg de vitamina C na mesma refeição (uma laranja pequena, meio pimento cru, 100 g de brócolos), sem lacticínio à mesma refeição, e café ou chá só uma hora depois.
+- Vitamina D baixa: sardinha, cavala, salmão, gema de ovo, cogumelos. Com obesidade são precisas doses maiores, o que é decisão médica.
+- B12 ou folato baixos: sardinha, atum, ovos, lacticínios, fígado, leguminosas, folhas verdes, laranja.
+- Cálcio: sardinha com espinha, lacticínios, couve galega, brócolos, amêndoa.
+- Função renal reduzida (eGFR abaixo de 60) ou ureia alta: proteína no limite inferior e menos sal, e escreve no racional que a dose de proteína tem de ser confirmada pelo médico.
 - Ácido úrico alto: menos vísceras, marisco, cerveja e bebidas açucaradas.
-- Tensão arterial elevada ou alta: sal abaixo de 5 g/dia (sem sal à mesa, poucos enchidos, queijos curados, conservas, caldos e pré-cozinhados), mais potássio de legumes, fruta e leguminosas; padrão mediterrânico ou DASH.
-- Alterações no ECG, ecocardiograma ou outros documentos: respeita o que está descrito e modera cafeína e estimulantes quando for pertinente.
+- Tensão arterial elevada ou alta: sal abaixo de 5 g por dia (sem sal à mesa, poucos enchidos, queijos curados, conservas, caldos e pré-cozinhados), mais potássio de legumes, fruta e leguminosas, padrão mediterrânico ou DASH.
+- Alterações no ECG, ecocardiograma ou outros documentos: respeita o que lá está e modera cafeína e estimulantes quando for pertinente.
 
-MEDICAÇÃO E SUPLEMENTOS
-- Indica a hora de cada suplemento e medicamento que a pessoa já toma, e o que separar: ferro longe de cálcio, café e chá; levotiroxina em jejum e afastada de cálcio e ferro; vitamina D e outras vitaminas lipossolúveis numa refeição com gordura; magnésio à noite.
-- Nunca alteres doses nem sugiras suplementos novos.
+MEDICAÇÃO E SUPLEMENTOS — indica a hora de cada um e o que separar
+- Ferro: longe de cálcio, café e chá (pelo menos 1 hora), com vitamina C.
+- Levotiroxina: em jejum, 30 a 60 minutos antes do pequeno-almoço, só com água; o café reduz a absorção cerca de um terço; separar 4 horas de cálcio, ferro e soja.
+- Vitamina D e outras vitaminas lipossolúveis: numa refeição com gordura.
+- Magnésio: à noite. O citrato serve para obstipação e reposição, o bisglicinato é o mais suave se houver diarreia, o óxido é sobretudo laxante.
+- Nunca alteres doses nem sugiras suplementos novos; organiza apenas horários.
+- Se a pessoa tomar sulfonilureia ou insulina, não planeies jejuns nem cortes bruscos, e diz que a medicação pode precisar de ajuste médico.
+
+SINAIS DE ALARME a incluir nas notas quando forem pertinentes: dor abdominal intensa que irradia para as costas (pancreatite), confusão com desequilíbrio e visão dupla depois de vómitos prolongados (défice de tiamina), incapacidade de reter líquidos mais de 24 horas, urinar pouco ou nada, tonturas com coração acelerado. Todos exigem contacto médico imediato.
 
 COZINHA PORTUGUESA
-- Usa alimentos correntes em Portugal: pescada, bacalhau demolhado, sardinha, carapau, dourada, atum, peito de frango e peru, lombo de porco magro, ovos, queijo fresco, requeijão, iogurte grego natural, leguminosas (grão, feijão, lentilhas), arroz e massa integrais, batata e batata-doce, broa e pão de centeio, azeite, sopa de legumes, couves, grelos, brócolos, espinafres, courgette, cenoura, tomate, fruta da época.
+- Peixe: atum em água cerca de 25 g de proteína por 100 g, bacalhau demolhado 19 a 21, sardinha e salmão 20, carapau e cavala 19, pescada 17, polvo 16. Amêijoa, berbigão e mexilhão são das melhores fontes de ferro e B12 disponíveis; sardinha de lata com espinha dá cálcio.
+- Carne: peito de frango e peru 23 a 25 g, lombo de porco e vitela magra 21, fígado 20 com muito ferro e B12.
+- Ovo M cerca de 6,3 g de proteína. Skyr e iogurte grego 10, queijo fresco magro 11 a 13, requeijão 11.
+- Leguminosas cozinhadas: lentilhas 9, grão 8 a 9, feijão 7 a 9, favas 7, ervilhas 5. Tremoços 15 a 16 g de proteína com muita fibra, mas com muito sal: lavar bem.
+- Pratos que encaixam: peixe grelhado com hortícolas e batata; bacalhau cozido com grão e couve; caldeirada; salada de atum com grão e ovo; jardineira com carne magra; feijoada de feijão branco sem enchidos; frango assado sem pele com salada e batata-doce; carne de porco à alentejana com batata cozida.
+- Evita como base: açorda, migas, arroz de marisco, bacalhau com natas, pastéis de bacalhau, folhados, pão com chouriço e pastéis de nata. São pouco densos em proteína e a gordura desencadeia náusea.
 
-MEDIDAS CASEIRAS (Roda dos Alimentos, DGS) — usa-as no campo medida_caseira e indica sempre no campo estado se o peso é em cru ou cozinhado, porque é a maior fonte de erro:
+MEDIDAS CASEIRAS (Roda dos Alimentos, DGS) — usa-as em medida_caseira e diz sempre em "estado" se o peso é cru ou cozinhado, que é a maior fonte de erro:
 - colher de sopa 15 ml · colher de sobremesa 10 ml · colher de chá 5 ml · chávena almoçadeira 240–250 ml · copo 200–250 ml
 - arroz ou massa: 35 g crus = 2 c. sopa · 110 g cozinhados = 4 c. sopa
 - leguminosas: 25 g secas = 1 c. sopa · 80 g cozinhadas = 3 c. sopa
 - hortícolas: 180 g crus = 2 chávenas almoçadeiras · 140 g cozinhados = 1 chávena almoçadeira
 - azeite 10 g = 1 c. sopa rasa · manteiga 15 g = 1 c. sobremesa
-- leite 250 ml = 1 chávena almoçadeira · iogurte sólido 1 unidade ≈ 125 g · queijo 40 g = 2 fatias finas · queijo fresco 50 g = ¼ de unidade média · requeijão 100 g = ½ unidade média
+- leite 250 ml = 1 chávena almoçadeira · iogurte sólido 1 unidade ≈ 125 g · queijo 40 g = 2 fatias finas · queijo fresco 50 g = ¼ de unidade · requeijão 100 g = ½ unidade
 - ovo médio 55 g · pão 50 g = 1 papo-seco · batata média ≈ 85 g · fruta média 160 g = 1 peça
-- carne ou peixe: 30 g crus correspondem a 25 g cozinhados
+- ATENÇÃO: a porção da Roda para carne e peixe (25 a 30 g) é uma unidade de contabilidade, não uma dose de refeição. Uma dose real de almoço são 120 a 150 g crus. Não confundas, senão o plano fica muito abaixo da proteína necessária.
 
 LIMITES DE ATUAÇÃO (obrigatórios)
-- Em Portugal a prescrição dietética é ato próprio do nutricionista. Isto é uma sugestão alimentar de apoio, não uma prescrição: escreve nesse registo e nunca uses as palavras prescrever, tratamento ou terapêutica.
+- Em Portugal a prescrição dietética é ato próprio do nutricionista. Isto é uma sugestão alimentar de apoio: nunca uses as palavras prescrever, tratamento ou terapêutica.
 - Não alteres doses de medicamentos nem sugiras suplementos novos; organiza apenas o horário do que já é tomado.
-- Se os dados indicarem gravidez, amamentação, menos de 18 anos, IMC abaixo de 18,5, história de perturbação do comportamento alimentar, doença renal ou hepática, ou perda de peso muito rápida, mantém o plano conservador e diz no racional que precisa de validação profissional antes de ser seguido.`;
+- Se os dados indicarem gravidez, amamentação, menos de 18 anos, IMC abaixo de 18,5, história de perturbação do comportamento alimentar, doença renal ou hepática, ou perda de peso muito rápida, mantém o plano conservador e diz no racional que precisa de validação profissional.`;
 
   const DAY_SCHEMA = `{"dias":[{"dia":"segunda","refeicoes":[{
 "nome":"Almoço","hora":"13:00",
@@ -1715,14 +1812,15 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     const meds = (p.meds || []).filter((m) => m.active !== false);
     const ctx = {
       data_de_hoje: localDate(),
-      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
-      glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, historico_titulacao: p.titrations || [] } : null,
+      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), saciedade_precoce: p.satiety || "não indicada", alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
+      glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, dia_da_injecao: p.glp1_inj_day || null, historico_titulacao: p.titrations || [] } : null,
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
       evolucao_peso: S.weights.slice(-8),
       analises_mais_recentes: latestLabs(),
       regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
+      calculos_de_referencia: planTargets(p),
       tensao_arterial: bpSummary(),
       documentos_de_saude: S.docs.slice(-6).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
       plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, hidratacao: S.plan.plan.hidratacao || [], dias: S.plan.plan.dias } : null,

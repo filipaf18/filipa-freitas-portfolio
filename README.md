@@ -22,6 +22,16 @@ nem chave de API.
 Cada perfil tem um objetivo (perder peso, manter e comer equilibrado, ganhar massa) que muda só a
 energia: a proteína, a fibra e o equilíbrio do prato mantêm-se.
 
+**Energia calculada pessoa a pessoa** (`energyModel` em `app.js`, mostrado no Perfil e em "Porquê estes
+números?"): metabolismo basal por Katch-McArdle quando há massa magra medida no registo corporal,
+senão Mifflin-St Jeor (peso, altura, idade, sexo); fator de atividade do perfil; ajustes pelas análises
+da tiroide (TSH, T4 livre), pela perda já feita (adaptação) e pela idade; défice conforme os quilos a
+perder, a idade, o GLP-1 e a massa gorda, nunca acima de 25 % do gasto nem abaixo do metabolismo basal
+ou do piso (1200/1500 kcal). As análises fora da referência viram instruções para o prato
+(`labFlags`): glicemia, lípidos, ferro, vitamina D, B12, rins (com limite de proteína), ácido úrico,
+fígado, tiroide, potássio, sódio, albumina, PCR, magnésio. O assistente recebe tudo já calculado e não
+recalcula.
+
 **Refeições em família.** Não há um plano de família à parte: ao gerar o plano de uma pessoa, os
 jantares e almoços (em marmita) saem primeiro, iguais para toda a gente que come em família, e
 entram no plano individual de cada um com as suas quantidades e sem o que cada pessoa não come.

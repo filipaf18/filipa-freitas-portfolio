@@ -31,6 +31,8 @@
     memUpto: null,         // ISO da última mensagem já destilada para regras/preferências
     family: null,          // refeições em família (documento partilhado family/plan)
     shopping: null,        // lista de compras da semana (documento partilhado shopping/<semana>)
+    labsAll: {},           // análises de todos os perfis (para o cálculo de energia de cada um)
+    bodyAll: {},           // composição corporal de todos os perfis
     promptMax: 65536,      // limites lidos em sample.limits()
     toolMax: 8,
     distilling: false,
@@ -210,7 +212,7 @@
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.memUpto = mem.chat[S.pid]?.memory_upto || null; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
       S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
-      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || []; S.family = thaw(mem.family.plan) || null; S.shopping = thaw(mem.shopping[mondayOf()]) || null;
+      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || []; S.family = thaw(mem.family.plan) || null; S.shopping = thaw(mem.shopping[mondayOf()]) || null; S.labsAll = thaw(mem.labs) || {}; S.bodyAll = thaw(mem.body) || {};
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -607,7 +609,7 @@ Responde APENAS com JSON válido nesta forma:
     f("glp1_inj_day").value = p.glp1_inj_day || ""; f("satiety").value = p.satiety || "";
     f("allergies").value = (p.allergies || []).join(", "); f("intolerances").value = (p.intolerances || []).join(", ");
     { const t = planTargets(p); const el = $("targetNote");
-      if (el) el.innerHTML = t ? `Com estes dados: <strong>${t.proteina_alvo_g_dia} g</strong> de proteína por dia${t.energia_alvo_kcal ? ` e cerca de <strong>${t.energia_alvo_kcal} kcal</strong> (${esc(t.objetivo)})` : ""}.` : "Preenche peso, altura e data de nascimento para veres as metas."; }
+      if (el) el.innerHTML = t ? `Com estes dados: <strong>${t.proteina_alvo_g_dia} g</strong> de proteína por dia${t.proteina_nota ? esc(t.proteina_nota) : ""}${t.energia_alvo_kcal ? ` e <strong>${t.energia_alvo_kcal} kcal</strong> (${esc(t.objetivo)})` : ""}.${t.energia ? ` <details class="why" style="margin-top:6px"><summary>Como se chegou a este número</summary>${energyHtml(t)}</details>` : ""}` : "Preenche peso, altura e data de nascimento para veres as metas."; }
     f("preferences").value = p.preferences || ""; f("notes").value = p.notes || "";
     $("f_water").placeholder = `automática: ${waterGoal({ ...p, water_goal_ml: null }).ml}`;
 
@@ -800,11 +802,14 @@ Responde APENAS com JSON válido nesta forma:
   }
 
   /** Última análise por marcador, para o contexto do assistente. */
-  function latestLabs() {
+  const labsFor = (pid) => pid === S.pid ? S.labs : (S.labsAll[pid]?.entries || []);
+  const bodyFor = (pid) => pid === S.pid ? S.body : (S.bodyAll[pid]?.entries || []);
+  function latestLabsFor(pid) {
     const m = new Map();
-    [...S.labs].sort((a, b) => b.date.localeCompare(a.date)).forEach((e) => { const k = labKey(e); if (!m.has(k)) m.set(k, e); });
-    return [...m.values()].map((e) => ({ analise: labLabel(e), valor: e.value, unidade: e.unit, referencia: fmtRange(e) || null, estado: outOfRange(e) || "normal", data: e.date }));
+    [...labsFor(pid)].sort((a, b) => b.date.localeCompare(a.date)).forEach((e) => { const k = labKey(e); if (!m.has(k)) m.set(k, e); });
+    return [...m.values()].map((e) => ({ marker: e.marker, analise: labLabel(e), valor: e.value, unidade: e.unit, referencia: fmtRange(e) || null, estado: outOfRange(e) || "normal", data: e.date }));
   }
+  const latestLabs = () => latestLabsFor(S.pid);
 
   // ============================================================
   // Composição corporal
@@ -1271,14 +1276,6 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     const w = p.current_weight_kg ?? p.weight_kg;
     return w && p.target_kg && p.target_kg < w - 1 ? "perder" : "manter";
   }
-  /** Gasto de manutenção estimado: Mifflin-St Jeor × fator de atividade. */
-  function maintenanceKcal(p) {
-    const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm, age = ageFrom(p.birth_date);
-    if (!w || !h || age === null) return null;
-    const female = (p.sex || "feminino") !== "masculino";
-    const bmr = 10 * w + 6.25 * h - 5 * age + (female ? -161 : 5);
-    return Math.round(bmr * (ACTIVITY[p.activity] || 1.4) / 10) * 10;
-  }
   /** Perfis com dados preenchidos (os outros ainda não contam como agregado). */
   const hasProfile = (id) => { const q = S.profiles[id]; return !!(q && (q.name || q.weight_kg || q.height_cm)); };
   const familyIds = () => PROFILE_IDS.filter((id) => hasProfile(id) && S.profiles[id].family !== false);
@@ -1290,39 +1287,151 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       come_em_familia: ids.map((id) => nameOf(id)),
       regra: "O jantar (e o almoço, quando é marmita) é o mesmo prato para todos: muda a quantidade de cada um e sai do prato o que a pessoa não come. Não proponhas pratos diferentes para a mesma refeição.",
       pessoas: ids.map((id) => {
-        const q = S.profiles[id]; const t = planTargets(q);
+        const q = S.profiles[id]; const t = planTargets(q, id);
         return { perfil: id, nome: nameOf(id), objetivo: GOALS[goalOf(q)], nao_come: q.dislikes || [], alergias: q.allergies || [], intolerancias: q.intolerances || [], proteina_alvo_g_dia: t?.proteina_alvo_g_dia ?? null, energia_alvo_kcal: t?.energia_alvo_kcal ?? null, usa_glp1: !!q.uses_glp1 };
       }),
     };
   }
-  function planTargets(p) {
+  const ACTIVITY_LABEL = { sedentaria: "sedentária (×1,3)", pouco_ativa: "pouco ativa (×1,45)", ativa: "ativa (×1,6)", muito_ativa: "muito ativa (×1,75)" };
+  const r10 = (v) => Math.round(v / 10) * 10;
+  /** A análise mais recente de um marcador, com o estado face à referência. */
+  const labOf = (pid, marker) => latestLabsFor(pid).find((x) => x.marker === marker) || null;
+  const labIs = (pid, marker, estado) => labOf(pid, marker)?.estado === estado;
+
+  /**
+   * Energia calculada pessoa a pessoa. Cada passo fica escrito com a razão, para
+   * aparecer em "Porquê estes números?" e para o assistente não recalcular.
+   *  1. Metabolismo basal: Katch-McArdle quando há massa magra medida, senão Mifflin-St Jeor.
+   *  2. Fator de atividade do perfil.
+   *  3. Ajustes: tiroide (TSH, T4 livre), perda já feita (adaptação), idade avançada.
+   *  4. Défice conforme o que há para perder, a idade, o GLP-1 e a massa gorda; pisos de segurança.
+   */
+  function energyModel(p, pid = S.pid) {
+    const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm, age = ageFrom(p.birth_date);
+    if (!w) return null;
+    const female = (p.sex || "feminino") !== "masculino";
+    const passos = [], avisos = [];
+    // 1. metabolismo basal
+    const rows = bodyFor(pid).map(bodyRow).filter((r) => r.lean_kg && r.weight_kg).sort((a, b) => a.date.localeCompare(b.date));
+    const last = rows[rows.length - 1];
+    let bmr, metodo;
+    if (last && Math.abs(last.weight_kg - w) <= 5) {
+      bmr = 370 + 21.6 * last.lean_kg; metodo = "Katch-McArdle";
+      passos.push({ passo: "Metabolismo basal", valor: `${Math.round(bmr)} kcal`, porque: `Katch-McArdle sobre ${fmtNum(last.lean_kg)} kg de massa magra (${fmtNum(last.fat_pct)} % de gordura, medição de ${last.date})` });
+    } else if (h && age !== null) {
+      bmr = 10 * w + 6.25 * h - 5 * age + (female ? -161 : 5); metodo = "Mifflin-St Jeor";
+      passos.push({ passo: "Metabolismo basal", valor: `${Math.round(bmr)} kcal`, porque: `Mifflin-St Jeor: ${fmtNum(w)} kg, ${fmtNum(h)} cm, ${age} anos, ${female ? "mulher" : "homem"}` });
+    } else {
+      bmr = (female ? 22 : 24) * w; metodo = "por kg";
+      passos.push({ passo: "Metabolismo basal", valor: `${Math.round(bmr)} kcal`, porque: "estimativa grosseira por kg: faltam altura ou data de nascimento no perfil" });
+      avisos.push("Preenche altura e data de nascimento para um cálculo fiável.");
+    }
+    // 2. atividade
+    const fator = ACTIVITY[p.activity] || 1.4;
+    let manut = bmr * fator;
+    passos.push({ passo: "Gasto com atividade", valor: `${r10(manut)} kcal`, porque: p.activity ? `atividade ${ACTIVITY_LABEL[p.activity]}` : "atividade não indicada: assumido ×1,4 (preenche no perfil)" });
+    // 3. ajustes por análises e história
+    let pct = 0;
+    const tshAlto = labIs(pid, "tsh", "alto"), t4Baixo = labIs(pid, "t4_livre", "baixo");
+    if (tshAlto || t4Baixo) { const d = tshAlto && t4Baixo ? 8 : 5; pct -= d; passos.push({ passo: "Tiroide", valor: `−${d} %`, porque: `${tshAlto ? "TSH acima da referência" : ""}${tshAlto && t4Baixo ? " e " : ""}${t4Baixo ? "T4 livre abaixo" : ""}: metabolismo mais lento até estar corrigido; validar com o médico` }); }
+    if (labIs(pid, "tsh", "baixo") && labIs(pid, "t4_livre", "alto")) { pct += 5; passos.push({ passo: "Tiroide", valor: "+5 %", porque: "TSH baixo com T4 livre alto: metabolismo acelerado; validar com o médico" }); }
+    const first = rows[0]; const ws = (pid === S.pid ? S.weights : []).filter((x) => x.kg).sort((a, b) => a.date.localeCompare(b.date));
+    const w0 = first?.weight_kg ?? ws[0]?.kg ?? null;
+    if (w0 && w0 - w >= 0.05 * w0) { pct -= 5; passos.push({ passo: "Perda já feita", valor: "−5 %", porque: `já perdeu ${fmtNum(Math.round((w0 - w) * 10) / 10)} kg desde ${first?.date || ws[0].date}: o gasto adapta-se à descida de peso` }); }
+    if (age !== null && age >= 65 && metodo === "Mifflin-St Jeor") { pct -= 3; passos.push({ passo: "Idade", valor: "−3 %", porque: "a partir dos 65 anos a massa magra e o gasto descem mais do que a fórmula prevê" }); }
+    manut = r10(manut * (1 + pct / 100));
+    if (pct) passos.push({ passo: "Gasto de manutenção", valor: `${manut} kcal`, porque: "depois dos ajustes" });
+    // 4. défice ou excedente
+    const goal = goalOf(p); const ideal = h ? 25 * Math.pow(h / 100, 2) : w;
+    const piso = female ? 1200 : 1500;
+    let defice = 0, alvo = manut, ritmo = null;
+    if (goal === "perder") {
+      const excess = p.target_kg ? w - p.target_kg : Math.max(0, w - ideal);
+      defice = excess < 3 ? 250 : excess < 8 ? 400 : excess < 15 ? 500 : 650;
+      const razoes = [`${fmtNum(Math.round(excess * 10) / 10)} kg para perder${p.target_kg ? "" : " até ao peso de referência"}`];
+      if (age !== null && age >= 60 && defice > 400) { defice = 400; razoes.push("a partir dos 60 anos o défice fica em 400 kcal para poupar massa muscular"); }
+      if (p.uses_glp1 && defice > 600) { defice = 600; razoes.push("com GLP-1 o apetite já cai: défice maior perde massa magra e sobe o risco biliar"); }
+      const fat = last?.fat_pct ?? null;
+      if (fat !== null && ((female && fat < 25) || (!female && fat < 15)) && defice > 300) { defice = 300; razoes.push(`massa gorda já baixa (${fmtNum(fat)} %): défice pequeno para não perder músculo`); }
+      const cap = r10(0.25 * manut); if (defice > cap) { defice = cap; razoes.push("nunca mais de 25 % do gasto"); }
+      alvo = Math.max(piso, r10(bmr), r10(manut - defice));
+      if (alvo > manut - defice) razoes.push(alvo === piso ? `piso de segurança de ${piso} kcal` : "nunca abaixo do metabolismo basal");
+      defice = manut - alvo;
+      ritmo = Math.round(defice * 7 / 7700 * 100) / 100;
+      passos.push({ passo: "Défice", valor: `−${defice} kcal`, porque: razoes.join("; ") });
+      if (ritmo > 1) avisos.push("Ritmo acima de 1 kg por semana: sobe o risco de cálculos na vesícula e de queda de cabelo.");
+    } else if (goal === "ganhar") {
+      alvo = manut + 300;
+      passos.push({ passo: "Excedente", valor: "+300 kcal", porque: "ganho de massa muscular lento, para não acumular gordura" });
+    } else {
+      passos.push({ passo: "Sem défice", valor: `${manut} kcal`, porque: "o objetivo é comer equilibrado e manter o peso" });
+    }
+    return { metodo_basal: metodo, metabolismo_basal_kcal: Math.round(bmr), fator_atividade: fator, gasto_manutencao_kcal: manut, ajustes_pct: pct, defice_kcal: defice, energia_alvo_kcal: alvo, ritmo_esperado_kg_semana: ritmo, piso_kcal: piso, passos, avisos };
+  }
+
+  /** O que as análises mudam no prato desta pessoa, em texto: entra no plano e no chat. */
+  function labFlags(pid = S.pid) {
+    const out = []; const is = (m, e) => labIs(pid, m, e);
+    const v = (m) => labOf(pid, m)?.valor;
+    if (is("hba1c", "alto") || is("glicemia_jejum", "alto") || is("insulina", "alto")) out.push({ analise: "Glicemia, HbA1c ou insulina acima da referência", no_prato: "hidratos de baixo índice glicémico e sempre acompanhados de proteína e gordura; legumes antes dos hidratos; sem açúcar livre; caminhada de 10 a 15 minutos depois das refeições principais" });
+    if (is("ldl", "alto") || is("colesterol_total", "alto")) out.push({ analise: "Colesterol LDL ou total acima da referência", no_prato: "gordura saturada baixa (enchidos, natas, manteiga, queijos gordos raros), azeite como gordura principal, fibra solúvel todos os dias (aveia, leguminosas, maçã), peixe gordo 2 vezes por semana" });
+    if (is("trigliceridos", "alto")) out.push({ analise: "Triglicéridos acima da referência", no_prato: "sem açúcar livre nem sumos, álcool zero, hidratos integrais em porções controladas, peixe gordo 2 a 3 vezes por semana" });
+    if (is("hdl", "baixo")) out.push({ analise: "HDL abaixo da referência", no_prato: "azeite, frutos secos, peixe gordo; atividade física regular ajuda mais do que qualquer alimento" });
+    if (is("ferritina", "baixo") || is("hemoglobina", "baixo") || is("ferro", "baixo") || is("transferrina_sat", "baixo")) out.push({ analise: "Ferro, ferritina ou hemoglobina abaixo da referência", no_prato: "carne vermelha magra ou sardinha 2 vezes por semana, leguminosas com fonte de vitamina C na mesma refeição; café, chá e lacticínios afastados 1 hora dessas refeições" });
+    if (is("ferritina", "alto")) out.push({ analise: `Ferritina acima da referência (${fmtNum(v("ferritina"))})`, no_prato: "sem reforço de ferro nem suplementos com ferro; carne vermelha no máximo 1 vez por semana; validar causa com o médico" });
+    if (is("vit_d", "baixo")) out.push({ analise: "Vitamina D abaixo da referência", no_prato: "peixe gordo (sardinha, cavala, salmão) 2 a 3 vezes por semana, gema de ovo, lacticínios enriquecidos; suplemento só com o médico" });
+    if (is("b12", "baixo") || is("folato", "baixo")) out.push({ analise: "B12 ou folato abaixo da referência", no_prato: "ovos, peixe, carne e lacticínios em todas as refeições principais; folhas verdes e leguminosas para o folato" });
+    if (is("egfr", "baixo") || is("creatinina", "alto")) out.push({ analise: "Função renal reduzida (eGFR baixo ou creatinina alta)", no_prato: "proteína limitada a 1,0 a 1,2 g por kg, distribuída; sem suplementos de proteína; validar obrigatoriamente com o médico", limite_proteina_g_kg: 1.2 });
+    if (is("acido_urico", "alto")) out.push({ analise: "Ácido úrico acima da referência", no_prato: "menos vísceras, marisco, caldos de carne e cerveja; mais água e lacticínios magros; perda de peso gradual, não brusca" });
+    if (is("alt", "alto") || is("ast", "alto") || is("ggt", "alto")) out.push({ analise: "Enzimas hepáticas acima da referência", no_prato: "álcool zero, menos açúcar e fritos, café sem açúcar pode ajudar; perda de peso gradual reduz a gordura no fígado" });
+    if (is("tsh", "alto") || is("t4_livre", "baixo")) out.push({ analise: "Tiroide lenta (TSH alto ou T4 livre baixo)", no_prato: "já descontado no gasto de energia; iodo e selénio pela alimentação (peixe, ovos, castanha-do-brasil 1 por dia); soja e couves cruas em excesso afastadas da medicação" });
+    if (is("potassio", "alto")) out.push({ analise: "Potássio acima da referência", no_prato: "moderar banana, batata, tomate e leguminosas até novo controlo; validar com o médico" });
+    if (is("sodio", "baixo")) out.push({ analise: "Sódio abaixo da referência", no_prato: "não restringir sal sem indicação médica; hidratação com sais" });
+    if (is("albumina", "baixo")) out.push({ analise: "Albumina abaixo da referência", no_prato: "proteína de alta qualidade em todas as refeições, sem falhar aportes" });
+    if (is("pcr", "alto")) out.push({ analise: "PCR acima da referência", no_prato: "padrão mediterrânico: azeite, peixe gordo, frutos secos, legumes; menos ultraprocessados" });
+    if (is("magnesio", "baixo")) out.push({ analise: "Magnésio abaixo da referência", no_prato: "frutos secos, sementes, leguminosas, cereais integrais, chocolate negro" });
+    return out;
+  }
+
+  /** Os passos do cálculo de energia e o que as análises mudam, em lista. */
+  function energyHtml(t) {
+    if (!t?.energia) return "";
+    const passos = (t.energia.passos || []).map((x) => { const [a, b] = x.split(" — "); const [nome, val] = a.split(": "); return `<li><span class="n">${esc(val || "")}</span><span>${esc(nome)}${b ? `<span class="o">${esc(b)}</span>` : ""}</span></li>`; }).join("");
+    const avisos = (t.energia.avisos || []).map((x) => `<li><span class="n">⚠</span><span>${esc(x)}</span></li>`).join("");
+    const labs = (t.ajustes_pelas_analises || []).map((x) => { const [a, b] = x.split(": "); return `<li><span class="n">🧪</span><span>${esc(a)}${b ? `<span class="o">${esc(b)}</span>` : ""}</span></li>`; }).join("");
+    return `<ul class="why-list">${passos}${avisos}</ul>${labs ? `<p class="small muted" style="margin:8px 0 4px">O que as análises mudam no prato</p><ul class="why-list">${labs}</ul>` : ""}`;
+  }
+  function planTargets(p, pid = S.pid) {
     const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm;
     if (!w) return null;
     const female = (p.sex || "feminino") !== "masculino";
     const ideal = h ? 25 * Math.pow(h / 100, 2) : w;
     const adj = w > ideal ? ideal + 0.25 * (w - ideal) : w;
     const goal = goalOf(p);
-    const prot = goal === "perder" ? Math.max(1.4 * adj, 1.5 * ideal, female ? 80 : 100)
+    let prot = goal === "perder" ? Math.max(1.4 * adj, 1.5 * ideal, female ? 80 : 100)
       : goal === "ganhar" ? Math.max(1.6 * adj, female ? 90 : 110)
         : Math.max(1.1 * adj, female ? 70 : 85);
+    const flags = labFlags(pid);
+    const capGkg = Math.min(...flags.map((f) => f.limite_proteina_g_kg).filter(Boolean), Infinity);
+    let notaProt = "";
+    if (capGkg !== Infinity && prot > capGkg * w) { prot = capGkg * w; notaProt = ` (limitada a ${capGkg} g/kg pela função renal)`; }
     const perMeal = (goal === "perder" ? 0.4 : 0.35) * adj;
-    const manut = maintenanceKcal(p);
-    const piso = female ? 1200 : 1500;
-    const energia = manut === null ? null
-      : goal === "perder" ? Math.max(piso, Math.round((manut - 500) / 10) * 10)
-        : goal === "ganhar" ? Math.round((manut + 300) / 10) * 10 : manut;
+    const en = energyModel(p, pid);
     return {
       objetivo: GOALS[goal],
       peso_ideal_kg: Math.round(ideal * 10) / 10,
       peso_ajustado_kg: Math.round(adj * 10) / 10,
       proteina_alvo_g_dia: Math.round(prot),
+      proteina_nota: notaProt || undefined,
       proteina_por_refeicao_g: `${Math.round(perMeal)} g (usa 25–35 g; 35–40 g se tiver 65 anos ou mais)`,
-      energia_manutencao_estimada_kcal: manut,
-      energia_alvo_kcal: energia,
-      energia_piso_kcal: piso,
+      energia_manutencao_estimada_kcal: en?.gasto_manutencao_kcal ?? null,
+      energia_alvo_kcal: en?.energia_alvo_kcal ?? null,
+      energia_piso_kcal: en?.piso_kcal ?? (female ? 1200 : 1500),
+      energia: en ? { metodo_basal: en.metodo_basal, metabolismo_basal_kcal: en.metabolismo_basal_kcal, fator_atividade: en.fator_atividade, gasto_manutencao_kcal: en.gasto_manutencao_kcal, defice_kcal: en.defice_kcal, energia_alvo_kcal: en.energia_alvo_kcal, ritmo_esperado_kg_semana: en.ritmo_esperado_kg_semana, passos: en.passos.map((x) => `${x.passo}: ${x.valor} — ${x.porque}`), avisos: en.avisos } : null,
+      ajustes_pelas_analises: flags.map((f) => `${f.analise}: ${f.no_prato}`),
       liquidos_alvo_ml: waterGoal(p).ml,
       fibra_alvo_g: "22 a 28",
-      ...(goal === "perder" ? { ritmo_de_perda_alvo: "0,5 a 1,0 kg por semana" } : {}),
+      ...(goal === "perder" && en?.ritmo_esperado_kg_semana ? { ritmo_de_perda_alvo: `${fmtNum(en.ritmo_esperado_kg_semana)} kg por semana com este défice` } : {}),
       ...(goal === "manter" ? { nota: "Não é para emagrecer: energia de manutenção, sem défice. O que interessa é o equilíbrio do prato e a proteína." } : {}),
     };
   }
@@ -1349,10 +1458,10 @@ PROTEÍNA — é a restrição mais importante, resolve-a primeiro
 - Sem treino de força perde-se massa muscular. Sugere 2 a 3 sessões semanais de corpo inteiro, sem prescrever treino detalhado, e coloca as mais exigentes nos dias 3 a 6 depois da injeção.
 - Se o campo "composicao_corporal" mostrar que menos de 75 % do peso perdido foi gordura, ou que a massa magra está a descer, sobe a proteína para o topo da faixa, não desças mais a energia, e escreve isso no racional com a recomendação de treino de força.
 
-ENERGIA — resolve depois da proteína
-- Défice de 500 a 750 kcal/dia, nunca abaixo do piso indicado em "calculos_de_referencia".
+ENERGIA — já vem calculada pessoa a pessoa, não a recalcules
+- "calculos_de_referencia.energia" traz o metabolismo basal (pela composição corporal quando há medição, senão Mifflin-St Jeor), o fator de atividade, os ajustes pelas análises da tiroide, pela perda já feita e pela idade, e o défice escolhido conforme o que há para perder, a idade, o GLP-1 e a massa gorda, com os pisos de segurança. Usa "energia_alvo_kcal" como total do dia (mais ou menos 50 kcal) e copia os passos para os "porques".
 - Se a proteína ultrapassar 35 % da energia planeada, AUMENTA a energia; nunca baixes a proteína.
-- Ritmo alvo 0,5 a 1,0 kg por semana. Acima de 1,5 kg por semana aumenta o risco de cálculos na vesícula e de queda de cabelo: escreve isso no racional se o objetivo for agressivo.
+- "ajustes_pelas_analises" diz o que cada análise fora da referência muda no prato: aplica cada linha e declara-o nos "porques" com o valor da análise.
 
 GORDURA — dois limites em sentidos opostos
 - Por refeição, mantém-na baixa nos dias de mais sintomas (menos de 15 g), porque a gordura é o principal desencadeante de náusea com esvaziamento gástrico lento.
@@ -1754,7 +1863,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     for (const id of ids) {
       const atual = id === S.pid ? S.plan : (S.plans[id] || null);
       const base = atual?.plan ? JSON.parse(JSON.stringify(atual.plan)) : null;
-      const q = S.profiles[id] || {}; const t = planTargets(q);
+      const q = S.profiles[id] || {}; const t = planTargets(q, id);
       const plan = base || {
         metas_diarias: { kcal: t?.energia_alvo_kcal || null, proteina_g: t?.proteina_alvo_g_dia || null, fibra_g: 25, agua_ml: waterGoal(q).ml },
         racional: `Refeições em família: o jantar${fam.com_almoco ? " e o almoço" : ""} são iguais aos dos outros, com as quantidades de ${nameOf(id)}.`,
@@ -1783,11 +1892,11 @@ LIMITES DE ATUAÇÃO (obrigatórios)
    */
   async function familyPipeline(ids, comAlmoco, ask, dayList = DAYS, avoidBases = []) {
     const pessoas = ids.map((id) => {
-      const q = S.profiles[id]; const t = planTargets(q);
+      const q = S.profiles[id]; const t = planTargets(q, id);
       return {
         perfil: id, nome: nameOf(id), idade: ageFrom(q.birth_date), sexo: q.sex, peso_kg: q.weight_kg, altura_cm: q.height_cm,
         objetivo: GOALS[goalOf(q)], energia_alvo_kcal: t?.energia_alvo_kcal ?? null, proteina_alvo_g_dia: t?.proteina_alvo_g_dia ?? null,
-        proteina_por_refeicao: t?.proteina_por_refeicao_g ?? null,
+        proteina_por_refeicao: t?.proteina_por_refeicao_g ?? null, calculo_de_energia: t?.energia?.passos ?? null, ajustes_pelas_analises: t?.ajustes_pelas_analises ?? [],
         nao_come: q.dislikes || [], alergias: q.allergies || [], intolerancias: q.intolerances || [],
         preferencias: q.preferences || null, saciedade_precoce: q.satiety || null,
         usa_glp1: !!q.uses_glp1, glp1: q.uses_glp1 ? { substancia: q.glp1_substance, dose: q.glp1_dose, dia_da_injecao: q.glp1_inj_day } : null,
@@ -1874,7 +1983,7 @@ ${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de 3)`
     };
   }
 
-  const personCtx = (id) => { const q = S.profiles[id] || {}; const t = planTargets(q); return { perfil: id, nome: nameOf(id), objetivo: GOALS[goalOf(q)], nao_come: q.dislikes || [], alergias: q.allergies || [], intolerancias: q.intolerances || [], proteina_alvo_g_dia: t?.proteina_alvo_g_dia ?? null, energia_alvo_kcal: t?.energia_alvo_kcal ?? null, usa_glp1: !!q.uses_glp1, gostos: id === S.pid ? prefsSummary() : null }; };
+  const personCtx = (id) => { const q = S.profiles[id] || {}; const t = planTargets(q, id); return { perfil: id, nome: nameOf(id), objetivo: GOALS[goalOf(q)], nao_come: q.dislikes || [], alergias: q.allergies || [], intolerancias: q.intolerances || [], proteina_alvo_g_dia: t?.proteina_alvo_g_dia ?? null, energia_alvo_kcal: t?.energia_alvo_kcal ?? null, usa_glp1: !!q.uses_glp1, gostos: id === S.pid ? prefsSummary() : null }; };
   const cleanPlate = (x) => ({ itens: (x.itens || []).map((i) => ({ alimento: String(i.alimento || ""), quantidade: String(i.quantidade || ""), estado: String(i.estado || ""), medida_caseira: String(i.medida_caseira || ""), grupo: String(i.grupo || "") })).filter((i) => i.alimento), ordem: (x.ordem || []).map(String).slice(0, 6), kcal: Number(x.kcal) || 0, proteina_g: Number(x.proteina_g) || 0, hidratos_g: Number(x.hidratos_g) || 0, gordura_g: Number(x.gordura_g) || 0, fibra_g: Number(x.fibra_g) || 0, nota: String(x.nota || "") });
   function famSlot(fd, mealName) { return fd?.jantar && norm(fd.jantar.nome) === norm(mealName) ? "jantar" : fd?.almoco && norm(fd.almoco.nome) === norm(mealName) ? "almoco" : null; }
 
@@ -1920,10 +2029,10 @@ Responde APENAS com JSON válido nesta forma:
   async function propagateFamilyEdit(dayName, mealName, itens, hora, what) {
     const fam = S.family; const fd = (fam?.dias || []).find((d) => norm(d.dia) === norm(dayName)); const slot = famSlot(fd, mealName);
     if (!slot || !(fam.pessoas || []).includes(S.pid)) return false;
-    const atual = fd[slot]; const tMine = planTargets(S.profiles[S.pid] || {}) || {};
+    const atual = fd[slot]; const tMine = planTargets(S.profiles[S.pid] || {}, S.pid) || {};
     const por = {};
     for (const id of fam.pessoas || []) {
-      const old = atual.por_pessoa?.[id]; const tId = planTargets(S.profiles[id] || {}) || {};
+      const old = atual.por_pessoa?.[id]; const tId = planTargets(S.profiles[id] || {}, id) || {};
       // proteína escala pela proteína alvo; o resto pela energia alvo (quem só quer equilibrar come mais hidratos, não mais proteína)
       const rProt = (tId.proteina_alvo_g_dia || 80) / (tMine.proteina_alvo_g_dia || 80);
       const rKcal = tId.energia_alvo_kcal && tMine.energia_alvo_kcal ? tId.energia_alvo_kcal / tMine.energia_alvo_kcal : rProt;
@@ -2109,7 +2218,7 @@ Responde APENAS com JSON válido nesta forma:
     const targetDefs = [["kcal", "kcal/dia"], ["proteina_g", "g proteína"], ["fibra_g", "g fibra"], ["agua_ml", "ml água"], ["hidratos_g", "g hidratos"], ["gordura_g", "g gordura"], ["sal_g", "g sal (máx.)"]];
     $("planTargets").innerHTML = targetDefs.filter(([k]) => t[k] !== undefined && t[k] !== null).map(([k, l]) => `<div class="target"><div class="v num">${t[k]}</div><div class="k">${l}</div></div>`).join("");
     $("planRationale").textContent = pl.racional || "";
-    { const w = $("planWhy"); if (w) w.innerHTML = (pl.porques || []).length ? `<ul class="why-list">${pl.porques.map((x) => `<li><span class="n">${esc(x.numero)}</span><span>${esc(x.decisao)}${x.origem ? `<span class="o">${esc(x.origem)}</span>` : ""}</span></li>`).join("")}</ul>` : ""; }
+    { const w = $("planWhy"); if (w) { const tNow = planTargets(profile()); w.innerHTML = ((pl.porques || []).length ? `<ul class="why-list">${pl.porques.map((x) => `<li><span class="n">${esc(x.numero)}</span><span>${esc(x.decisao)}${x.origem ? `<span class="o">${esc(x.origem)}</span>` : ""}</span></li>`).join("")}</ul>` : "") + (tNow?.energia ? `<p class="small muted" style="margin:8px 0 4px">Cálculo de energia com os dados de hoje</p>${energyHtml(tNow)}` : ""); } }
     { const prep = pl.preparacao_antecipada || []; const c = $("planPrepCard"); if (c) { c.hidden = prep.length === 0; $("planPrep").innerHTML = prep.map((x) => `<li>${esc(x)}</li>`).join(""); } }
     if (!S.planDay) S.planDay = todayDayName();
     const today = todayDayName();
@@ -2970,7 +3079,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();
@@ -2991,6 +3100,12 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
         const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.profiles = next;
         renderWho(); renderHome(); renderWater(); renderChat(); renderPlan(); renderShopping(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
       }, (e) => console.warn("profiles", e));
+      db.collection("labs").onSnapshot((snap) => {
+        const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.labsAll = next;
+      }, (e) => console.warn("labs all", e));
+      db.collection("body").onSnapshot((snap) => {
+        const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.bodyAll = next;
+      }, (e) => console.warn("body all", e));
       db.doc("family/plan").onSnapshot((snap) => {
         if (S.generating) return;
         S.family = snap.exists ? thaw(snap.data()) : null;

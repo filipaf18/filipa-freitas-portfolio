@@ -501,11 +501,12 @@
       <div class="chips" id="chips"></div>
       <form class="composer" id="composer">
         <div class="attach-list" id="attachList"></div>
+        <p class="hint" id="attachHint">Podes anexar PDF de análises, tensão, ECG ou outros documentos.</p>
         <textarea class="input" id="chatInput" rows="2" placeholder="Escreve aqui… (Enter envia, Shift+Enter nova linha)"></textarea>
         <div class="row between">
           <div class="row" style="gap:4px">
             <input type="file" id="fileInput" multiple hidden>
-            <button type="button" class="btn ghost sm" id="attachBtn" hidden>📎 Anexar documento</button>
+            <button type="button" class="btn ghost sm" id="attachBtn">📎 Anexar documento</button>
             <button type="button" class="btn ghost sm" id="clearChat">Limpar conversa</button>
           </div>
           <div class="row">
@@ -1071,26 +1072,45 @@
     })();
     return pdfjsPromise;
   }
-  async function pdfToImages(file, maxPages = 6) {
-    const pdfjs = await loadPdfJs();
+  /** Lê um PDF: texto das páginas (o habitual em relatórios) ou, se for digitalizado, imagens. */
+  async function pdfToContent(file, maxPages = 12) {
+    let pdfjs; try { pdfjs = await loadPdfJs(); } catch { throw { code: "pdf_lib", message: "não foi possível carregar o leitor de PDF" }; }
     const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
-    const out = []; const n = Math.min(pdf.numPages, maxPages);
+    const n = Math.min(pdf.numPages, maxPages); const pagesText = [];
     for (let i = 1; i <= n; i++) {
+      const page = await pdf.getPage(i); const tc = await page.getTextContent();
+      let lastY = null, line = [], lines = [];
+      for (const it of tc.items) { if (!("str" in it)) continue; const y = Math.round(it.transform[5]); if (lastY !== null && Math.abs(y - lastY) > 3) { lines.push(line.join(" ")); line = []; } line.push(it.str); lastY = y; }
+      if (line.length) lines.push(line.join(" "));
+      pagesText.push(lines.map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n"));
+    }
+    const text = pagesText.map((t, i) => `--- página ${i + 1} ---\n${t}`).join("\n\n");
+    if (text.replace(/[^\p{L}\p{N}]/gu, "").length >= 60) return { text, pages: pdf.numPages, read: n };
+    // digitalizado: sem texto útil → imagens
+    if (!S.imageLimits) throw { code: "pdf_scanned", message: "o PDF parece digitalizado (sem texto) e esta conta não permite enviar imagens" };
+    const images = []; const m = Math.min(n, 6);
+    for (let i = 1; i <= m; i++) {
       const page = await pdf.getPage(i); const vp0 = page.getViewport({ scale: 1 }); const scale = Math.min(2, 1400 / Math.max(vp0.width, vp0.height)); const vp = page.getViewport({ scale });
       const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
       await page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
-      out.push(await new Promise((r) => c.toBlob(r, "image/png")));
+      images.push(await new Promise((r) => c.toBlob(r, "image/png")));
     }
-    return { images: out, pages: pdf.numPages };
+    return { images, pages: pdf.numPages, read: m };
   }
-  async function filesToImages(files) {
-    const images = []; const notes = [];
+  async function filesToContent(files) {
+    const images = []; const texts = []; const notes = [];
     for (const f of files) {
-      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) { const r = await pdfToImages(f); images.push(...r.images); if (r.pages > r.images.length) notes.push(`${f.name}: só as primeiras ${r.images.length} de ${r.pages} páginas foram lidas`); }
-      else if (f.type.startsWith("image/")) images.push(f);
-      else notes.push(`${f.name}: formato não suportado (usa foto, imagem ou PDF)`);
+      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+        const r = await pdfToContent(f);
+        if (r.text) texts.push({ name: f.name, text: r.text }); else images.push(...r.images);
+        if (r.pages > r.read) notes.push(`${f.name}: só as primeiras ${r.read} de ${r.pages} páginas foram lidas`);
+      } else if (f.type.startsWith("image/")) {
+        if (S.imageLimits) images.push(f); else notes.push(`${f.name}: esta conta não permite enviar imagens ao Claude a partir da página; envia o documento em PDF`);
+      } else if (f.type.startsWith("text/") || /\.(txt|csv)$/i.test(f.name)) {
+        texts.push({ name: f.name, text: await f.text() });
+      } else notes.push(`${f.name}: formato não suportado (usa PDF${S.imageLimits ? ", foto ou imagem" : ""})`);
     }
-    return { images, notes };
+    return { images, texts, notes };
   }
 
   const EXTRACT_PROMPT = `Lê o(s) documento(s) de saúde nas imagens (relatório de análises, registo de tensão arterial, eletrocardiograma, relatório médico, receita, etc.) e extrai a informação em português de Portugal.
@@ -1139,17 +1159,22 @@ Regras: um objeto por documento distinto; valores numéricos com ponto decimal; 
   }
 
   async function ingestAttachments(files, bubble) {
-    const lim = S.imageLimits; if (!lim) throw { code: "images_unavailable", message: "sem imagens" };
     bubble.innerHTML = `<span class="thinking">a preparar o documento…</span>`;
-    const { images, notes } = await filesToImages(files);
-    if (images.length === 0) throw { code: "image_rejected", message: notes.join("; ") || "sem imagens" };
-    const allDocs = [];
-    for (let i = 0; i < images.length; i += lim.maxCount) {
-      const batch = images.slice(i, i + lim.maxCount);
-      bubble.innerHTML = `<span class="thinking">a ler o documento${images.length > lim.maxCount ? ` (${Math.floor(i / lim.maxCount) + 1}/${Math.ceil(images.length / lim.maxCount)})` : ""}…</span>`;
-      const res = await S.sample.json(EXTRACT_PROMPT, { images: batch, cache: false, signal: S.streaming?.signal });
-      const arr = Array.isArray(res?.documentos) ? res.documentos : (res && (res.tipo || res.analises)) ? [res] : [];
-      allDocs.push(...arr);
+    const { images, texts, notes } = await filesToContent(files);
+    if (images.length === 0 && texts.length === 0) throw { code: "image_rejected", message: notes.join("; ") || "sem conteúdo legível" };
+    const allDocs = []; const asDocs = (res) => Array.isArray(res?.documentos) ? res.documentos : (res && (res.tipo || res.analises)) ? [res] : [];
+    let step = 0; const steps = texts.length + (S.imageLimits ? Math.ceil(images.length / S.imageLimits.maxCount) : 0);
+    for (const t of texts) {
+      step++; bubble.innerHTML = `<span class="thinking">a ler ${esc(t.name)}${steps > 1 ? ` (${step}/${steps})` : ""}…</span>`;
+      const body = t.text.length > 45000 ? t.text.slice(0, 45000) + "\n[texto truncado]" : t.text;
+      const res = await S.sample.json(EXTRACT_PROMPT.replace("nas imagens", "no texto abaixo") + `\n\nTexto extraído do ficheiro "${t.name}":\n${body}`, { cache: false, signal: S.streaming?.signal });
+      allDocs.push(...asDocs(res));
+    }
+    const lim = S.imageLimits;
+    for (let i = 0; lim && i < images.length; i += lim.maxCount) {
+      step++; bubble.innerHTML = `<span class="thinking">a ler as imagens${steps > 1 ? ` (${step}/${steps})` : ""}…</span>`;
+      const res = await S.sample.json(EXTRACT_PROMPT, { images: images.slice(i, i + lim.maxCount), cache: false, signal: S.streaming?.signal });
+      allDocs.push(...asDocs(res));
     }
     if (allDocs.length === 0) throw { code: "invalid_json", message: "sem documentos" };
     const summary = await registerExtraction(allDocs, files.map((f) => f.name).join(", "));
@@ -1424,7 +1449,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       let summary = "", e0 = null;
       try { summary = await ingestAttachments(files, b0); } catch (e) { e0 = e; }
       if (e0) {
-        const copy = e0.code === "cancelled" ? "" : e0.code === "image_rejected" ? `Não consegui usar o ficheiro (${e0.message || "formato ou tamanho"}). Envia uma foto nítida ou um PDF.` : e0.code === "images_unavailable" ? "Esta conta não permite enviar imagens ao Claude a partir da página." : e0.code === "invalid_json" ? "Não consegui extrair dados do documento. Tenta uma imagem mais nítida ou só a página com os valores." : (ERR_COPY[e0.code] || `Falha a ler o documento${e0.message ? ` (${e0.message})` : ""}.`);
+        const copy = e0.code === "cancelled" ? "" : e0.code === "image_rejected" ? `Não consegui usar o ficheiro (${e0.message || "formato ou tamanho"}).` : e0.code === "pdf_lib" ? "Não consegui carregar o leitor de PDF (sem acesso ao script). Tenta outra vez ou envia uma captura de ecrã." : e0.code === "pdf_scanned" ? "O PDF parece ser digitalizado (só imagem) e esta conta não permite enviar imagens. Pede ao laboratório o PDF original ou copia os valores para o formulário das Análises." : e0.code === "images_unavailable" ? "Esta conta não permite enviar imagens ao Claude a partir da página. Envia o documento em PDF." : e0.code === "invalid_json" ? "Não consegui extrair dados do documento. Tenta uma imagem mais nítida ou só a página com os valores." : (ERR_COPY[e0.code] || `Falha a ler o documento${e0.message ? ` (${e0.message})` : ""}.`);
         if (copy) S.chat.push({ role: "assistant", content: "⚠️ " + copy, at: new Date().toISOString(), error: true });
       } else {
         S.chat.push({ role: "assistant", content: summary, at: new Date().toISOString() });
@@ -1564,7 +1589,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   }
   $("attachBtn").addEventListener("click", () => $("fileInput").click());
   $("fileInput").addEventListener("change", (e) => {
-    const max = (S.imageLimits?.maxInputBytes || 20 * 1024 * 1024);
+    const max = 25 * 1024 * 1024;
     for (const f of e.target.files) { if (f.size > max) { alert(`${f.name} é demasiado grande.`); continue; } S.attachments.push(f); }
     e.target.value = ""; renderAttachments();
   });
@@ -1620,7 +1645,8 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     }
     if (sample) {
       const lim = await sample.limits().catch(() => null); S.toolsOK = !!lim?.tools; S.imageLimits = lim?.images || null;
-      if (S.imageLimits) { $("attachBtn").hidden = false; $("fileInput").accept = [...S.imageLimits.mediaTypes, "application/pdf"].join(","); }
+      $("fileInput").accept = ["application/pdf", ".pdf", "text/plain", ...(S.imageLimits ? S.imageLimits.mediaTypes : [])].join(",");
+      $("attachHint").textContent = S.imageLimits ? "PDF, foto ou imagem de análises, tensão, ECG ou outros documentos." : "PDF de análises, tensão, ECG ou outros documentos (esta conta não permite enviar fotos).";
     }
     if (!sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat com o assistente só está disponível com a página aberta no claude.ai."; }
     subscribeProfile();

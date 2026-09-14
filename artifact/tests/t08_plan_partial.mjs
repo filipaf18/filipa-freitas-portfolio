@@ -1,6 +1,6 @@
 import { open, assert, eq } from "./harness.mjs";
 import { PLAN_JSON, PROFILES, MEAL } from "./fakes.mjs";
-/** Gostei/não gostei, trocar uma refeição, refazer um dia e alinhar jantares com o outro perfil. */
+/** Gostei/não gostei, trocar uma refeição e refazer um dia. */
 export default async function () {
   const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
   const mkPlan = (proteina) => ({ profile: "x", version: 1, week_start: "2026-09-14", previous: null, extras: [], changelog: [], plan: {
@@ -62,24 +62,8 @@ export default async function () {
     await page.click("#undoPlan"); await page.waitForTimeout(200); await page.click(".modal [data-yes]"); await page.waitForTimeout(400);
     eq((await app.dump())["plans/filipa"].version, 4, "repor a versão anterior continua a funcionar");
 
-    // 4. alinhar jantares com o outro perfil ao gerar de novo
-    assert(!(await page.isHidden("#alignWrap2")), "opção de alinhar visível quando o outro perfil tem plano");
-    eq(await app.text("#alignName2"), "Alexandra", "nome do outro perfil");
-    const od = await page.evaluate(() => window.NG_TEST.otherDinners("mae"));
-    eq(od.length, 7, "jantares do outro perfil");
-    assert(od[0].itens.some((x) => x.includes("bacalhau cozido")), "itens do jantar da mãe");
-    await page.check("#alignDinners2");
-    await page.click("#regenPlan"); await page.waitForTimeout(300); await page.click(".modal [data-yes]"); await page.waitForTimeout(2500);
-    st = await app.dump();
-    eq(st["plans/filipa"].version, 5, "plano regenerado");
-    eq(st["plans/filipa"].plan.jantares_alinhados_com, "mae", "plano marca o alinhamento");
-    calls = await app.calls();
-    const frame = calls.filter((c) => c.kind === "json").find((c) => c.input.includes("Passo 1 de 3"));
-    assert(frame.input.includes("JANTARES ALINHADOS COM ALEXANDRA") && frame.input.includes("bacalhau cozido"), "jantares da mãe no pedido");
-
-    // 5. perfil da mãe: o alinhamento aponta para a Filipa e os dados dela ficam intactos
+    // 4. o perfil da mãe fica intacto
     await page.click('[data-pid="mae"]'); await page.waitForTimeout(400);
-    eq(await app.text("#alignName2"), "Filipa", "no perfil da mãe alinha com a Filipa");
     st = await app.dump();
     eq(st["plans/mae"].version, 1, "plano da mãe intacto");
     eq(st["profiles/mae"].weight_kg, 78, "perfil da mãe intacto");

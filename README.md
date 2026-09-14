@@ -17,18 +17,28 @@ nem chave de API.
 - `nutriglp.html` — a página (fragmento; o claude.ai acrescenta o `<head>`).
 - `styles.css` — tokens de cor (claro/escuro) e componentes.
 - `foods.js` — tabela de ~170 alimentos portugueses (kcal, proteína, hidratos, gordura, fibra por 100 g e medidas caseiras) usada para calcular os macros na página.
-- `app.js` — toda a lógica: quatro perfis (Filipa, Mãe, Pai, Vitória), Hoje (próxima refeição, adesão, sintomas, alarmes, ciclo da injeção, revisão semanal), Registar (água, corpo, tensão, análises, documentos), Plano (geração em 4 pedidos, refeições em família, refazer um dia, trocar uma refeição, 👍/👎, lista de compras somada), Chat (ferramentas para regras, tensão, extras e alterações ao plano; memória destilada de 12 em 12 mensagens) e Perfil.
+- `app.js` — toda a lógica: quatro perfis (Filipa, Mãe, Pai, Vitória), Hoje (próxima refeição, adesão, sintomas, alarmes, ciclo da injeção, revisão semanal), Registar (água, corpo, tensão, análises, documentos), Plano (refeições primeiro, metas com "Porquê estes números?", secções fechadas; geração com as refeições em família primeiro; refazer um dia, trocar uma refeição, 👍/👎; lista de compras da casa), Chat (ferramentas para regras, tensão, extras e alterações ao plano; memória destilada de 12 em 12 mensagens) e Perfil.
 
 Cada perfil tem um objetivo (perder peso, manter e comer equilibrado, ganhar massa) que muda só a
-energia: a proteína, a fibra e o equilíbrio do prato mantêm-se. As **refeições em família** são um
-prato só para toda a gente, com as quantidades de cada um e sem o que cada pessoa não come; os
-almoços saem em marmita, com o dia de preparação e a conservação. Ficam guardadas em `family/plan`
-e são escritas por cima do plano de cada pessoa, sem tocar no resto do plano.
+energia: a proteína, a fibra e o equilíbrio do prato mantêm-se.
+
+**Refeições em família.** Não há um plano de família à parte: ao gerar o plano de uma pessoa, os
+jantares e almoços (em marmita) saem primeiro, iguais para toda a gente que come em família, e
+entram no plano individual de cada um com as suas quantidades e sem o que cada pessoa não come.
+Cada uma dessas refeições mostra "Na mesa": só as diferenças dos outros, para quem cozinha. Trocar,
+editar à mão, refazer o dia ou alterar pelo chat uma refeição em família muda-a para todos (quem já
+tinha o alimento mantém a sua quantidade; um alimento novo entra proporcional às metas de cada um).
+A origem fica em `family/plan`; o plano individual é sempre a superfície.
+
+**Lista de compras.** Uma só para a casa: a página soma o que está nos planos de todos (as refeições
+em família contam por pessoa, que é o que vai ao lume) e um pedido rápido converte a soma em
+ingredientes e unidades de compra, por corredor, com a despensa à parte. Fica em `shopping/<semana>`
+com as caixas marcadas partilhadas, e avisa quando os planos mudaram.
 - `tests/` — testes automáticos com Playwright contra uma base de dados falsa (com snapshots congelados, como no claude.ai) e respostas falsas do Claude: `cd artifact/tests && npm install && npm test` (ou `node run.mjs t08` para um só).
 
 Coleções na base de dados (uma por perfil, `<coleção>/<perfil>`): `profiles`, `water` (`water/<perfil>_<data>`),
 `chat`, `weights`, `labs`, `vitals`, `docs`, `rules`, `body`, `plans`, `adherence`, `symptoms`,
-`reviews`, `prefs`, `diag`, e a coleção partilhada `family` (documento `family/plan`). As alterações são sempre aditivas: nunca se muda a forma dos campos existentes.
+`reviews`, `prefs`, `diag`, e as coleções partilhadas `family` (documento `family/plan`) e `shopping` (`shopping/<semana>`). As alterações são sempre aditivas: nunca se muda a forma dos campos existentes.
 
 Para republicar depois de editar, publica `artifact/nutriglp.html` para o mesmo URL a partir do
 Claude Code, com `styles.css`, `app.js` e `foods.js` como ficheiros de apoio.

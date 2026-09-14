@@ -264,77 +264,73 @@
   <section class="view" id="view-plano">
     <div>
       <h1>Plano alimentar</h1>
-      <p class="muted small" id="planMeta">Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo de peso.</p>
+      <p class="muted small" id="planMeta">Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo.</p>
+      <p class="small muted" id="familyLine" hidden></p>
     </div>
     <div class="status" id="planNote" hidden></div>
     <div id="planEmpty" class="card lift">
       <h2>Ainda não há plano</h2>
-      <p class="muted small">Preenche o perfil (peso, altura, GLP-1, regras alimentares) e as análises que tiveres. Depois gera o plano: são quatro pedidos ao Claude, entre 2 e 5 minutos. O resultado traz metas, princípios, horário de água, refeições com ordem de ingestão e medidas caseiras, trocas, dias difíceis e lista de compras.</p>
-      <label class="check small" id="alignWrap" hidden><input type="checkbox" id="alignDinners"> Alinhar os jantares com o plano de <strong id="alignName"></strong> (cozinham juntas)</label>
+      <p class="muted small">Preenche o perfil (peso, altura, objetivo, o que não comes) e as análises que tiveres. Depois gera o plano: alguns pedidos ao Claude, entre 2 e 6 minutos. O resultado traz metas, refeições com quantidades e medidas caseiras, horário de água, trocas e dias difíceis.</p>
+      <label class="check small" id="famSharedWrap" hidden><input type="checkbox" id="famShared" checked> Jantares e almoços iguais para a família (<span id="famSharedNames"></span>): a mesma comida para todos, cada um com as suas quantidades</label>
       <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button></div>
       <div class="progress" id="genProgress" hidden><div></div></div>
     </div>
-    <div class="card lift" id="familyCard">
-      <div class="row between"><h2>Refeições em família</h2><span class="small muted" id="familyMeta"></span></div>
-      <p class="muted small">O mesmo jantar para todos: uma base comum e, por cima, o prato de cada um com as suas quantidades e sem o que não come. Os almoços saem em marmita, preparada de véspera ou ao início da semana.</p>
-      <p class="status" id="familyHint" hidden></p>
-      <div id="familyWho"></div>
-      <label class="check small"><input type="checkbox" id="famLunch" checked> Incluir também os almoços, em marmita</label>
-      <div class="row"><button class="btn primary" id="genFamily">Gerar refeições em família</button><button class="btn ghost sm" id="undoFamily" hidden>Repor anterior</button><span class="small muted" id="famMsg"></span></div>
-      <div class="progress" id="famProgress" hidden><div></div></div>
-      <div class="status" id="famNote" hidden></div>
-      <div id="familyBody"></div>
-    </div>
 
-    <div class="card" id="planShopCard" hidden>
-      <div class="row between">
-        <h2>Lista de compras da semana</h2>
-        <div class="seg" role="group" aria-label="De quem" id="shopWho"></div>
-      </div>
-      <p class="small muted" id="shopNote"></p>
-      <div class="shop" id="planShop"></div>
-    </div>
-
-    <div id="planBody" hidden style="display:flex; flex-direction:column; gap:20px">
-      <div class="card">
-        <div class="targets" id="planTargets"></div>
-        <p class="rationale" id="planRationale"></p>
-        <div id="planPrinciples"></div>
-      </div>
-      <div class="card" id="planRulesCard" hidden>
-        <h2>As tuas regras neste plano</h2>
-        <div id="planRules"></div>
-      </div>
-      <div class="card">
-        <div class="row between"><h2>Água ao longo do dia</h2><span class="small muted num" id="planWaterTotal"></span></div>
-        <ul class="sched" id="planWater"></ul>
-        <p class="small muted" id="planWaterNote"></p>
-      </div>
-      <div class="card" id="planSuppCard" hidden>
-        <h2>Suplementos e medicação</h2>
-        <ul class="sched" id="planSupp"></ul>
-      </div>
-      <div class="card" id="planHardCard" hidden>
-        <h2>Dias difíceis</h2>
-        <div id="planHard"></div>
+    <div id="planBody" hidden style="display:flex; flex-direction:column; gap:16px">
+      <div class="card lift">
+        <div class="days" id="planDays"></div>
+        <div id="planMealsList"></div>
+        <p class="small muted num" id="dayTotals"></p>
+        <div class="row between" style="margin-top:4px"><span class="small muted">Não gostas deste dia? Refaz só este.</span><button class="btn ghost sm" id="regenDay">⟳ Refazer dia</button></div>
       </div>
       <div class="card" id="planExtrasCard" hidden>
         <div class="row between"><h2>Fora do plano</h2><span class="small muted" id="planExtrasDay"></span></div>
         <div id="planExtras"></div>
       </div>
-      <div class="card lift">
-        <div class="days" id="planDays"></div>
-        <div class="row between" style="margin:6px 0 2px"><span class="small muted">Não gostas deste dia? Refaz só este, o resto da semana fica igual.</span><button class="btn ghost sm" id="regenDay">⟳ Refazer dia</button></div>
-        <div id="planMealsList"></div>
-        <p class="small muted num" id="dayTotals"></p>
+      <div class="card">
+        <div class="targets" id="planTargets"></div>
+        <details class="why" id="whyDetails">
+          <summary>Porquê estes números?</summary>
+          <div id="planWhy"></div>
+          <p class="rationale" id="planRationale"></p>
+          <div id="planPrinciples"></div>
+        </details>
       </div>
-      <label class="check small" id="alignWrap2" hidden><input type="checkbox" id="alignDinners2"> Ao gerar de novo, alinhar os jantares com o plano de <strong id="alignName2"></strong></label>
+      <details class="card fold" id="planWaterCard">
+        <summary><span>Água ao longo do dia</span><span class="small muted num" id="planWaterTotal"></span></summary>
+        <ul class="sched" id="planWater"></ul>
+        <p class="small muted" id="planWaterNote"></p>
+      </details>
+      <details class="card fold" id="planSuppCard" hidden>
+        <summary><span>Suplementos e medicação</span></summary>
+        <ul class="sched" id="planSupp"></ul>
+      </details>
+      <details class="card fold" id="planPrepCard" hidden>
+        <summary><span>Preparar de uma vez</span></summary>
+        <ul class="prep" id="planPrep"></ul>
+      </details>
+      <details class="card fold" id="planHardCard" hidden>
+        <summary><span>Dias difíceis</span></summary>
+        <div id="planHard"></div>
+      </details>
+      <details class="card fold" id="planRulesCard" hidden>
+        <summary><span>As tuas regras neste plano</span></summary>
+        <div id="planRules"></div>
+      </details>
+      <label class="check small" id="famRegenWrap" hidden><input type="checkbox" id="famRegen"> Refazer também os jantares e almoços da família (muda para todos)</label>
       <div class="row">
         <button class="btn" id="regenPlan">Gerar novo plano</button>
         <button class="btn ghost sm" id="undoPlan" hidden>Repor versão anterior</button>
         <span class="small muted" id="genMsg"></span>
       </div>
-      <p class="small muted">Em cada refeição podes <strong>editar</strong> à mão, <strong>trocar</strong> por outra ou marcar 👍/👎: o que gostas e não gostas fica guardado e entra nos próximos planos. Para pedidos livres, usa o <a href="#" data-goto="chat">chat</a>: "troca o jantar de terça", "hoje tive náuseas, aligeira amanhã", "comi um pastel de nata ao lanche". O plano atualiza-se aqui.</p>
+      <p class="small muted">Em cada refeição podes <strong>editar</strong>, <strong>trocar</strong> ou marcar 👍/👎. Numa refeição em família, a mudança vale para todos. Para pedidos livres, usa o <a href="#" data-goto="chat">chat</a>.</p>
+    </div>
+
+    <div class="card" id="planShopCard" hidden>
+      <div class="row between"><h2>Lista de compras</h2><button class="btn ghost sm" id="shopRefresh">Atualizar</button></div>
+      <p class="small muted" id="shopNote"></p>
+      <div class="status" id="shopStale" hidden></div>
+      <div class="shop" id="planShop"></div>
     </div>
   </section>
 

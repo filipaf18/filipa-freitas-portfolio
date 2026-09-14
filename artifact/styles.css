@@ -398,3 +398,40 @@
   .fammeal .out { color: var(--muted); font-style: italic; }
   .tag.fam { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
   .marmita { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  /* secções fechadas do plano */
+  details.fold > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 700; font-size: 1.05rem; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary > span:first-child::before { content: "▸ "; color: var(--muted); font-weight: 400; }
+  details.fold[open] > summary > span:first-child::before { content: "▾ "; }
+  details.fold > summary + * { margin-top: 10px; }
+  details.why { margin-top: 10px; }
+  details.why > summary { cursor: pointer; font-weight: 600; color: var(--accent); font-size: 0.9rem; list-style: none; }
+  details.why > summary::-webkit-details-marker { display: none; }
+  details.why[open] > summary { margin-bottom: 8px; }
+  .why-list { display: grid; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
+  .why-list li { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; font-size: 0.86rem; padding: 6px 10px; border-radius: 10px; background: var(--surface-2); }
+  .why-list li .n { font-family: var(--font-mono), monospace; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .why-list li .o { color: var(--muted); font-size: 0.78rem; }
+  .prep { margin: 0; padding-left: 18px; font-size: 0.88rem; display: grid; gap: 4px; }
+  /* mesa: quantidades de todos numa refeição em família */
+  .mesa { margin-top: 6px; font-size: 0.82rem; color: var(--ink-2); display: grid; gap: 2px; }
+  .mesa .l { display: flex; gap: 8px; align-items: baseline; }
+  .mesa .l .n { min-width: 72px; font-weight: 600; }
+  .mesa .l.me .n { color: var(--accent); }
+  /* lista de compras com caixas */
+  .shop .it { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
+  .shop .it:last-child { border-bottom: 0; }
+  .shop .it input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  .shop .it.ok { color: var(--muted); text-decoration: line-through; }
+  .shop .it .q { margin-left: auto; font-weight: 700; white-space: nowrap; }
+  .shop .it .why { font-size: 0.76rem; color: var(--muted); display: block; }
+  .shop h3 { margin: 12px 0 2px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+  .shop { columns: 1; }
+
+  .meal details.more > summary { list-style: none; cursor: pointer; font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+  .meal details.more > summary::-webkit-details-marker { display: none; }
+  .meal details.more > summary::before { content: "▸ "; }
+  .meal details.more[open] > summary::before { content: "▾ "; }
+  .meal details.more[open] > summary { margin-bottom: 4px; }

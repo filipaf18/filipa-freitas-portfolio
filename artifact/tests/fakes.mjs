@@ -51,6 +51,6 @@ export const CHAT_TEXT = `
 
 export const PROFILES = {
   "profiles/filipa": { name: "Filipa", uses_glp1: false, allergies: [], intolerances: [], meds: [], titrations: [], weight_kg: 65, height_cm: 160, sex: "feminino" },
-  "profiles/mae": { name: "Alexandra", uses_glp1: true, glp1_dose: "2.5 mg", glp1_inj_day: "domingo", satiety: "moderada", weight_kg: 78, height_cm: 165, target_kg: 65, sex: "feminino", allergies: [], intolerances: [],
+  "profiles/mae": { name: "Alexandra", family: false, uses_glp1: true, glp1_dose: "2.5 mg", glp1_inj_day: "domingo", satiety: "moderada", weight_kg: 78, height_cm: 165, target_kg: 65, sex: "feminino", allergies: [], intolerances: [],
     meds: [{ id: "m1", kind: "suplemento", name: "PRAVID", dose: "30000 UI", freq: "1x semana", active: true }], titrations: [] },
 };

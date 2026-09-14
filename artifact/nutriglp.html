@@ -496,6 +496,11 @@
       <p class="muted small">Conversa ligada ao perfil selecionado. O histórico fica guardado para o assistente se lembrar das preferências.</p>
     </div>
     <div class="status" id="sampleNote" hidden></div>
+    <details class="card" id="diagCard">
+      <summary style="cursor:pointer; font-weight:600">Diagnóstico</summary>
+      <pre id="diagText" style="white-space:pre-wrap; font-size:0.8rem; margin:0; font-family:var(--font-mono), monospace; color:var(--ink-2)"></pre>
+      <p class="hint">Se alguma coisa não funcionar, mostra este texto para se perceber o que falhou.</p>
+    </details>
     <div class="card lift">
       <div class="chat-log" id="chatLog"></div>
       <div class="chips" id="chips"></div>
@@ -619,6 +624,7 @@
     docs: [],              // documentos lidos [{id, date, tipo, titulo, resumo, pontos, at}]
     attachments: [],       // ficheiros escolhidos no chat (File)
     imageLimits: null,
+    diag: { sample: null, images: null, tools: null, db: null, saveErr: "", lastErr: "", step: "arranque" },
     plan: null,            // {week_start, version, plan:{...}, previous, changelog}
     planDay: null,
     labPick: null,
@@ -678,31 +684,39 @@
     if (S.db) await S.db.doc(`water/${S.pid}_${date}`).set(body); else mem.water[`${S.pid}_${date}`] = body;
     renderWater();
   }
+  /** Guarda um documento; nunca rejeita — regista a falha no diagnóstico. */
+  async function write(path, body, memBucket, memKey) {
+    try {
+      if (S.db) await S.db.doc(path).set(body); else memBucket[memKey] = body;
+      return true;
+    } catch (e) {
+      console.warn("write", path, e);
+      S.diag.saveErr = `${path}: ${e?.code || e?.name || "erro"} ${e?.message || ""}`.trim();
+      memBucket[memKey] = body;
+      renderDiag();
+      return false;
+    }
+  }
   async function saveChat() {
     if (S.chat.length > CHAT_KEEP) S.chat = S.chat.slice(-CHAT_KEEP);
-    const body = { profile: S.pid, messages: S.chat, updatedAt: new Date().toISOString() };
-    if (S.db) await S.db.doc(`chat/${S.pid}`).set(body); else mem.chat[S.pid] = body;
+    await write(`chat/${S.pid}`, { profile: S.pid, messages: S.chat, updatedAt: new Date().toISOString() }, mem.chat, S.pid);
   }
   async function saveLabs() {
-    const body = { profile: S.pid, entries: S.labs };
-    if (S.db) await S.db.doc(`labs/${S.pid}`).set(body); else mem.labs[S.pid] = body;
+    await write(`labs/${S.pid}`, { profile: S.pid, entries: S.labs }, mem.labs, S.pid);
     renderLabs();
   }
   async function saveVitals() {
     S.vitals = [...S.vitals].sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || ""))).slice(-500);
-    const body = { profile: S.pid, entries: S.vitals };
-    if (S.db) await S.db.doc(`vitals/${S.pid}`).set(body); else mem.vitals[S.pid] = body;
+    await write(`vitals/${S.pid}`, { profile: S.pid, entries: S.vitals }, mem.vitals, S.pid);
     renderVitals();
   }
   async function saveDocs() {
     S.docs = S.docs.slice(-50);
-    const body = { profile: S.pid, entries: S.docs };
-    if (S.db) await S.db.doc(`docs/${S.pid}`).set(body); else mem.docs[S.pid] = body;
+    await write(`docs/${S.pid}`, { profile: S.pid, entries: S.docs }, mem.docs, S.pid);
     renderDocs();
   }
   async function savePlan() {
-    const body = { ...S.plan, profile: S.pid };
-    if (S.db) await S.db.doc(`plans/${S.pid}`).set(body); else mem.plans[S.pid] = body;
+    await write(`plans/${S.pid}`, { ...S.plan, profile: S.pid }, mem.plans, S.pid);
     renderPlan(); renderHome();
   }
   async function saveWeights() {
@@ -1471,6 +1485,33 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
 
   const CHIPS = ["Hoje tive náuseas. Ajusta as refeições de amanhã.", "Não gosto de peixe cozido, sugere outra coisa com a mesma proteína.", "Que lanches ricos em proteína posso ter em casa?", "Estou com pouca fome esta semana. O que devo priorizar?"];
 
+  function renderDiag() {
+    const d = S.diag; const el = $("diagText"); if (!el) return;
+    const yn = (v) => v === null ? "?" : v ? "sim" : "não";
+    el.textContent = [
+      `chat (sample): ${yn(d.sample)}`,
+      `fotos/imagens: ${yn(d.images)}`,
+      `ferramentas: ${yn(d.tools)}`,
+      `base de dados: ${yn(d.db)}`,
+      `perfil: ${S.pid} · mensagens: ${S.chat.length} · análises: ${S.labs.length} · plano: ${S.plan ? "v" + S.plan.version : "não"}`,
+      `anexos em espera: ${S.attachments.length}`,
+      `passo: ${d.step}`,
+      d.saveErr ? `falha a guardar: ${d.saveErr}` : "",
+      d.lastErr ? `último erro: ${d.lastErr}` : "",
+    ].filter(Boolean).join("\n");
+    if (d.saveErr) {
+      $("dbNotice").hidden = false;
+      $("dbNotice").textContent = "Não foi possível guardar na base de dados; os registos ficam só nesta sessão. Recarrega a página e tenta outra vez.";
+    }
+    const bad = !!(d.saveErr || d.lastErr) || d.sample === false || d.db === false;
+    $("diagCard").style.borderColor = bad ? "var(--warn-line)" : "";
+    if (bad) $("diagCard").open = true;
+    // guarda para poder ser consultado mais tarde
+    if (S.db && (d.saveErr || d.lastErr)) {
+      S.db.doc(`diag/${S.pid}`).set({ at: new Date().toISOString(), ...d, ua: navigator.userAgent.slice(0, 160) }).catch(() => {});
+    }
+  }
+
   function renderChat() {
     const log = $("chatLog"); const p = profile();
     if (S.chat.length === 0) {
@@ -1497,12 +1538,36 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   async function sendMessage(text) {
     text = String(text || "").trim();
     const files = S.attachments.slice();
-    if ((!text && files.length === 0) || S.streaming) return;
-    if (!S.sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat só funciona com a página aberta no claude.ai."; return; }
+    if (!text && files.length === 0) return;
+    if (S.streaming) { $("sampleNote").hidden = false; $("sampleNote").textContent = "Ainda estou a processar a mensagem anterior. Usa Parar se quiseres cancelar."; return; }
+    if (!S.sample) {
+      S.diag.sample = false; renderDiag();
+      $("sampleNote").hidden = false;
+      $("sampleNote").textContent = "O assistente não está disponível nesta janela. Abre a app pelo link do claude.ai (não numa janela separada) e recarrega.";
+      return;
+    }
+    $("sampleNote").hidden = true;
     $("chatInput").value = ""; S.attachments = []; renderAttachments();
     const log = $("chatLog");
     const ctl = new AbortController(); S.streaming = ctl;
     $("sendChat").disabled = true; $("stopChat").hidden = false; $("clearChat").disabled = true;
+    S.diag.lastErr = ""; S.diag.step = files.length ? `a enviar ${files.length} ficheiro(s)` : "a enviar mensagem";
+    renderDiag();
+    try {
+      await sendMessageInner(text, files, log, ctl);
+    } catch (e) {
+      console.error("sendMessage", e);
+      S.diag.lastErr = `${e?.code || e?.name || "erro"}: ${e?.message || String(e)}`;
+      S.chat.push({ role: "assistant", content: `⚠️ Algo falhou a meio (${S.diag.lastErr}). Abre o Diagnóstico por baixo para veres os detalhes.`, at: new Date().toISOString(), error: true });
+      if (files.length) { S.attachments = files; renderAttachments(); }
+      renderChat(); saveChat().catch(() => {});
+    } finally {
+      S.streaming = null; $("sendChat").disabled = false; $("stopChat").hidden = true;
+      S.diag.step = "pronto"; renderDiag(); renderChat();
+    }
+  }
+
+  async function sendMessageInner(text, files, log, ctl) {
 
     // 1) documentos anexados: ler e registar antes da conversa
     if (files.length) {
@@ -1521,7 +1586,8 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
         S.chat.push({ role: "assistant", content: summary, at: new Date().toISOString() });
       }
       renderChat(); await saveChat();
-      if (!text || e0) { S.streaming = null; $("sendChat").disabled = false; $("stopChat").hidden = true; renderChat(); return; }
+      if (e0 && e0.code !== "cancelled") { S.diag.lastErr = `${e0.code || "erro"}: ${(e0.detalhes || [e0.message]).join(" | ")}`; renderDiag(); }
+      if (!text || e0) return;
     } else {
       S.chat.push({ role: "user", content: text, at: new Date().toISOString() });
       renderChat();
@@ -1651,14 +1717,24 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
 
   function renderAttachments() {
     $("attachList").innerHTML = S.attachments.map((f, i) => `<span class="attach">📄 <span>${esc(f.name)}</span><button type="button" data-rmatt="${i}" aria-label="Remover anexo">×</button></span>`).join("");
-    $("sendChat").disabled = false;
+    if (!S.streaming) $("sendChat").disabled = false;
+    renderDiag();
   }
   $("attachBtn").addEventListener("click", () => $("fileInput").click());
-  $("fileInput").addEventListener("change", (e) => {
-    const max = 25 * 1024 * 1024;
-    for (const f of e.target.files) { if (f.size > max) { alert(`${f.name} é demasiado grande.`); continue; } S.attachments.push(f); }
-    e.target.value = ""; renderAttachments();
-  });
+  const addFiles = (list) => {
+    const max = 25 * 1024 * 1024; let rejected = 0;
+    for (const f of list) { if (f.size > max) { rejected++; continue; } S.attachments.push(f); }
+    if (rejected) { S.diag.lastErr = `${rejected} ficheiro(s) acima de 25 MB`; renderDiag(); }
+    renderAttachments();
+  };
+  const card = $("composer").closest(".card");
+  ["dragover", "drop"].forEach((ev) => card.addEventListener(ev, (e) => {
+    e.preventDefault();
+    if (ev === "drop" && e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+    card.style.outline = ev === "dragover" ? "2px dashed var(--accent)" : "";
+  }));
+  card.addEventListener("dragleave", () => { card.style.outline = ""; });
+  $("fileInput").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
   $("attachList").addEventListener("click", (e) => { const b = e.target.closest("[data-rmatt]"); if (b) { S.attachments.splice(+b.dataset.rmatt, 1); renderAttachments(); } });
   $("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage($("chatInput").value); } });
   $("stopChat").addEventListener("click", () => S.streaming?.abort());
@@ -1687,7 +1763,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     renderWho(); subscribeProfile();
   }
 
-  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); }
+  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); renderDiag(); }
 
   // ============================================================
   // Arranque
@@ -1700,6 +1776,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   (async () => {
     const [db, sample] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("sample") ?? null]);
     S.db = db; S.sample = sample;
+    S.diag.db = !!db; S.diag.sample = !!sample; S.diag.step = "arrancou";
     if (!db) {
       S.memory = true; $("dbNotice").hidden = false;
       $("dbNotice").textContent = "Sem ligação à base de dados: os registos ficam apenas nesta sessão. Abre a página no claude.ai para guardar.";
@@ -1710,12 +1787,19 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       }, (e) => console.warn("profiles", e));
     }
     if (sample) {
-      const lim = await sample.limits().catch(() => null); S.toolsOK = !!lim?.tools; S.imageLimits = lim?.images || null;
+      const lim = await sample.limits().catch((e) => { S.diag.lastErr = `limits: ${e?.code || e?.message || e}`; return null; });
+      S.toolsOK = !!lim?.tools; S.imageLimits = lim?.images || null;
+      S.diag.tools = !!lim?.tools; S.diag.images = !!lim?.images;
       $("fileInput").accept = ["application/pdf", ".pdf", "text/plain", ...(S.imageLimits ? S.imageLimits.mediaTypes : [])].join(",");
       $("attachHint").textContent = S.imageLimits ? "PDF, foto ou imagem de análises, tensão, ECG ou outros documentos." : "PDF de análises, tensão, ECG ou outros documentos (esta conta não permite enviar fotos).";
     }
     if (!sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat com o assistente só está disponível com a página aberta no claude.ai."; }
-    subscribeProfile();
+    subscribeProfile(); renderDiag();
   })();
+
+  window.addEventListener("unhandledrejection", (e) => {
+    const r = e.reason; S.diag.lastErr = `promessa: ${r?.code || r?.name || "erro"} ${r?.message || ""}`.trim(); renderDiag();
+  });
+  window.addEventListener("error", (e) => { S.diag.lastErr = `script: ${e.message}`; renderDiag(); });
 })();
 </script>

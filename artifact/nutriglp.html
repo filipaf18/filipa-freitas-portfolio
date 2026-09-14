@@ -259,6 +259,24 @@
   .target { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
   .target .v { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 1.3rem; font-weight: 600; line-height: 1.1; }
   .target .k { font-size: 0.75rem; color: var(--muted); }
+  .meal .order { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 0.78rem; color: var(--muted); }
+  .meal .order b { color: var(--accent); font-weight: 700; }
+  .meal .order .arrow { opacity: 0.5; }
+  .items .grp { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+  .g-proteina { background: #B0413E; } .g-legumes { background: #2E7D4F; } .g-hidratos { background: #C08A2E; }
+  .g-gordura { background: #6B5CA5; } .g-fruta { background: #C05A8A; } .g-lacticinio { background: #2F6FB3; } .g-outro { background: var(--muted); }
+  .meal .prep { font-size: 0.83rem; color: var(--muted); }
+  .meal .alts { font-size: 0.83rem; color: var(--ink-2); }
+  .meal .alts b { font-weight: 600; }
+  .chiprow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 0.75rem; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; color: var(--ink-2); }
+  .rule { display: flex; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 0.88rem; }
+  .rule:first-child { border-top: 0; }
+  .rule .ck { color: var(--accent); font-weight: 700; }
+  .shop { columns: 2; column-gap: 18px; font-size: 0.88rem; }
+  @media (max-width: 430px) { .shop { columns: 1; } }
+  .shop h3 { break-after: avoid; margin-top: 8px; }
+  .shop ul { margin: 2px 0 8px; padding-left: 18px; break-inside: avoid; }
   .rationale { font-size: 0.9rem; color: var(--ink-2); border-left: 3px solid var(--accent); padding-left: 12px; }
   .progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
   .progress > div { height: 100%; background: var(--accent); width: 0; transition: width 0.4s; }
@@ -406,7 +424,7 @@
     <div class="status" id="planNote" hidden></div>
     <div id="planEmpty" class="card lift">
       <h2>Ainda não há plano</h2>
-      <p class="muted small">Preenche o perfil (peso, altura, GLP-1, preferências) e as análises que tiveres. Depois gera o plano. A geração demora entre 30 segundos e 2 minutos.</p>
+      <p class="muted small">Preenche o perfil (peso, altura, GLP-1, regras alimentares) e as análises que tiveres. Depois gera o plano: são quatro pedidos ao Claude, entre 2 e 5 minutos. O resultado traz metas, princípios, horário de água, refeições com ordem de ingestão e medidas caseiras, trocas, dias difíceis e lista de compras.</p>
       <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button></div>
       <div class="progress" id="genProgress" hidden><div></div></div>
     </div>
@@ -414,11 +432,28 @@
       <div class="card">
         <div class="targets" id="planTargets"></div>
         <p class="rationale" id="planRationale"></p>
+        <div id="planPrinciples"></div>
+      </div>
+      <div class="card" id="planRulesCard" hidden>
+        <h2>As tuas regras neste plano</h2>
+        <div id="planRules"></div>
       </div>
       <div class="card">
         <div class="row between"><h2>Água ao longo do dia</h2><span class="small muted num" id="planWaterTotal"></span></div>
         <ul class="sched" id="planWater"></ul>
         <p class="small muted" id="planWaterNote"></p>
+      </div>
+      <div class="card" id="planSuppCard" hidden>
+        <h2>Suplementos e medicação</h2>
+        <ul class="sched" id="planSupp"></ul>
+      </div>
+      <div class="card" id="planHardCard" hidden>
+        <h2>Dias difíceis</h2>
+        <div id="planHard"></div>
+      </div>
+      <div class="card" id="planShopCard" hidden>
+        <h2>Lista de compras da semana</h2>
+        <div class="shop" id="planShop"></div>
       </div>
       <div class="card" id="planExtrasCard" hidden>
         <div class="row between"><h2>Fora do plano</h2><span class="small muted" id="planExtrasDay"></span></div>
@@ -578,6 +613,17 @@
       </form>
     </div>
 
+    <form class="card" id="rulesForm">
+      <h2>Regras alimentares</h2>
+      <p class="small muted">Instruções pessoais que o plano e o assistente têm de respeitar sempre. Por exemplo: "comer sempre os legumes primeiro, depois a proteína e os hidratos no fim", "jantar até às 20h", "nada de peixe cozido", "sem lactose ao pequeno-almoço".</p>
+      <ul class="list" id="rulesList"></ul>
+      <div class="row" style="gap:8px; flex-wrap:nowrap">
+        <input class="input" id="r_text" placeholder="Escreve uma regra e adiciona" maxlength="220">
+        <button type="submit" class="btn">Adicionar</button>
+      </div>
+      <p class="hint">Também podes dizê-las no chat: o assistente guarda-as aqui automaticamente.</p>
+    </form>
+
     <div class="card">
       <h2>Medicação e suplementos</h2>
       <h3>Medicação concomitante</h3>
@@ -595,7 +641,7 @@
   </section>
 
   <div class="notice" role="note">
-    <strong>Aviso:</strong> esta aplicação é uma ferramenta de apoio pessoal e <strong>não substitui</strong> acompanhamento médico ou nutricional profissional. Mudanças de dose de GLP-1, sintomas novos (náuseas persistentes, vómitos, dor abdominal intensa, sinais de desidratação) ou dúvidas sobre medicação devem ser discutidos com o médico ou nutricionista.
+    <strong>Aviso:</strong> esta aplicação dá sugestões alimentares de apoio pessoal. <strong>Não é uma prescrição dietética</strong> — em Portugal isso é ato próprio do nutricionista — e <strong>não substitui</strong> acompanhamento médico ou nutricional. Mudanças de dose de GLP-1, sintomas novos (náuseas persistentes, vómitos, dor abdominal intensa, sinais de desidratação) ou dúvidas sobre medicação devem ser discutidos com o médico ou nutricionista.
   </div>
 </main>
 
@@ -622,6 +668,7 @@
     labs: [],              // [{id, date, marker, label, value, unit, lo, hi, notes}]
     vitals: [],            // tensão arterial [{id, date, time, sys, dia, pulse, source}]
     docs: [],              // documentos lidos [{id, date, tipo, titulo, resumo, pontos, at}]
+    rules: [],             // regras alimentares pessoais [{id, texto, origem, at}]
     attachments: [],       // ficheiros escolhidos no chat (File)
     imageLimits: null,
     diag: { sample: null, images: null, tools: null, db: null, saveErr: "", lastErr: "", step: "arranque" },
@@ -673,7 +720,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -712,6 +759,11 @@
     await write(`vitals/${S.pid}`, { profile: S.pid, entries: S.vitals }, mem.vitals, S.pid);
     renderVitals();
   }
+  async function saveRules() {
+    S.rules = S.rules.slice(-40);
+    await write(`rules/${S.pid}`, { profile: S.pid, entries: S.rules }, mem.rules, S.pid);
+    renderRules();
+  }
   async function saveDocs() {
     S.docs = S.docs.slice(-50);
     await write(`docs/${S.pid}`, { profile: S.pid, entries: S.docs }, mem.docs, S.pid);
@@ -730,12 +782,12 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.attachments = [];
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.attachments = [];
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
-      S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || [];
+      S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || [];
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -758,6 +810,10 @@
     S.unsub.push(S.db.doc(`vitals/${S.pid}`).onSnapshot((snap) => {
       S.vitals = snap.exists ? (thaw(snap.data().entries) || []) : []; renderVitals();
     }, (e) => console.warn("vitals", e)));
+    S.unsub.push(S.db.doc(`rules/${S.pid}`).onSnapshot((snap) => {
+      S.rules = snap.exists ? (thaw(snap.data().entries) || []) : [];
+      if (document.activeElement?.id !== "r_text") renderRules();
+    }, (e) => console.warn("rules", e)));
     S.unsub.push(S.db.doc(`docs/${S.pid}`).onSnapshot((snap) => {
       S.docs = snap.exists ? (thaw(snap.data().entries) || []) : []; renderDocs();
     }, (e) => console.warn("docs", e)));
@@ -1068,6 +1124,23 @@
     const avg = bpAverage(); $("bpAvg").textContent = avg ? `média das últimas ${avg.n}: ${avg.sys}/${avg.dia}` : "";
     if (!$("b_date").value) $("b_date").value = localDate();
   }
+  function renderRules() {
+    const el = $("rulesList"); if (!el) return;
+    el.innerHTML = S.rules.length === 0
+      ? `<li class="muted small">Sem regras. O plano segue só as preferências escritas acima.</li>`
+      : S.rules.map((r) => `<li><span>${esc(r.texto)}${r.origem === "chat" ? ` <span class="meta">· dita no chat</span>` : ""}</span><button type="button" class="btn ghost sm" data-delrule="${r.id}">remover</button></li>`).join("");
+  }
+
+  async function addRule(texto, origem) {
+    const t = String(texto || "").trim().slice(0, 220);
+    if (!t) return null;
+    if (S.rules.some((r) => norm(r.texto) === norm(t))) return { duplicada: true, texto: t };
+    const r = { id: uid(), texto: t, origem: origem || "perfil", at: new Date().toISOString() };
+    S.rules = [...S.rules, r];
+    await saveRules();
+    return r;
+  }
+
   function renderDocs() {
     const el = $("docList"); if (!el) return;
     const rows = [...S.docs].reverse();
@@ -1276,6 +1349,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, titulacao: (p.titrations || []).slice(-6) } : null,
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
+      regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
       analises_mais_recentes: latestLabs(),
       tensao_arterial: bpSummary(),
       documentos_de_saude: S.docs.slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
@@ -1288,56 +1362,191 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     return { media_ultimas_medicoes: avg, ultimas: S.vitals.slice(-6).map(({ date, time, sys, dia, pulse }) => ({ data: date, hora: time || null, sistolica: sys, diastolica: dia, pulso: pulse })), classificacao: bpClass({ sys: avg.sys, dia: avg.dia }) || "normal" };
   }
 
-  const PLAN_SCHEMA = `{"metas_diarias":{"kcal":1500,"proteina_g":95,"fibra_g":28,"agua_ml":2300},"racional":"2 a 4 frases: como o plano tem em conta o perfil, GLP-1, análises, tensão, documentos e objetivo","hidratacao":[{"hora":"07:30","quantidade_ml":250,"nota":"ao acordar, em goles"},{"hora":"10:30","quantidade_ml":250,"nota":"entre refeições"}],"dias":[{"dia":"segunda","refeicoes":[{"nome":"Pequeno-almoço","hora":"08:00","itens":[{"alimento":"iogurte grego natural","quantidade":"170 g"},{"alimento":"aveia","quantidade":"30 g"}],"kcal":320,"proteina_g":24,"fibra_g":5}]}]}`;
+  // ---------------------------------------------------------------------------
+  // Base clínica usada na geração do plano.
+  // Fontes: advisory conjunto ACLM/ASN/OMA/TOS 2025 sobre nutrição com GLP-1
+  // (proteína 1,2–1,6 g/kg, 0,3–0,4 g/kg por refeição, 2,5–3 g de leucina);
+  // revisão "Medical nutrition in the GLP-1 era" (PubMed 42036071); consenso
+  // multidisciplinar sobre efeitos gastrointestinais dos agonistas GLP-1
+  // (PMC9821052); revisão sistemática sobre ordem das refeições (PMC13007804)
+  // e ensaio cruzado em diabetes tipo 2 (PMC4742500).
+  // ---------------------------------------------------------------------------
+  const PLAN_KNOWLEDGE = `BASE CLÍNICA A APLICAR (segue-a, ajustando ao caso):
 
+PROTEÍNA E MASSA MUSCULAR
+- 1,2–1,6 g/kg de peso corporal por dia; usa o topo da faixa (1,5–1,6) em perda de peso ativa ou com GLP-1, e o fundo se houver doença renal ou ureia/creatinina alteradas.
+- Se o IMC for superior a 30, calcula sobre um peso ajustado = peso ideal + 0,25 × (peso atual − peso ideal), para não exagerar a dose de proteína.
+- Distribui por refeição: 0,3–0,4 g/kg em cada refeição principal, ou seja tipicamente 25–40 g, nunca menos de 20 g. Inclui uma fonte rica em leucina (lacticínios, ovos, carne, peixe, soja) para atingir 2,5–3 g de leucina por refeição principal.
+- Sem exercício de resistência perde-se massa muscular: sugere 2 a 3 sessões semanais de força nas notas, sem prescrever treino detalhado.
+
+ENERGIA
+- Défice moderado de 400–600 kcal/dia face às necessidades estimadas. Nunca abaixo de 1200 kcal/dia numa mulher nem 1500 numa homem. Com GLP-1 o apetite já está suprimido: o risco é comer a menos, não a mais.
+- Se não houver objetivo de perda, planeia manutenção.
+
+ORDEM DAS REFEIÇÕES
+- Por omissão, em todas as refeições principais: legumes ou sopa primeiro, depois proteína e gordura, hidratos de carbono no fim, fruta no fim ou como sobremesa. Reduz o pico de glicemia pós-refeição (em diabetes tipo 2 mediram-se reduções de cerca de 29 % aos 30 min e 37 % aos 60 min; em pessoas sem diabetes o efeito é menor mas na mesma direção).
+- Preenche sempre o campo "ordem" de cada refeição. Se a pessoa tiver uma regra própria sobre a ordem, é essa que vale.
+
+GLP-1 (tirzepatida, semaglutido, liraglutido, dulaglutido)
+- 4 a 6 refeições pequenas, pouco volumosas. Evita fritos, molhos gordos, refeições muito grandes e ultraprocessados: pioram náuseas e enfartamento.
+- Come devagar, mastiga bem, para ao primeiro sinal de saciedade.
+- Nas 24–72 h após a injeção e em cada subida de dose, aligeira: menos gordura, menos volume, texturas mais moles, mais líquidos entre refeições.
+- Líquidos: pouco durante as refeições (o estômago esvazia devagar); a maior parte da água entre refeições.
+- Se houver muita náusea, batidos com pelo menos 20 g de proteína e menos de 200 kcal são melhor tolerados do que uma refeição sólida.
+
+FIBRA E TRÂNSITO
+- 25–30 g/dia. Aumenta de forma gradual e sempre acompanhada de água, senão agrava inchaço e obstipação.
+- Obstipação: fibra solúvel (aveia, psílio, kiwi, ameixa, leguminosas bem cozidas), água, movimento.
+- Diarreia: reduz temporariamente fibra insolúvel, fritos e lactose; arroz, banana, maçã cozida, batata.
+
+MICRONUTRIENTES EM RISCO com ingestão reduzida e GLP-1: vitamina D (o mais frequente), ferro, cálcio, vitamina B12, folato, tiamina, magnésio, potássio. Há relatos de défice grave de tiamina. Preenche o plano com alimentos ricos nos que estiverem baixos nas análises e diz isso no racional. Não prescrevas suplementos novos; sugere falar com o médico.
+
+ANÁLISES E CONDIÇÕES
+- Glicemia em jejum ou HbA1c elevadas: hidratos de baixo índice glicémico, sempre acompanhados de proteína e legumes, menos açúcar livre.
+- LDL ou colesterol total altos: menos gordura saturada (carnes gordas, enchidos, manteiga, queijos curados, natas), mais fibra solúvel, azeite, frutos secos, peixe gordo 2 a 3 vezes por semana.
+- Triglicéridos altos: menos açúcar, menos álcool, menos farinhas refinadas.
+- Ferritina, ferro ou hemoglobina baixos: carne vermelha magra, leguminosas, vegetais verde-escuros, sempre com fonte de vitamina C na mesma refeição; separa o café e o chá das refeições principais em pelo menos 1 hora.
+- Vitamina D baixa: peixe gordo, ovos, cogumelos, lacticínios enriquecidos.
+- B12 ou folato baixos: carne, peixe, ovos, lacticínios, leguminosas, vegetais de folha verde.
+- Função renal reduzida (eGFR abaixo de 60) ou ureia alta: proteína no limite inferior da faixa, menos sal, e diz explicitamente no racional que a dose de proteína deve ser confirmada pelo médico.
+- Ácido úrico alto: menos vísceras, marisco, cerveja e bebidas açucaradas.
+- Tensão arterial elevada ou alta: sal abaixo de 5 g/dia (sem sal à mesa, poucos enchidos, queijos curados, conservas, caldos e pré-cozinhados), mais potássio de legumes, fruta e leguminosas; padrão mediterrânico ou DASH.
+- Alterações no ECG, ecocardiograma ou outros documentos: respeita o que está descrito e modera cafeína e estimulantes quando for pertinente.
+
+MEDICAÇÃO E SUPLEMENTOS
+- Indica a hora de cada suplemento e medicamento que a pessoa já toma, e o que separar: ferro longe de cálcio, café e chá; levotiroxina em jejum e afastada de cálcio e ferro; vitamina D e outras vitaminas lipossolúveis numa refeição com gordura; magnésio à noite.
+- Nunca alteres doses nem sugiras suplementos novos.
+
+COZINHA PORTUGUESA
+- Usa alimentos correntes em Portugal: pescada, bacalhau demolhado, sardinha, carapau, dourada, atum, peito de frango e peru, lombo de porco magro, ovos, queijo fresco, requeijão, iogurte grego natural, leguminosas (grão, feijão, lentilhas), arroz e massa integrais, batata e batata-doce, broa e pão de centeio, azeite, sopa de legumes, couves, grelos, brócolos, espinafres, courgette, cenoura, tomate, fruta da época.
+
+MEDIDAS CASEIRAS (Roda dos Alimentos, DGS) — usa-as no campo medida_caseira e indica sempre no campo estado se o peso é em cru ou cozinhado, porque é a maior fonte de erro:
+- colher de sopa 15 ml · colher de sobremesa 10 ml · colher de chá 5 ml · chávena almoçadeira 240–250 ml · copo 200–250 ml
+- arroz ou massa: 35 g crus = 2 c. sopa · 110 g cozinhados = 4 c. sopa
+- leguminosas: 25 g secas = 1 c. sopa · 80 g cozinhadas = 3 c. sopa
+- hortícolas: 180 g crus = 2 chávenas almoçadeiras · 140 g cozinhados = 1 chávena almoçadeira
+- azeite 10 g = 1 c. sopa rasa · manteiga 15 g = 1 c. sobremesa
+- leite 250 ml = 1 chávena almoçadeira · iogurte sólido 1 unidade ≈ 125 g · queijo 40 g = 2 fatias finas · queijo fresco 50 g = ¼ de unidade média · requeijão 100 g = ½ unidade média
+- ovo médio 55 g · pão 50 g = 1 papo-seco · batata média ≈ 85 g · fruta média 160 g = 1 peça
+- carne ou peixe: 30 g crus correspondem a 25 g cozinhados
+
+LIMITES DE ATUAÇÃO (obrigatórios)
+- Em Portugal a prescrição dietética é ato próprio do nutricionista. Isto é uma sugestão alimentar de apoio, não uma prescrição: escreve nesse registo e nunca uses as palavras prescrever, tratamento ou terapêutica.
+- Não alteres doses de medicamentos nem sugiras suplementos novos; organiza apenas o horário do que já é tomado.
+- Se os dados indicarem gravidez, amamentação, menos de 18 anos, IMC abaixo de 18,5, história de perturbação do comportamento alimentar, doença renal ou hepática, ou perda de peso muito rápida, mantém o plano conservador e diz no racional que precisa de validação profissional antes de ser seguido.`;
+
+  const DAY_SCHEMA = `{"dias":[{"dia":"segunda","refeicoes":[{
+"nome":"Almoço","hora":"13:00",
+"ordem":["sopa/legumes","proteína","hidratos","fruta"],
+"itens":[{"alimento":"peito de frango grelhado","quantidade":"130 g","estado":"cru","medida_caseira":"1 bife médio","grupo":"proteina"}],
+"preparacao":"1 a 2 frases sobre confeção e tempero",
+"porque":"1 frase curta a explicar o papel desta refeição no plano",
+"alternativas":[{"em_vez_de":"frango","trocar_por":"pescada 160 g ou grão-de-bico cozido 180 g"}],
+"kcal":460,"proteina_g":38,"hidratos_g":42,"gordura_g":14,"fibra_g":8}]}]}`;
+
+  const FRAME_SCHEMA = `{
+"metas_diarias":{"kcal":1500,"proteina_g":110,"hidratos_g":140,"gordura_g":55,"fibra_g":28,"agua_ml":2600,"sal_g":5},
+"racional":"3 a 5 frases com os números que usaste: g/kg de proteína e sobre que peso, défice em kcal, e o que mudaste por causa das análises, da tensão e dos documentos",
+"principios":["4 a 8 princípios curtos que orientam a semana"],
+"regras_aplicadas":[{"regra":"copia literal de cada regra obrigatória da pessoa","como":"onde e como foi aplicada"}],
+"estrutura_do_dia":[{"nome":"Pequeno-almoço","hora":"08:00","kcal":320,"proteina_g":25}],
+"suplementos":[{"nome":"nome e dose tal como a pessoa os toma","hora":"HH:MM","nota":"porquê a essa hora e o que separar"}],
+"hidratacao":[{"hora":"07:30","quantidade_ml":250,"nota":"ao acordar, em goles"}],
+"dias_dificeis":{"nauseas":["..."],"obstipacao":["..."],"diarreia":["..."],"refluxo":["..."],"dia_da_injecao":["..."],"sem_apetite":["..."],"fora_de_casa":["como escolher num restaurante, incluindo o método do prato: metade legumes, um quarto proteína, um quarto hidratos"],"sem_tempo":["o que fazer quando não há tempo para cozinhar"]},
+"preparacao_antecipada":["3 a 6 tarefas a fazer de uma vez, com o que rendem e quantos dias duram no frigorífico"]
+}`;
+
+  /** Gera o plano em etapas, para que cada resposta caiba e fique detalhada. */
   async function generatePlan() {
     if (!S.sample) { $("planNote").hidden = false; $("planNote").textContent = "A geração do plano só funciona com a página aberta no claude.ai."; return; }
     const p = profile();
     if (!p.weight_kg) { $("planNote").hidden = false; $("planNote").innerHTML = `Preenche pelo menos o <strong>peso atual</strong> no perfil antes de gerar o plano.`; return; }
     if (S.plan && !confirm("Gerar um plano novo substitui o atual (a versão anterior fica guardada para repor). Continuar?")) return;
     $("planNote").hidden = true;
+
     const ctl = new AbortController(); S.generating = ctl;
-    $("genPlan").disabled = true; $("regenPlan").disabled = true; $("genProgress").hidden = false; $("genMsg").textContent = "A gerar o plano… pode demorar até 2 minutos.";
-    let pct = 5; const tick = setInterval(() => { pct = Math.min(90, pct + 2); $("genProgress").firstElementChild.style.width = pct + "%"; }, 1500);
-    const prompt = `És nutricionista de apoio numa app familiar. Cria um PLANO ALIMENTAR SEMANAL (7 dias: segunda a domingo) para a pessoa descrita abaixo, em português de Portugal, com alimentos comuns em Portugal e quantidades exatas (g, ml, unidades, colheres de sopa).
+    $("genPlan").disabled = true; $("regenPlan").disabled = true; $("genProgress").hidden = false;
+    const bar = $("genProgress").firstElementChild;
+    const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
+    const ctx = planPromptContext();
+    const rules = S.rules.length
+      ? `REGRAS OBRIGATÓRIAS DESTA PESSOA — tens de as cumprir em todos os dias e refeições, e depois declarar em "regras_aplicadas" onde cada uma foi aplicada:\n${S.rules.map((r, i) => `${i + 1}. ${r.texto}`).join("\n")}\n\nSe alguma regra entrar em conflito com a base clínica, cumpre a regra e explica o ajuste no racional.`
+      : `A pessoa ainda não definiu regras próprias.`;
+    const head = `És nutricionista e estás a preparar um plano alimentar para uma app familiar privada, em português de Portugal.\n\n${rules}\n\n${PLAN_KNOWLEDGE}\n\nDADOS DA PESSOA (JSON):\n${ctx}`;
+    const ask = (prompt, msg, pct, tier) => { step(pct, msg); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
 
-Regras:
-- Proteína: 1,4–1,6 g por kg de peso atual, distribuída por todas as refeições (mínimo ~20 g nas principais).
-- Fibra 25–30 g/dia; fruta, legumes, leguminosas e cereais integrais.
-- Energia: défice moderado para o objetivo de peso (nunca abaixo de 1200 kcal/dia); se não houver objetivo de perda, manutenção.
-- Com GLP-1: 4–5 refeições pequenas, pouco volume, pouca gordura e fritos, sem refeições muito pesadas; reforça hidratação.
-- Ajusta às análises: glicemia/HbA1c elevadas → hidratos de baixo índice glicémico e menos açúcar; LDL/triglicéridos altos → menos gordura saturada, mais ómega-3 e fibra solúvel; ferritina/B12/vitamina D baixas → alimentos ricos nesses nutrientes; função renal reduzida → moderar proteína e sal; ácido úrico alto → menos vísceras, marisco e álcool.
-- Respeita alergias, intolerâncias e preferências. Varia as refeições ao longo da semana, mas mantém-nas simples de preparar e reaproveita ingredientes.
-- Tensão arterial elevada/alta ou hipertensão: sal < 5 g/dia (sem sal à mesa, poucos enchidos, queijos curados e produtos processados), mais potássio (legumes, fruta, leguminosas), padrão tipo DASH/mediterrânico. Alterações no ECG ou outros documentos médicos: segue o que lá está descrito e evita estimulantes em excesso (café, bebidas energéticas) quando relevante.
-- HIDRATAÇÃO: inclui "hidratacao", um horário diário de água (hora, quantidade_ml, nota curta) cuja soma iguala a meta de água (meta_agua_ml). Com GLP-1: 8–10 momentos de 150–250 ml em pequenos goles, água ou infusões sem açúcar; evita beber mais de 150 ml nos 30 minutos antes e durante as refeições (agrava o enfartamento e as náuseas); reforça os momentos entre refeições e ao acordar; nota sobre dias de mais náuseas (goles frequentes, água fresca, caldos com sal) e obstipação (água + fibra). Sem GLP-1: 6–8 momentos.
-- Cada refeição tem no máximo 5 itens. Nomes curtos. Dias na ordem: segunda, terça, quarta, quinta, sexta, sábado, domingo.
-
-Dados da pessoa (JSON):
-${planPromptContext()}
-
-Responde APENAS com JSON válido, sem texto antes ou depois, exatamente com esta estrutura (exemplo abreviado, preenche os 7 dias):
-${PLAN_SCHEMA}`;
-    let err = null, data = null;
+    let err = null, plan = null;
     try {
-      data = await S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: "default" });
-      if (!data || !Array.isArray(data.dias) || data.dias.length === 0) throw { code: "invalid_json", message: "sem dias" };
+      // 1. estrutura do plano
+      const frame = await ask(`${head}\n\nPasso 1 de 3: define a ESTRUTURA do plano semanal (ainda sem as refeições em detalhe).\nResponde APENAS com JSON válido nesta forma:\n${FRAME_SCHEMA}`,
+        "A calcular metas e estrutura… (1 de 3)", 10, "complex");
+      if (!frame?.metas_diarias) throw { code: "invalid_json", message: "estrutura incompleta" };
+
+      const frameTxt = JSON.stringify({ metas_diarias: frame.metas_diarias, estrutura_do_dia: frame.estrutura_do_dia || [], principios: frame.principios || [], regras_aplicadas: frame.regras_aplicadas || [] });
+      // 2. refeições, em dois blocos para caberem
+      const blocks = [["segunda", "terça", "quarta", "quinta"], ["sexta", "sábado", "domingo"]];
+      const dias = [];
+      for (let i = 0; i < blocks.length; i++) {
+        const jaFeitos = dias.length ? `\nJá planeaste estes dias, não repitas as mesmas refeições:\n${JSON.stringify(dias.map((d) => ({ dia: d.dia, refeicoes: d.refeicoes.map((m) => m.itens.map((x) => x.alimento).join(", ")) })))}` : "";
+        const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${blocks[i].join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação e pelo menos uma alternativa. Os totais do dia têm de bater certo com as metas.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
+          `A escrever as refeições… (${i + 2} de 3)`, 25 + i * 30);
+        const got = Array.isArray(res?.dias) ? res.dias : [];
+        blocks[i].forEach((d) => {
+          const f = got.find((x) => norm(x.dia) === norm(d)) || got[blocks[i].indexOf(d)];
+          dias.push({ dia: d, refeicoes: ((f && f.refeicoes) || []).map(normMeal) });
+        });
+      }
+      if (dias.every((d) => d.refeicoes.length === 0)) throw { code: "invalid_json", message: "sem refeições" };
+
+      // 3. lista de compras
+      let compras = [];
+      try {
+        const resumo = dias.map((d) => `${d.dia}: ${d.refeicoes.map((m) => m.itens.map((i) => `${i.alimento} ${i.quantidade}`).join("; ")).join(" | ")}`).join("\n");
+        const r = await ask(`Com base neste plano de 7 dias, escreve a lista de compras somando as quantidades de cada alimento para a semana inteira, agrupada por categoria (Proteína, Peixe, Legumes, Fruta, Mercearia, Lacticínios, Outros). Usa português de Portugal e quantidades práticas de supermercado.\n\n${resumo}\n\nResponde APENAS com JSON: {"lista_compras":[{"categoria":"Proteína","itens":[{"alimento":"peito de frango","quantidade":"900 g"}]}]}`,
+          "A fazer a lista de compras… (3 de 3)", 85, "quick");
+        compras = Array.isArray(r?.lista_compras) ? r.lista_compras : [];
+      } catch (e) { if (e?.code === "cancelled") throw e; console.warn("compras", e); }
+
+      const hidr = (Array.isArray(frame.hidratacao) ? frame.hidratacao : []).map((h) => ({ hora: String(h.hora || ""), quantidade_ml: Math.round(Number(h.quantidade_ml) || 0), nota: String(h.nota || "") })).filter((h) => h.quantidade_ml > 0).sort((a, b) => a.hora.localeCompare(b.hora));
+      plan = {
+        metas_diarias: frame.metas_diarias || {},
+        racional: String(frame.racional || ""),
+        principios: (frame.principios || []).map(String).slice(0, 8),
+        regras_aplicadas: (frame.regras_aplicadas || []).map((r) => ({ regra: String(r.regra || ""), como: String(r.como || "") })).filter((r) => r.regra),
+        suplementos: (frame.suplementos || []).map((x) => ({ nome: String(x.nome || ""), hora: String(x.hora || ""), nota: String(x.nota || "") })).filter((x) => x.nome),
+        dias_dificeis: frame.dias_dificeis && typeof frame.dias_dificeis === "object" ? frame.dias_dificeis : {},
+        preparacao_antecipada: (frame.preparacao_antecipada || []).map(String).slice(0, 8),
+        lista_compras: compras.map((c) => ({ categoria: String(c.categoria || ""), itens: (c.itens || []).map((x) => typeof x === "string" ? x : { alimento: String(x.alimento || ""), quantidade: String(x.quantidade || "") }) })).filter((c) => c.categoria),
+        hidratacao: hidr,
+        dias,
+      };
     } catch (e) { err = e; }
-    clearInterval(tick); S.generating = null;
-    $("genPlan").disabled = false; $("regenPlan").disabled = false; $("genProgress").hidden = true; $("genProgress").firstElementChild.style.width = "0%";
+
+    S.generating = null;
+    $("genPlan").disabled = false; $("regenPlan").disabled = false; $("genProgress").hidden = true; bar.style.width = "0%";
     if (err) {
-      if (err.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = err.code === "invalid_json" ? "O plano veio incompleto. Tenta gerar outra vez." : (ERR_COPY[err.code] || "Não foi possível gerar o plano. Tenta outra vez."); }
+      if (err.code !== "cancelled") {
+        $("planNote").hidden = false;
+        $("planNote").textContent = err.code === "invalid_json" ? "O plano veio incompleto. Tenta gerar outra vez." : (ERR_COPY[err.code] || "Não foi possível gerar o plano. Tenta outra vez.");
+        S.diag.lastErr = `plano: ${err.code || err.message}`; renderDiag();
+      }
       $("genMsg").textContent = ""; return;
     }
-    // normalizar
-    const days = DAYS.map((d) => { const found = data.dias.find((x) => norm(x.dia) === norm(d)) || data.dias[DAYS.indexOf(d)] || { refeicoes: [] }; return { dia: d, refeicoes: (found.refeicoes || []).map(normMeal) }; });
-    const hidr = (Array.isArray(data.hidratacao) ? data.hidratacao : []).map((h) => ({ hora: String(h.hora || ""), quantidade_ml: Math.round(Number(h.quantidade_ml) || 0), nota: String(h.nota || "") })).filter((h) => h.quantidade_ml > 0).sort((a, b) => a.hora.localeCompare(b.hora));
-    const plan = { metas_diarias: data.metas_diarias || {}, racional: String(data.racional || ""), hidratacao: hidr, dias: days };
     S.plan = { week_start: mondayOf(), version: (S.plan?.version || 0) + 1, plan, previous: S.plan?.plan || null, extras: (S.plan?.extras || []).filter((x) => x.date >= addDays(localDate(), -7)), changelog: [{ at: new Date().toISOString(), o_que: "Plano gerado" }], generatedAt: new Date().toISOString() };
     S.planDay = todayDayName();
-    await savePlan(); $("genMsg").textContent = "Plano gerado ✓"; setTimeout(() => $("genMsg").textContent = "", 3000);
+    await savePlan();
+    $("genMsg").textContent = "Plano gerado ✓"; setTimeout(() => $("genMsg").textContent = "", 4000);
   }
+
   function normMeal(m) {
-    return { nome: String(m.nome || "Refeição"), hora: String(m.hora || ""), itens: (m.itens || []).map((i) => ({ alimento: String(i.alimento || ""), quantidade: String(i.quantidade || "") })), kcal: Number(m.kcal) || 0, proteina_g: Number(m.proteina_g) || 0, fibra_g: Number(m.fibra_g) || 0 };
+    return {
+      nome: String(m.nome || "Refeição"), hora: String(m.hora || ""),
+      ordem: (m.ordem || []).map(String).slice(0, 6),
+      itens: (m.itens || []).map((i) => ({ alimento: String(i.alimento || ""), quantidade: String(i.quantidade || ""), estado: String(i.estado || ""), medida_caseira: String(i.medida_caseira || ""), grupo: String(i.grupo || "") })),
+      preparacao: String(m.preparacao || ""), porque: String(m.porque || ""),
+      alternativas: (m.alternativas || []).map((a) => ({ em_vez_de: String(a.em_vez_de || ""), trocar_por: String(a.trocar_por || "") })).slice(0, 4),
+      kcal: Number(m.kcal) || 0, proteina_g: Number(m.proteina_g) || 0, fibra_g: Number(m.fibra_g) || 0, hidratos_g: Number(m.hidratos_g) || 0, gordura_g: Number(m.gordura_g) || 0,
+    };
   }
 
   function renderPlan() {
@@ -1347,13 +1556,14 @@ ${PLAN_SCHEMA}`;
     if (!has) { $("planMeta").textContent = "Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo de peso."; return; }
     const pl = S.plan.plan; const t = pl.metas_diarias || {};
     $("planMeta").textContent = `Versão ${S.plan.version} · semana de ${S.plan.week_start}${S.plan.changelog?.length > 1 ? ` · último ajuste: ${S.plan.changelog[S.plan.changelog.length - 1].o_que}` : ""}`;
-    $("planTargets").innerHTML = [["kcal", "kcal/dia"], ["proteina_g", "g proteína"], ["fibra_g", "g fibra"], ["agua_ml", "ml água"]].map(([k, l]) => `<div class="target"><div class="v num">${t[k] ?? "—"}</div><div class="k">${l}</div></div>`).join("");
+    const targetDefs = [["kcal", "kcal/dia"], ["proteina_g", "g proteína"], ["fibra_g", "g fibra"], ["agua_ml", "ml água"], ["hidratos_g", "g hidratos"], ["gordura_g", "g gordura"], ["sal_g", "g sal (máx.)"]];
+    $("planTargets").innerHTML = targetDefs.filter(([k]) => t[k] !== undefined && t[k] !== null).map(([k, l]) => `<div class="target"><div class="v num">${t[k]}</div><div class="k">${l}</div></div>`).join("");
     $("planRationale").textContent = pl.racional || "";
     if (!S.planDay) S.planDay = todayDayName();
     const today = todayDayName();
     $("planDays").innerHTML = DAYS.map((d) => `<button type="button" data-day="${d}" aria-pressed="${d === S.planDay}" class="${d === today ? "today" : ""}">${d.charAt(0).toUpperCase() + d.slice(1, 3)}${d === today ? " · hoje" : ""}</button>`).join("");
     const day = pl.dias.find((x) => x.dia === S.planDay) || { refeicoes: [] };
-    $("planMealsList").innerHTML = day.refeicoes.length === 0 ? `<p class="muted small">Sem refeições neste dia.</p>` : day.refeicoes.map(mealHtml).join("");
+    $("planMealsList").innerHTML = day.refeicoes.length === 0 ? `<p class="muted small">Sem refeições neste dia.</p>` : day.refeicoes.map((m) => mealHtml(m)).join("");
     const tot = day.refeicoes.reduce((a, m) => ({ k: a.k + (m.kcal || 0), p: a.p + (m.proteina_g || 0), f: a.f + (m.fibra_g || 0) }), { k: 0, p: 0, f: 0 });
     $("dayTotals").textContent = `Total do dia: ~${Math.round(tot.k)} kcal · ${Math.round(tot.p)} g proteína · ${Math.round(tot.f)} g fibra`;
     $("undoPlan").hidden = !S.plan.previous;
@@ -1362,6 +1572,24 @@ ${PLAN_SCHEMA}`;
     $("planWater").innerHTML = h.length ? h.map((x) => `<li><span class="h num">${esc(x.hora)}</span><span>${esc(x.nota)}</span><span class="num"><strong>${x.quantidade_ml} ml</strong></span></li>`).join("") : `<li class="muted small">Este plano não tem horário de água. Gera um plano novo para o incluir.</li>`;
     $("planWaterTotal").textContent = h.length ? `${h.reduce((a, x) => a + x.quantidade_ml, 0)} ml/dia` : "";
     $("planWaterNote").textContent = profile().uses_glp1 ? "Com GLP-1: goles pequenos, pouca água durante as refeições, mais entre refeições. Em dias de náuseas, água fresca em goles frequentes." : "";
+    // princípios, regras, suplementos, dias difíceis, compras
+    const princ = pl.principios || [];
+    $("planPrinciples").innerHTML = princ.length ? `<div class="chiprow">${princ.map((x) => `<span class="tag">${esc(x)}</span>`).join("")}</div>` : "";
+    const regras = pl.regras_aplicadas || [];
+    $("planRulesCard").hidden = regras.length === 0;
+    $("planRules").innerHTML = regras.map((r) => `<div class="rule"><span class="ck">✓</span><span><strong>${esc(r.regra)}</strong>${r.como ? `<br><span class="muted">${esc(r.como)}</span>` : ""}</span></div>`).join("");
+    const supp = pl.suplementos || [];
+    $("planSuppCard").hidden = supp.length === 0;
+    $("planSupp").innerHTML = supp.map((x) => `<li><span class="h num">${esc(x.hora || "—")}</span><span>${esc(x.nome)}${x.nota ? `<br><span class="n">${esc(x.nota)}</span>` : ""}</span><span></span></li>`).join("");
+    const hard = pl.dias_dificeis || {};
+    const HARD_LABEL = { nauseas: "Náuseas ou enjoo", obstipacao: "Obstipação", diarreia: "Diarreia", refluxo: "Refluxo ou azia", enfartamento: "Enfartamento", cansaco: "Cansaço", dia_da_injecao: "Dia da injeção", sem_apetite: "Sem apetite", fora_de_casa: "Refeições fora de casa" };
+    const hardKeys = Object.keys(hard).filter((k) => (hard[k] || []).length);
+    $("planHardCard").hidden = hardKeys.length === 0;
+    $("planHard").innerHTML = hardKeys.map((k) => `<div class="doc"><div class="t">${esc(HARD_LABEL[norm(k).replace(/ /g, "_")] || k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()))}</div><ul>${hard[k].map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+    const shop = pl.lista_compras || [];
+    $("planShopCard").hidden = shop.length === 0 && (pl.preparacao_antecipada || []).length === 0;
+    const prep0 = pl.preparacao_antecipada || [];
+    $("planShop").innerHTML = (prep0.length ? `<h3>Preparar de uma vez</h3><ul>${prep0.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "") + shop.map((c) => `<h3>${esc(c.categoria)}</h3><ul>${(c.itens || []).map((x) => `<li>${esc(typeof x === "string" ? x : `${x.alimento} — ${x.quantidade}`)}</li>`).join("")}</ul>`).join("");
     // fora do plano (dia selecionado)
     const dayDate = dateOfPlanDay(S.planDay);
     const extras = (S.plan.extras || []).filter((x) => x.date === dayDate);
@@ -1371,15 +1599,30 @@ ${PLAN_SCHEMA}`;
   }
   /** Data (YYYY-MM-DD) de um dia da semana do plano, na semana corrente. */
   function dateOfPlanDay(day) { const i = DAYS.indexOf(day); return addDays(mondayOf(), i < 0 ? 0 : i); }
-  function mealHtml(m) {
-    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${m.kcal ? `${Math.round(m.kcal)} kcal · ` : ""}${Math.round(m.proteina_g || 0)} g prot · ${Math.round(m.fibra_g || 0)} g fibra</span></div><ul class="items">${(m.itens || []).map((i) => `<li><span>${esc(i.alimento)}</span><span class="qty num">${esc(i.quantidade)}</span></li>`).join("")}</ul></div>`;
+  const GRUPOS = ["proteina", "legumes", "hidratos", "gordura", "fruta", "lacticinio"];
+  const grupoOf = (g) => GRUPOS.includes(norm(g)) ? norm(g) : "outro";
+
+  function mealHtml(m, compact) {
+    const itens = (m.itens || []).map((i) => {
+      const det = [i.medida_caseira, i.estado].filter(Boolean).join(", ");
+      const med = det ? ` <span class="meta muted">(${esc(det)})</span>` : "";
+      return `<li><span><span class="grp g-${grupoOf(i.grupo)}" title="${esc(i.grupo || "")}"></span>${esc(i.alimento)}${med}</span><span class="qty num">${esc(i.quantidade)}</span></li>`;
+    }).join("");
+    const ordem = (m.ordem || []).length
+      ? `<div class="order">Ordem: ${m.ordem.map((o, i) => `${i ? '<span class="arrow">→</span> ' : ""}<b>${esc(o)}</b>`).join(" ")}</div>` : "";
+    const prep = !compact && m.preparacao ? `<div class="prep">👩‍🍳 ${esc(m.preparacao)}</div>` : "";
+    const why = !compact && m.porque ? `<div class="prep">💡 ${esc(m.porque)}</div>` : "";
+    const alts = !compact && (m.alternativas || []).length
+      ? `<div class="alts">Trocas: ${m.alternativas.map((a) => `<b>${esc(a.em_vez_de)}</b> → ${esc(a.trocar_por)}`).join(" · ")}</div>` : "";
+    const macros = `${m.kcal ? `${Math.round(m.kcal)} kcal · ` : ""}${Math.round(m.proteina_g || 0)} g prot · ${Math.round(m.fibra_g || 0)} g fibra${m.hidratos_g ? ` · ${Math.round(m.hidratos_g)} g HC` : ""}`;
+    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${prep}${why}${alts}</div>`;
   }
   function renderTodayMeals() {
     const el = $("todayMeals"); if (!el) return;
     if (!S.plan?.plan) { el.innerHTML = `<p class="muted small">Ainda não há plano. <a href="#" data-goto="plano">Gerar plano semanal</a>.</p>`; renderTodaySchedule(); return; }
     const day = S.plan.plan.dias.find((x) => x.dia === todayDayName());
     const extras = (S.plan.extras || []).filter((x) => x.date === localDate());
-    el.innerHTML = (day && day.refeicoes.length ? day.refeicoes.map(mealHtml).join("") : `<p class="muted small">Sem refeições para hoje.</p>`) +
+    el.innerHTML = (day && day.refeicoes.length ? day.refeicoes.map((m) => mealHtml(m, true)).join("") : `<p class="muted small">Sem refeições para hoje.</p>`) +
       (extras.length ? `<div class="meal"><div class="head"><h3>Fora do plano</h3></div>${extras.map((x) => `<div class="extra"><span>${esc(x.descricao)}</span><span class="muted small num">${x.kcal ? `~${Math.round(x.kcal)} kcal` : ""}</span></div>`).join("")}</div>` : "");
     renderTodaySchedule();
   }
@@ -1449,9 +1692,11 @@ O teu papel:
 Com GLP-1 (tirzepatida, semaglutido, liraglutido, dulaglutido): o apetite e a sede diminuem e o esvaziamento gástrico é mais lento. Insiste em proteína em todas as refeições, hidratação em pequenos goles, fibra gradual, e evita refeições muito volumosas ou gordas, sobretudo nos dias após a injeção e nas semanas de subida de dose. Nunca recomendes alterar, saltar ou antecipar doses de GLP-1 nem de outra medicação; isso é decisão do médico.
 
 Limites de segurança (obrigatórios):
-- Não és médica nem nutricionista; és uma ferramenta de apoio. Lembra isso com naturalidade quando for relevante, sem repetir em todas as mensagens.
+- Não és médica nem nutricionista; és uma ferramenta de apoio e as tuas indicações são sugestões, nunca uma prescrição. Lembra isso com naturalidade quando for relevante, sem repetir em todas as mensagens.
 - Recomenda contactar o médico/nutricionista perante vómitos persistentes, dor abdominal intensa, incapacidade de beber líquidos, sinais de desidratação, hipoglicemias, perda de peso muito rápida, ou qualquer sintoma novo ou preocupante.
 - Não sugiras dietas abaixo de ~1200 kcal/dia nem suplementos novos sem sugerir validação profissional.
+
+Regras da pessoa: o contexto traz "regras_alimentares_obrigatorias". São instruções que ela já deu e que tens de respeitar SEMPRE, em todas as sugestões e em qualquer alteração ao plano, sem esperar que as repita. Se ela enunciar uma regra nova ou duradoura (ordem por que come, horários, alimentos que recusa, modo de confeção), guarda-a já com guardar_regra e confirma numa linha.
 
 Fora do plano: quando a pessoa disser que comeu ou bebeu algo que não estava no plano (ex: "comi um pastel de nata", "jantei fora, pizza"), 1) regista com a ferramenta registar_extra (com estimativa de kcal e proteína), 2) ajusta o resto do dia (ou o dia seguinte, se já for à noite) com atualizar_refeicoes, compensando em energia e mantendo a proteína, sem cortar refeições inteiras nem descer abaixo de ~1200 kcal, e 3) explica em 2–3 linhas, sem culpabilizar. Um extra pequeno pode não precisar de compensação: diz isso.
 
@@ -1477,6 +1722,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
       evolucao_peso: S.weights.slice(-8),
       analises_mais_recentes: latestLabs(),
+      regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
       tensao_arterial: bpSummary(),
       documentos_de_saude: S.docs.slice(-6).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
       plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, hidratacao: S.plan.plan.hidratacao || [], dias: S.plan.plan.dias } : null,
@@ -1607,6 +1853,11 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     const turns = [{ role: "user", content: RULES + "\n\n" + contextText() }, ...history];
     let finalText = "", err = null;
     const tools = S.toolsOK ? [{
+      name: "guardar_regra",
+      description: "Guarda de forma permanente uma regra alimentar pessoal que a pessoa quer que seja sempre respeitada (ordem por que come os alimentos, horários, alimentos proibidos, forma de confecionar, etc.). Usa sempre que ela enunciar uma preferência ou regra duradoura, mesmo de passagem. Não uses para pedidos pontuais de um só dia.",
+      inputSchema: { type: "object", properties: { regra: { type: "string", description: "A regra numa frase curta e clara, na 2.ª pessoa (ex: 'Comer sempre os legumes primeiro, depois a proteína e os hidratos no fim')" } }, required: ["regra"] },
+      execute: async (input) => { const r = await addRule(input?.regra, "chat"); return r ? (r.duplicada ? { ok: true, nota: "já estava guardada" } : { ok: true, guardada: r.texto, total: S.rules.length }) : { ok: false, erro: "regra vazia" }; },
+    }, {
       name: "registar_tensao",
       description: "Regista uma medição de tensão arterial da pessoa (sistólica/diastólica em mmHg, pulso opcional) e devolve a classificação e a média recente. Usa quando a pessoa indica uma medição.",
       inputSchema: { type: "object", properties: { sistolica: { type: "number" }, diastolica: { type: "number" }, pulso: { type: "number" }, data: { type: "string", description: "YYYY-MM-DD, por omissão hoje" }, hora: { type: "string", description: "HH:MM" } }, required: ["sistolica", "diastolica"] },
@@ -1656,7 +1907,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -1670,6 +1921,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (t.dataset.dellab) { S.labs = S.labs.filter((x) => x.id !== t.dataset.dellab); await saveLabs(); return; }
     if (t.dataset.day) { S.planDay = t.dataset.day; renderPlan(); return; }
     if (t.dataset.delbp) { S.vitals = S.vitals.filter((x) => x.id !== t.dataset.delbp); await saveVitals(); return; }
+    if (t.dataset.delrule) { S.rules = S.rules.filter((x) => x.id !== t.dataset.delrule); await saveRules(); return; }
     if (t.dataset.deldoc) { S.docs = S.docs.filter((x) => x.id !== t.dataset.deldoc); await saveDocs(); return; }
     if (t.dataset.delextra) { S.plan = { ...S.plan, extras: (S.plan.extras || []).filter((x) => x.id !== t.dataset.delextra) }; await savePlan(); return; }
     if (t.dataset.togglemed) { const p = profile(); await saveProfile({ ...p, meds: (p.meds || []).map((x) => x.id === t.dataset.togglemed ? { ...x, active: x.active === false } : x) }); return; }
@@ -1710,6 +1962,10 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       try { await saveLabs(); $("labMsg").textContent = `${e.label} guardado ✓`; } catch { $("labMsg").textContent = "Não foi possível guardar."; }
       $("l_value").value = ""; $("l_notes").value = ""; $("l_value").focus(); setTimeout(() => $("labMsg").textContent = "", 3000);
       return;
+    }
+    if (f.id === "rulesForm") {
+      ev.preventDefault(); const v = $("r_text").value; $("r_text").value = "";
+      await addRule(v, "perfil"); return;
     }
     if (f.id === "bpForm") {
       ev.preventDefault();
@@ -1769,7 +2025,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     renderWho(); subscribeProfile();
   }
 
-  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); renderDiag(); }
+  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); renderVitals(); renderDocs(); renderRules(); renderDiag(); }
 
   // ============================================================
   // Arranque

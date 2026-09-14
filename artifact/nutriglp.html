@@ -319,6 +319,7 @@
   .sched { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
   .sched li { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 0.9rem; }
   .sched li:first-child { border-top: 0; }
+  .sched li.empty { display: block; }
   .sched .h { font-weight: 700; color: var(--water); }
   .sched .n { color: var(--muted); font-size: 0.82rem; }
   .sched li.done { opacity: 0.55; }
@@ -496,6 +497,15 @@
       <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button></div>
       <div class="progress" id="genProgress" hidden><div></div></div>
     </div>
+    <div class="card" id="planShopCard" hidden>
+      <div class="row between">
+        <h2>Lista de compras da semana</h2>
+        <div class="seg" role="group" aria-label="De quem" id="shopWho"></div>
+      </div>
+      <p class="small muted" id="shopNote"></p>
+      <div class="shop" id="planShop"></div>
+    </div>
+
     <div id="planBody" hidden style="display:flex; flex-direction:column; gap:20px">
       <div class="card">
         <div class="targets" id="planTargets"></div>
@@ -518,10 +528,6 @@
       <div class="card" id="planHardCard" hidden>
         <h2>Dias difíceis</h2>
         <div id="planHard"></div>
-      </div>
-      <div class="card" id="planShopCard" hidden>
-        <h2>Lista de compras da semana</h2>
-        <div class="shop" id="planShop"></div>
       </div>
       <div class="card" id="planExtrasCard" hidden>
         <div class="row between"><h2>Fora do plano</h2><span class="small muted" id="planExtrasDay"></span></div>
@@ -750,6 +756,9 @@
     rules: [],             // regras alimentares pessoais [{id, texto, origem, at}]
     body: [],              // composição corporal [{id, date, weight_kg, fat_pct, muscle_kg, water_pct, visceral, bone_kg, notes}]
     bodyPick: "weight_kg",
+    shopWho: null,         // perfil cuja lista de compras está a ser vista, ou "todos"
+    plans: {},             // planos de todos os perfis, para a lista de compras conjunta
+    edit: { body: null, lab: null, bp: null },
     attachments: [],       // ficheiros escolhidos no chat (File)
     imageLimits: null,
     diag: { sample: null, images: null, tools: null, db: null, saveErr: "", lastErr: "", step: "arranque" },
@@ -879,6 +888,7 @@
     renderDocs();
   }
   async function savePlan() {
+    S.plans = { ...S.plans, [S.pid]: { ...S.plan, profile: S.pid } };
     await write(`plans/${S.pid}`, { ...S.plan, profile: S.pid }, mem.plans, S.pid);
     renderPlan(); renderHome();
   }
@@ -891,12 +901,12 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = [];
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = []; S.edit = { body: null, lab: null, bp: null };
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
-      S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
+      S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -914,14 +924,14 @@
     }, (e) => console.warn("weights", e)));
     S.unsub.push(S.db.doc(`labs/${S.pid}`).onSnapshot((snap) => {
       S.labs = snap.exists ? (thaw(snap.data().entries) || []) : [];
-      if (document.activeElement?.form?.id !== "labForm") renderLabs();
+      if (document.activeElement?.form?.id !== "labForm" && !S.edit.lab) renderLabs();
     }, (e) => console.warn("labs", e)));
     S.unsub.push(S.db.doc(`vitals/${S.pid}`).onSnapshot((snap) => {
       S.vitals = snap.exists ? (thaw(snap.data().entries) || []) : []; renderVitals();
     }, (e) => console.warn("vitals", e)));
     S.unsub.push(S.db.doc(`body/${S.pid}`).onSnapshot((snap) => {
       S.body = snap.exists ? (thaw(snap.data().entries) || []) : [];
-      if (document.activeElement?.form?.id !== "bodyForm") renderBody();
+      if (document.activeElement?.form?.id !== "bodyForm" && !S.edit.body) renderBody();
     }, (e) => console.warn("body", e)));
     S.unsub.push(S.db.doc(`rules/${S.pid}`).onSnapshot((snap) => {
       S.rules = snap.exists ? (thaw(snap.data().entries) || []) : [];
@@ -1171,7 +1181,7 @@
     $("labList").innerHTML = byDate.size === 0 ? `<p class="muted small">Sem análises registadas.</p>` :
       [...byDate.entries()].map(([date, rows]) => `<div class="date-group"><h3>${date}</h3><ul class="list">${rows.map((e) => {
         const o = outOfRange(e);
-        return `<li><span>${esc(labLabel(e))}: <strong class="num">${fmtNum(e.value)} ${esc(e.unit)}</strong> ${fmtRange(e) ? `<span class="meta num">ref. ${esc(fmtRange(e))}</span>` : ""} ${o ? `<span class="flag out">${o === "alto" ? "↑ alto" : "↓ baixo"}</span>` : (e.lo ?? e.hi) != null ? `<span class="flag ok">✓</span>` : ""}${e.notes ? `<br><span class="meta">${esc(e.notes)}</span>` : ""}</span><button type="button" class="btn ghost sm" data-dellab="${e.id}">remover</button></li>`;
+        return `<li><span>${esc(labLabel(e))}: <strong class="num">${fmtNum(e.value)} ${esc(e.unit)}</strong> ${fmtRange(e) ? `<span class="meta num">ref. ${esc(fmtRange(e))}</span>` : ""} ${o ? `<span class="flag out">${o === "alto" ? "↑ alto" : "↓ baixo"}</span>` : (e.lo ?? e.hi) != null ? `<span class="flag ok">✓</span>` : ""}${e.notes ? `<br><span class="meta">${esc(e.notes)}</span>` : ""}</span><span class="row" style="gap:2px"><button type="button" class="btn ghost sm" data-editlab="${e.id}">editar</button><button type="button" class="btn ghost sm" data-dellab="${e.id}">remover</button></span></li>`;
       }).join("")}</ul></div>`).join("");
 
     // seletor + gráfico
@@ -1293,7 +1303,7 @@
             r.muscle_pct ? `músculo <strong class="num">${fmtNum(r.muscle_pct)} %</strong>${r.muscle_kg ? ` <span class="meta num">(${fmtNum(r.muscle_kg)} kg)</span>` : ""}` : "",
             r.water_pct ? `água <strong class="num">${fmtNum(r.water_pct)} %</strong>` : "",
             r.visceral ? `visceral <strong class="num">${fmtNum(r.visceral)}</strong>` : ""].filter(Boolean);
-          return `<li><span>${bits.join(" · ")} <span class="meta">${r.date}</span>${r.notes ? `<br><span class="meta">${esc(r.notes)}</span>` : ""}</span><button type="button" class="btn ghost sm" data-delbody="${r.id}">remover</button></li>`;
+          return `<li><span>${bits.join(" · ")} <span class="meta">${r.date}</span>${r.notes ? `<br><span class="meta">${esc(r.notes)}</span>` : ""}</span><span class="row" style="gap:2px"><button type="button" class="btn ghost sm" data-editbody="${r.id}">editar</button><button type="button" class="btn ghost sm" data-delbody="${r.id}">remover</button></span></li>`;
         }).join("");
 
     // resumo
@@ -1351,6 +1361,60 @@
     drawSeries($("bodyChart"), $("bodyTip"), valuesOf(m.id), { unit: m.unit, label: m.label });
   }
 
+  const EDIT_FORMS = {
+    body: { form: "bodyForm", btn: "bodyForm", label: "Guardar medição", section: "corpo" },
+    lab: { form: "labForm", label: "Adicionar", section: "analises" },
+    bp: { form: "bpForm", label: "Adicionar", section: "analises" },
+  };
+
+  /** Carrega um registo no respetivo formulário para ser alterado. */
+  function startEdit(kind, id) {
+    const set = (el, v) => { const n = $(el); if (n) n.value = v ?? ""; };
+    if (kind === "body") {
+      const r = S.body.find((x) => x.id === id); if (!r) return;
+      set("c_date", r.date); set("c_weight", r.weight_kg); set("c_fat", r.fat_pct);
+      set("c_muscle", r.muscle_pct ?? (r.weight_kg && r.muscle_kg ? Math.round(r.muscle_kg / r.weight_kg * 1000) / 10 : ""));
+      set("c_water", r.water_pct); set("c_visceral", r.visceral); set("c_bone", r.bone_kg); set("c_notes", r.notes);
+    } else if (kind === "lab") {
+      const r = S.labs.find((x) => x.id === id); if (!r) return;
+      set("l_date", r.date); $("l_marker").value = r.marker; $("l_customWrap").hidden = r.marker !== "outro";
+      if (r.marker === "outro") set("l_custom", r.label);
+      set("l_value", r.value); set("l_unit", r.unit); set("l_lo", r.lo); set("l_hi", r.hi); set("l_notes", r.notes);
+    } else if (kind === "bp") {
+      const r = S.vitals.find((x) => x.id === id); if (!r) return;
+      set("b_date", r.date); set("b_time", r.time); set("b_sys", r.sys); set("b_dia", r.dia); set("b_pulse", r.pulse);
+    }
+    S.edit[kind] = id;
+    markEditing(kind, true);
+    $(EDIT_FORMS[kind].form).scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function cancelEdit(kind) {
+    S.edit[kind] = null;
+    markEditing(kind, false);
+    const f = $(EDIT_FORMS[kind].form);
+    if (kind === "body") { ["c_weight", "c_fat", "c_muscle", "c_water", "c_visceral", "c_bone", "c_notes"].forEach((id) => { $(id).value = ""; }); $("c_date").value = localDate(); }
+    if (kind === "lab") { ["l_value", "l_notes", "l_custom"].forEach((id) => { $(id).value = ""; }); }
+    if (kind === "bp") { ["b_sys", "b_dia", "b_pulse", "b_time"].forEach((id) => { $(id).value = ""; }); }
+    void f;
+  }
+
+  /** Marca visualmente o formulário em modo de alteração. */
+  function markEditing(kind, on) {
+    const f = $(EDIT_FORMS[kind].form); if (!f) return;
+    f.style.borderColor = on ? "var(--accent)" : "";
+    const submit = f.querySelector('button[type="submit"]');
+    if (submit) submit.textContent = on ? "Guardar alterações" : EDIT_FORMS[kind].label;
+    let cancel = f.querySelector("[data-canceledit]");
+    if (on && !cancel) {
+      cancel = document.createElement("button");
+      cancel.type = "button"; cancel.className = "btn ghost sm"; cancel.dataset.canceledit = kind;
+      cancel.textContent = "Cancelar alteração";
+      cancel.addEventListener("click", () => cancelEdit(kind));
+      submit.insertAdjacentElement("afterend", cancel);
+    } else if (!on && cancel) cancel.remove();
+  }
+
   // ============================================================
   // Tensão arterial e documentos
   // ============================================================
@@ -1363,7 +1427,7 @@
     const el = $("bpList"); if (!el) return;
     const rows = [...S.vitals].reverse().slice(0, 12);
     el.innerHTML = rows.length === 0 ? `<li class="muted small">Sem registos. Podes também dizer no chat "hoje tive 128/82".</li>` :
-      rows.map((e) => { const c = bpClass(e); return `<li><span><strong class="num">${e.sys}/${e.dia}</strong> mmHg${e.pulse ? ` <span class="meta num">· ${e.pulse} bpm</span>` : ""} <span class="meta">${e.date}${e.time ? " " + e.time : ""}${e.source ? " · " + esc(e.source) : ""}</span> ${c ? `<span class="flag ${c === "alta" || c === "elevada" ? "out" : "ok"}">${c}</span>` : ""}</span><button type="button" class="btn ghost sm" data-delbp="${e.id}">remover</button></li>`; }).join("");
+      rows.map((e) => { const c = bpClass(e); return `<li><span><strong class="num">${e.sys}/${e.dia}</strong> mmHg${e.pulse ? ` <span class="meta num">· ${e.pulse} bpm</span>` : ""} <span class="meta">${e.date}${e.time ? " " + e.time : ""}${e.source ? " · " + esc(e.source) : ""}</span> ${c ? `<span class="flag ${c === "alta" || c === "elevada" ? "out" : "ok"}">${c}</span>` : ""}</span><span class="row" style="gap:2px"><button type="button" class="btn ghost sm" data-editbp="${e.id}">editar</button><button type="button" class="btn ghost sm" data-delbp="${e.id}">remover</button></span></li>`; }).join("");
     const avg = bpAverage(); $("bpAvg").textContent = avg ? `média das últimas ${avg.n}: ${avg.sys}/${avg.dia}` : "";
     if (!$("b_date").value) $("b_date").value = localDate();
   }
@@ -1897,6 +1961,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
 
   function renderPlan() {
     const has = !!(S.plan && S.plan.plan);
+    renderShopping();
     $("planEmpty").hidden = has; $("planBody").hidden = !has;
     $("planBody").style.display = has ? "flex" : "none";
     if (!has) { $("planMeta").textContent = "Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo de peso."; return; }
@@ -1915,7 +1980,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("undoPlan").hidden = !S.plan.previous;
     // água ao longo do dia
     const h = pl.hidratacao || [];
-    $("planWater").innerHTML = h.length ? h.map((x) => `<li><span class="h num">${esc(x.hora)}</span><span>${esc(x.nota)}</span><span class="num"><strong>${x.quantidade_ml} ml</strong></span></li>`).join("") : `<li class="muted small">Este plano não tem horário de água. Gera um plano novo para o incluir.</li>`;
+    $("planWater").innerHTML = h.length ? h.map((x) => `<li><span class="h num">${esc(x.hora)}</span><span>${esc(x.nota)}</span><span class="num"><strong>${x.quantidade_ml} ml</strong></span></li>`).join("") : `<li class="muted small empty">Este plano não tem horário de água. Gera um plano novo para o incluir.</li>`;
     $("planWaterTotal").textContent = h.length ? `${h.reduce((a, x) => a + x.quantidade_ml, 0)} ml/dia` : "";
     $("planWaterNote").textContent = profile().uses_glp1 ? "Com GLP-1: goles pequenos, pouca água durante as refeições, mais entre refeições. Em dias de náuseas, água fresca em goles frequentes." : "";
     // princípios, regras, suplementos, dias difíceis, compras
@@ -1932,10 +1997,6 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const hardKeys = Object.keys(hard).filter((k) => (hard[k] || []).length);
     $("planHardCard").hidden = hardKeys.length === 0;
     $("planHard").innerHTML = hardKeys.map((k) => `<div class="doc"><div class="t">${esc(HARD_LABEL[norm(k).replace(/ /g, "_")] || k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()))}</div><ul>${hard[k].map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
-    const shop = pl.lista_compras || [];
-    $("planShopCard").hidden = shop.length === 0 && (pl.preparacao_antecipada || []).length === 0;
-    const prep0 = pl.preparacao_antecipada || [];
-    $("planShop").innerHTML = (prep0.length ? `<h3>Preparar de uma vez</h3><ul>${prep0.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "") + shop.map((c) => `<h3>${esc(c.categoria)}</h3><ul>${(c.itens || []).map((x) => `<li>${esc(typeof x === "string" ? x : `${x.alimento} — ${x.quantidade}`)}</li>`).join("")}</ul>`).join("");
     // fora do plano (dia selecionado)
     const dayDate = dateOfPlanDay(S.planDay);
     const extras = (S.plan.extras || []).filter((x) => x.date === dayDate);
@@ -1943,6 +2004,91 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("planExtrasDay").textContent = dayDate;
     $("planExtras").innerHTML = extras.map((x) => `<div class="extra"><span>${esc(x.descricao)}${x.kcal ? ` <span class="muted small num">~${Math.round(x.kcal)} kcal · ${Math.round(x.proteina_g || 0)} g prot</span>` : ""}</span><button type="button" class="btn ghost sm" data-delextra="${x.id}">remover</button></div>`).join("");
   }
+  /**
+   * Interpreta "900 g", "1,5 kg", "2 unidades" para poder somar listas de compras.
+   * Devolve null quando não consegue, e nesse caso as quantidades ficam lado a lado.
+   */
+  function parseQty(str) {
+    const m = String(str || "").trim().match(/^([\d]+(?:[.,][\d]+)?)\s*(kg|kgs|g|gr|gramas|ml|l|lt|litros?|un|und|unid|unidades?|peças?|doses?)?\.?$/i);
+    if (!m) return null;
+    const n = Number(m[1].replace(",", "."));
+    if (!Number.isFinite(n)) return null;
+    const u = norm(m[2] || "un");
+    if (["kg", "kgs"].includes(u)) return { n: n * 1000, u: "g" };
+    if (["g", "gr", "gramas"].includes(u)) return { n, u: "g" };
+    if (["l", "lt", "litro", "litros"].includes(u)) return { n: n * 1000, u: "ml" };
+    if (u === "ml") return { n, u: "ml" };
+    return { n, u: "un" };
+  }
+  function fmtQty(q) {
+    if (q.u === "g") return q.n >= 1000 ? `${fmtNum(Math.round(q.n / 100) / 10)} kg` : `${Math.round(q.n)} g`;
+    if (q.u === "ml") return q.n >= 1000 ? `${fmtNum(Math.round(q.n / 100) / 10)} L` : `${Math.round(q.n)} ml`;
+    const n = Math.round(q.n * 10) / 10;
+    return `${fmtNum(n)} ${n === 1 ? "unidade" : "unidades"}`;
+  }
+  const CAT_ORDER = ["proteina", "carne", "peixe", "lacticinios", "legumes", "horticolas", "fruta", "mercearia", "congelados", "outros"];
+  /** Junta as listas de compras de vários planos, somando o que for somável. */
+  function mergeShopping(lists) {
+    const cats = new Map();
+    for (const { label, lista } of lists) {
+      for (const c of lista) {
+        const key = norm(c.categoria);
+        if (!cats.has(key)) cats.set(key, { categoria: c.categoria, itens: new Map() });
+        const bucket = cats.get(key).itens;
+        for (const raw of c.itens || []) {
+          const nome = typeof raw === "string" ? raw : raw.alimento;
+          const qtd = typeof raw === "string" ? "" : raw.quantidade;
+          const k = norm(nome);
+          if (!k) continue;
+          if (!bucket.has(k)) bucket.set(k, { alimento: nome, soma: null, partes: [] });
+          const it = bucket.get(k);
+          const q = parseQty(qtd);
+          if (q && (it.soma === null || it.soma.u === q.u) && it.partes.every((x) => x.q)) {
+            it.soma = it.soma ? { n: it.soma.n + q.n, u: q.u } : q;
+          } else it.soma = null;
+          it.partes.push({ label, qtd, q });
+        }
+      }
+    }
+    const order = (k) => { const i = CAT_ORDER.findIndex((c) => k.includes(c)); return i < 0 ? 99 : i; };
+    return [...cats.entries()].sort((a, b) => order(a[0]) - order(b[0])).map(([, c]) => ({
+      categoria: c.categoria,
+      itens: [...c.itens.values()].map((it) => ({
+        alimento: it.alimento,
+        quantidade: it.soma ? fmtQty(it.soma) : it.partes.map((x) => x.qtd).filter(Boolean).join(" + "),
+        detalhe: lists.length > 1 && it.partes.length > 1 ? it.partes.map((x) => `${x.label}: ${x.qtd || "?"}`).join(" · ") : "",
+      })),
+    }));
+  }
+
+  function renderShopping() {
+    const card = $("planShopCard"); if (!card) return;
+    const withList = PROFILE_IDS.filter((id) => ((S.plans[id]?.plan?.lista_compras) || []).length > 0);
+    const prep0 = S.plan?.plan?.preparacao_antecipada || [];
+    card.hidden = withList.length === 0 && prep0.length === 0;
+    if (card.hidden) return;
+
+    const nameOf = (id) => S.profiles[id]?.name || DEFAULT_NAMES[id];
+    if (!S.shopWho || (S.shopWho !== "todos" && !withList.includes(S.shopWho))) S.shopWho = withList.includes(S.pid) ? S.pid : (withList[0] || S.pid);
+    $("shopWho").innerHTML = withList.length > 1
+      ? [...withList.map((id) => ({ v: id, t: nameOf(id) })), { v: "todos", t: "As duas" }]
+        .map((o) => `<button type="button" data-shopwho="${o.v}" aria-pressed="${S.shopWho === o.v}">${esc(o.t)}</button>`).join("")
+      : "";
+
+    const chosen = S.shopWho === "todos" ? withList : [S.shopWho];
+    const lists = chosen.filter((id) => S.plans[id]?.plan?.lista_compras).map((id) => ({ label: nameOf(id), lista: S.plans[id].plan.lista_compras }));
+    const merged = lists.length ? mergeShopping(lists) : [];
+    $("shopNote").textContent = lists.length > 1
+      ? `Somadas as listas de ${lists.map((l) => l.label).join(" e ")}.`
+      : lists.length === 1
+        ? (chosen[0] === S.pid ? (withList.length > 1 ? `Só a lista de ${lists[0].label}.` : "") : `Lista de ${lists[0].label}. Ainda não tens plano próprio.`)
+        : "";
+
+    $("planShop").innerHTML =
+      (prep0.length ? `<h3>Preparar de uma vez</h3><ul>${prep0.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "") +
+      merged.map((c) => `<h3>${esc(c.categoria)}</h3><ul>${c.itens.map((x) => `<li>${esc(x.alimento)}${x.quantidade ? ` — <strong>${esc(x.quantidade)}</strong>` : ""}${x.detalhe ? `<br><span class="meta muted">${esc(x.detalhe)}</span>` : ""}</li>`).join("")}</ul>`).join("");
+  }
+
   /** Data (YYYY-MM-DD) de um dia da semana do plano, na semana corrente. */
   function dateOfPlanDay(day) { const i = DAYS.indexOf(day); return addDays(mondayOf(), i < 0 ? 0 : i); }
   const GRUPOS = ["proteina", "legumes", "hidratos", "gordura", "fruta", "lacticinio"];
@@ -2254,7 +2400,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -2268,6 +2414,11 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (t.dataset.dellab) { S.labs = S.labs.filter((x) => x.id !== t.dataset.dellab); await saveLabs(); return; }
     if (t.dataset.day) { S.planDay = t.dataset.day; renderPlan(); return; }
     if (t.dataset.delbp) { S.vitals = S.vitals.filter((x) => x.id !== t.dataset.delbp); await saveVitals(); return; }
+    if (t.dataset.shopwho) { S.shopWho = t.dataset.shopwho; renderShopping(); return; }
+    if (t.dataset.delbody) { S.body = S.body.filter((x) => x.id !== t.dataset.delbody); if (S.edit.body === t.dataset.delbody) cancelEdit("body"); await saveBody(); return; }
+    if (t.dataset.editbody) { startEdit("body", t.dataset.editbody); return; }
+    if (t.dataset.editlab) { startEdit("lab", t.dataset.editlab); return; }
+    if (t.dataset.editbp) { startEdit("bp", t.dataset.editbp); return; }
     if (t.dataset.delrule) { S.rules = S.rules.filter((x) => x.id !== t.dataset.delrule); await saveRules(); return; }
     if (t.dataset.deldoc) { S.docs = S.docs.filter((x) => x.id !== t.dataset.deldoc); await saveDocs(); return; }
     if (t.dataset.delextra) { S.plan = { ...S.plan, extras: (S.plan.extras || []).filter((x) => x.id !== t.dataset.delextra) }; await savePlan(); return; }
@@ -2303,27 +2454,31 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (f.id === "labForm") {
       ev.preventDefault();
       const mk = $("l_marker").value; const num = (v) => { const s = String(v).trim().replace(",", "."); if (!s) return null; const n = Number(s); return Number.isFinite(n) ? n : null; };
-      const e = { id: uid(), date: $("l_date").value, marker: mk, label: mk === "outro" ? $("l_custom").value.trim() : markerOf(mk).label, value: num($("l_value").value), unit: $("l_unit").value.trim(), lo: num($("l_lo").value), hi: num($("l_hi").value), notes: $("l_notes").value.trim() };
+      const editingLab = S.edit.lab;
+      const e = { id: editingLab || uid(), date: $("l_date").value, marker: mk, label: mk === "outro" ? $("l_custom").value.trim() : markerOf(mk).label, value: num($("l_value").value), unit: $("l_unit").value.trim(), lo: num($("l_lo").value), hi: num($("l_hi").value), notes: $("l_notes").value.trim() };
       if (!e.date || e.value === null || (mk === "outro" && !e.label)) { $("labMsg").textContent = "Indica a data, a análise e o valor."; return; }
-      S.labs = [...S.labs, e]; S.labPick = labKey(e);
-      try { await saveLabs(); $("labMsg").textContent = `${e.label} guardado ✓`; } catch { $("labMsg").textContent = "Não foi possível guardar."; }
+      S.labs = [...S.labs.filter((x) => x.id !== e.id), e]; S.labPick = labKey(e);
+      S.edit.lab = null; markEditing("lab", false);
+      try { await saveLabs(); $("labMsg").textContent = `${e.label} ${editingLab ? "alterado" : "guardado"} ✓`; } catch { $("labMsg").textContent = "Não foi possível guardar."; }
       $("l_value").value = ""; $("l_notes").value = ""; $("l_value").focus(); setTimeout(() => $("labMsg").textContent = "", 3000);
       return;
     }
     if (f.id === "bodyForm") {
       ev.preventDefault();
       const n = (id) => { const v = String($(id).value).trim().replace(",", "."); if (!v) return null; const x = Number(v); return Number.isFinite(x) ? x : null; };
-      const e = { id: uid(), date: $("c_date").value, weight_kg: n("c_weight"), fat_pct: n("c_fat"), muscle_pct: n("c_muscle"), water_pct: n("c_water"), visceral: n("c_visceral"), bone_kg: n("c_bone"), notes: $("c_notes").value.trim() };
+      const editing = S.edit.body;
+      const e = { id: editing || uid(), date: $("c_date").value, weight_kg: n("c_weight"), fat_pct: n("c_fat"), muscle_pct: n("c_muscle"), water_pct: n("c_water"), visceral: n("c_visceral"), bone_kg: n("c_bone"), notes: $("c_notes").value.trim() };
       if (!e.date || !e.weight_kg) { $("bodyMsg").textContent = "Indica pelo menos a data e o peso."; return; }
-      S.body = [...S.body.filter((x) => x.date !== e.date), e];
+      S.body = [...S.body.filter((x) => x.id !== e.id && x.date !== e.date), e];
       try {
         await saveBody();
         const latest = [...S.body].sort((a, b) => a.date.localeCompare(b.date)).slice(-1)[0];
         if (latest?.weight_kg && latest.weight_kg !== profile().weight_kg) await saveProfile({ ...profile(), weight_kg: latest.weight_kg });
         S.weights = [...S.weights.filter((w) => w.date !== e.date), { date: e.date, kg: e.weight_kg }].sort((a, b) => a.date.localeCompare(b.date)).slice(-200);
         await saveWeights();
-        $("bodyMsg").textContent = "Guardado ✓";
+        $("bodyMsg").textContent = editing ? "Alterado ✓" : "Guardado ✓";
       } catch { $("bodyMsg").textContent = "Não foi possível guardar."; }
+      S.edit.body = null; markEditing("body", false);
       ["c_fat", "c_muscle", "c_water", "c_visceral", "c_bone", "c_notes"].forEach((id) => { $(id).value = ""; });
       setTimeout(() => { $("bodyMsg").textContent = ""; }, 3000);
       return;
@@ -2334,9 +2489,12 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     }
     if (f.id === "bpForm") {
       ev.preventDefault();
-      const e = { id: uid(), date: $("b_date").value, time: $("b_time").value, sys: Number($("b_sys").value), dia: Number($("b_dia").value), pulse: Number($("b_pulse").value) || null, source: "" };
+      const editingBp = S.edit.bp;
+      const e = { id: editingBp || uid(), date: $("b_date").value, time: $("b_time").value, sys: Number($("b_sys").value), dia: Number($("b_dia").value), pulse: Number($("b_pulse").value) || null, source: "" };
       if (!e.date || !e.sys || !e.dia) return;
-      S.vitals = [...S.vitals, e]; await saveVitals(); $("b_sys").value = ""; $("b_dia").value = ""; $("b_pulse").value = "";
+      S.vitals = [...S.vitals.filter((x) => x.id !== e.id), e];
+      S.edit.bp = null; markEditing("bp", false);
+      await saveVitals(); $("b_sys").value = ""; $("b_dia").value = ""; $("b_pulse").value = "";
       return;
     }
     if (f.id === "composer") { ev.preventDefault(); sendMessage($("chatInput").value); return; }
@@ -2409,6 +2567,10 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       S.memory = true; $("dbNotice").hidden = false;
       $("dbNotice").textContent = "Sem ligação à base de dados: os registos ficam apenas nesta sessão. Abre a página no claude.ai para guardar.";
     } else {
+      db.collection("plans").onSnapshot((snap) => {
+        const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.plans = next;
+        renderPlan();
+      }, (e) => console.warn("plans all", e));
       db.collection("profiles").onSnapshot((snap) => {
         const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.profiles = next;
         renderWho(); renderHome(); renderWater(); renderChat(); renderPlan(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();

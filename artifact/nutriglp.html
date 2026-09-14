@@ -131,8 +131,8 @@
     display: flex; gap: 2px; width: 100%;
   }
   .tabs button {
-    flex: 1; border: 0; background: transparent; padding: 8px 4px;
-    color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent;
+    flex: 1; border: 0; background: transparent; padding: 8px 2px; font-size: 0.85rem;
+    color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap;
   }
   .tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
 
@@ -241,6 +241,43 @@
   .chip:hover { background: var(--accent-soft); border-color: var(--accent); }
   .composer { display: flex; flex-direction: column; gap: 8px; }
 
+  /* ---------- plano ---------- */
+  .days { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
+  .days button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .days button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .days button.today { border-color: var(--accent); }
+  .meal { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .meal:first-child { border-top: 0; padding-top: 0; }
+  .meal .head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .meal .head h3 { font-size: 1rem; }
+  .meal .macros { margin-left: auto; font-size: 0.78rem; color: var(--muted); }
+  .items { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; font-size: 0.92rem; }
+  .items li { display: contents; }
+  .items .qty { color: var(--ink-2); font-weight: 600; text-align: right; }
+  .targets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 480px) { .targets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .target { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+  .target .v { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 1.3rem; font-weight: 600; line-height: 1.1; }
+  .target .k { font-size: 0.75rem; color: var(--muted); }
+  .rationale { font-size: 0.9rem; color: var(--ink-2); border-left: 3px solid var(--accent); padding-left: 12px; }
+  .progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .progress > div { height: 100%; background: var(--accent); width: 0; transition: width 0.4s; }
+
+  /* ---------- análises ---------- */
+  .lab-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end; }
+  @media (max-width: 560px) { .lab-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .lab-form .wide { grid-column: 1 / -1; }
+  .flag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+  .flag.ok { background: var(--accent-soft); color: var(--accent); }
+  .flag.out { background: var(--warn-bg); color: var(--warn-ink); border: 1px solid var(--warn-line); }
+  .chart-wrap .band { fill: var(--accent); opacity: 0.1; }
+  .chart-wrap .line { fill: none; stroke: var(--water); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart-wrap .pt { fill: var(--water); stroke: var(--surface); stroke-width: 2; }
+  .chart-wrap .pt-label { fill: var(--ink); font-size: 11px; font-weight: 700; font-family: "Manrope", system-ui, sans-serif; }
+  .chart-wrap .ref-label { fill: var(--accent); font-size: 10px; font-family: "Manrope", system-ui, sans-serif; }
+  .date-group { display: flex; flex-direction: column; gap: 4px; }
+  .date-group h3 { padding-top: 6px; }
+
   .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.9rem; }
   .kv dt { color: var(--muted); }
   .kv dd { margin: 0; font-weight: 600; }
@@ -255,6 +292,8 @@
   <nav class="tabs" role="tablist" id="tabs">
     <button role="tab" data-view="hoje" aria-selected="true">Hoje</button>
     <button role="tab" data-view="agua" aria-selected="false">Água</button>
+    <button role="tab" data-view="plano" aria-selected="false">Plano</button>
+    <button role="tab" data-view="analises" aria-selected="false">Análises</button>
     <button role="tab" data-view="chat" aria-selected="false">Chat</button>
     <button role="tab" data-view="perfil" aria-selected="false">Perfil</button>
   </nav>
@@ -283,6 +322,14 @@
       </div>
       <div class="bar"><div id="todayBar" style="width:0%"></div></div>
       <div class="row" id="quickAdd1"></div>
+    </div>
+
+    <div class="card" id="todayMealsCard">
+      <div class="row between">
+        <h2>Refeições de hoje</h2>
+        <button class="btn ghost sm" data-goto="plano">Plano →</button>
+      </div>
+      <div id="todayMeals"></div>
     </div>
 
     <div class="grid-2">
@@ -325,6 +372,72 @@
       <div class="chart-wrap" id="chart"><div class="tooltip" id="tip"></div></div>
     </div>
     <p class="small muted" id="glp1tip" hidden>Com GLP-1 a sensação de sede diminui e a digestão fica mais lenta. Beber em pequenos goles ao longo do dia ajuda a prevenir desidratação, obstipação e náuseas.</p>
+  </section>
+
+  <!-- ============ PLANO ============ -->
+  <section class="view" id="view-plano">
+    <div>
+      <h1>Plano alimentar</h1>
+      <p class="muted small" id="planMeta">Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo de peso.</p>
+    </div>
+    <div class="status" id="planNote" hidden></div>
+    <div id="planEmpty" class="card lift">
+      <h2>Ainda não há plano</h2>
+      <p class="muted small">Preenche o perfil (peso, altura, GLP-1, preferências) e as análises que tiveres. Depois gera o plano. A geração demora entre 30 segundos e 2 minutos.</p>
+      <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button></div>
+      <div class="progress" id="genProgress" hidden><div></div></div>
+    </div>
+    <div id="planBody" hidden style="display:flex; flex-direction:column; gap:20px">
+      <div class="card">
+        <div class="targets" id="planTargets"></div>
+        <p class="rationale" id="planRationale"></p>
+      </div>
+      <div class="card lift">
+        <div class="days" id="planDays"></div>
+        <div id="planMealsList"></div>
+        <p class="small muted num" id="dayTotals"></p>
+      </div>
+      <div class="row">
+        <button class="btn" id="regenPlan">Gerar novo plano</button>
+        <button class="btn ghost sm" id="undoPlan" hidden>Repor versão anterior</button>
+        <span class="small muted" id="genMsg"></span>
+      </div>
+      <p class="small muted">Para ajustar refeições concretas, usa o <a href="#" data-goto="chat">chat</a>: "troca o jantar de terça", "hoje tive náuseas, aligeira amanhã". O plano atualiza-se aqui.</p>
+    </div>
+  </section>
+
+  <!-- ============ ANÁLISES ============ -->
+  <section class="view" id="view-analises">
+    <div>
+      <h1>Análises clínicas</h1>
+      <p class="muted small">Regista os valores de cada análise. Os intervalos de referência são indicativos; prevalecem os do teu laboratório.</p>
+    </div>
+    <form class="card" id="labForm">
+      <h2>Registar valor</h2>
+      <div class="lab-form">
+        <div class="field"><label for="l_date">Data da colheita</label><input class="input" id="l_date" type="date" required></div>
+        <div class="field wide-sm"><label for="l_marker">Análise</label><select class="input" id="l_marker"></select></div>
+        <div class="field" id="l_customWrap" hidden><label for="l_custom">Nome</label><input class="input" id="l_custom" placeholder="ex: Zinco"></div>
+        <div class="field"><label for="l_value">Valor</label><input class="input num" id="l_value" type="number" step="any" required></div>
+        <div class="field"><label for="l_unit">Unidade</label><input class="input" id="l_unit"></div>
+        <div class="field"><label for="l_lo">Ref. mín.</label><input class="input num" id="l_lo" type="number" step="any" placeholder="—"></div>
+        <div class="field"><label for="l_hi">Ref. máx.</label><input class="input num" id="l_hi" type="number" step="any" placeholder="—"></div>
+        <div class="field wide"><label for="l_notes">Notas</label><input class="input" id="l_notes" placeholder="opcional: laboratório, jejum, contexto"></div>
+      </div>
+      <div class="row"><button type="submit" class="btn primary">Adicionar</button><span class="small muted" id="labMsg"></span></div>
+    </form>
+    <div class="card" id="labChartCard" hidden>
+      <div class="row between">
+        <h2>Evolução</h2>
+        <select class="input" id="labPick" style="width:auto; max-width: 60%"></select>
+      </div>
+      <p class="small" id="labLatest"></p>
+      <div class="chart-wrap" id="labChart"><div class="tooltip" id="labTip"></div></div>
+    </div>
+    <div class="card">
+      <h2>Registos</h2>
+      <div id="labList"></div>
+    </div>
   </section>
 
   <!-- ============ CHAT ============ -->
@@ -446,6 +559,12 @@
     water: new Map(),      // date -> {entries:[{ml,at}], total}
     chat: [],              // [{role, content, at}]
     weights: [],           // [{date, kg}]
+    labs: [],              // [{id, date, marker, label, value, unit, lo, hi, notes}]
+    plan: null,            // {week_start, version, plan:{...}, previous, changelog}
+    planDay: null,
+    labPick: null,
+    generating: null,      // AbortController
+    toolsOK: false,
     range: 7,
     view: "hoje",
     unsub: [],
@@ -487,7 +606,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -505,6 +624,16 @@
     const body = { profile: S.pid, messages: S.chat, updatedAt: new Date().toISOString() };
     if (S.db) await S.db.doc(`chat/${S.pid}`).set(body); else mem.chat[S.pid] = body;
   }
+  async function saveLabs() {
+    const body = { profile: S.pid, entries: S.labs };
+    if (S.db) await S.db.doc(`labs/${S.pid}`).set(body); else mem.labs[S.pid] = body;
+    renderLabs();
+  }
+  async function savePlan() {
+    const body = { ...S.plan, profile: S.pid };
+    if (S.db) await S.db.doc(`plans/${S.pid}`).set(body); else mem.plans[S.pid] = body;
+    renderPlan(); renderHome();
+  }
   async function saveWeights() {
     const body = { profile: S.pid, entries: S.weights };
     if (S.db) await S.db.doc(`weights/${S.pid}`).set(body); else mem.weights[S.pid] = body;
@@ -514,11 +643,12 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = [];
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null;
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: w[k].entries, total: w[k].total });
       S.chat = mem.chat[S.pid]?.messages || []; S.weights = mem.weights[S.pid]?.entries || [];
+      S.labs = mem.labs[S.pid]?.entries || []; S.plan = mem.plans[S.pid] || null;
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -534,6 +664,15 @@
     S.unsub.push(S.db.doc(`weights/${S.pid}`).onSnapshot((snap) => {
       S.weights = snap.exists ? (snap.data().entries || []) : [];
     }, (e) => console.warn("weights", e)));
+    S.unsub.push(S.db.doc(`labs/${S.pid}`).onSnapshot((snap) => {
+      S.labs = snap.exists ? (snap.data().entries || []) : [];
+      if (document.activeElement?.form?.id !== "labForm") renderLabs();
+    }, (e) => console.warn("labs", e)));
+    S.unsub.push(S.db.doc(`plans/${S.pid}`).onSnapshot((snap) => {
+      if (S.generating) return;
+      S.plan = snap.exists ? snap.data() : null;
+      renderPlan(); renderHome();
+    }, (e) => console.warn("plans", e)));
     renderAll();
   }
 
@@ -635,6 +774,7 @@
     const missing = []; if (!p.weight_kg) missing.push("peso atual"); if (!p.height_cm) missing.push("altura"); if (!p.birth_date) missing.push("data de nascimento");
     $("missingNote").hidden = missing.length === 0;
     $("missingNote").innerHTML = `Para metas e sugestões mais precisas, completa o perfil: <strong>${esc(missing.join(", "))}</strong>. <a href="#" data-goto="perfil">Ir ao perfil</a>`;
+    renderTodayMeals();
     $("chatSummary").textContent = S.chat.length ? `${S.chat.length} mensagens guardadas. Continua a conversa.` : "Fala com o assistente sobre o teu plano, sintomas ou preferências.";
     const age = ageFrom(p.birth_date); const imc = bmi(p.height_cm, p.weight_kg);
     const bits = []; if (age !== null) bits.push(`${age} anos`); if (imc) bits.push(`IMC ${imc}`); if (p.weight_kg && p.target_kg) bits.push(`${p.weight_kg} kg → objetivo ${p.target_kg} kg`);
@@ -683,6 +823,241 @@
   }
 
   // ============================================================
+  // Análises clínicas
+  // ============================================================
+  const MARKERS = [
+    { id: "glicemia_jejum", label: "Glicemia em jejum", unit: "mg/dL", lo: 70, hi: 99 },
+    { id: "hba1c", label: "HbA1c", unit: "%", lo: 4, hi: 5.6 },
+    { id: "insulina", label: "Insulina em jejum", unit: "µU/mL", lo: 2, hi: 25 },
+    { id: "colesterol_total", label: "Colesterol total", unit: "mg/dL", lo: null, hi: 190 },
+    { id: "ldl", label: "Colesterol LDL", unit: "mg/dL", lo: null, hi: 115 },
+    { id: "hdl", label: "Colesterol HDL", unit: "mg/dL", lo: 45, hi: null },
+    { id: "trigliceridos", label: "Triglicéridos", unit: "mg/dL", lo: null, hi: 150 },
+    { id: "creatinina", label: "Creatinina", unit: "mg/dL", lo: 0.5, hi: 1.0 },
+    { id: "egfr", label: "TFG estimada (eGFR)", unit: "mL/min/1,73m²", lo: 60, hi: null },
+    { id: "ureia", label: "Ureia", unit: "mg/dL", lo: 15, hi: 45 },
+    { id: "acido_urico", label: "Ácido úrico", unit: "mg/dL", lo: 2.4, hi: 5.7 },
+    { id: "alt", label: "ALT (TGP)", unit: "U/L", lo: null, hi: 33 },
+    { id: "ast", label: "AST (TGO)", unit: "U/L", lo: null, hi: 32 },
+    { id: "ggt", label: "GGT", unit: "U/L", lo: null, hi: 40 },
+    { id: "bilirrubina_total", label: "Bilirrubina total", unit: "mg/dL", lo: 0.2, hi: 1.2 },
+    { id: "albumina", label: "Albumina", unit: "g/dL", lo: 3.5, hi: 5.2 },
+    { id: "lipase", label: "Lipase", unit: "U/L", lo: null, hi: 60 },
+    { id: "amilase", label: "Amilase", unit: "U/L", lo: null, hi: 100 },
+    { id: "hemoglobina", label: "Hemoglobina", unit: "g/dL", lo: 12, hi: 16 },
+    { id: "ferro", label: "Ferro sérico", unit: "µg/dL", lo: 50, hi: 170 },
+    { id: "ferritina", label: "Ferritina", unit: "ng/mL", lo: 15, hi: 150 },
+    { id: "transferrina_sat", label: "Saturação da transferrina", unit: "%", lo: 20, hi: 45 },
+    { id: "b12", label: "Vitamina B12", unit: "pg/mL", lo: 200, hi: 900 },
+    { id: "folato", label: "Ácido fólico (folato)", unit: "ng/mL", lo: 3, hi: 17 },
+    { id: "vit_d", label: "Vitamina D (25-OH)", unit: "ng/mL", lo: 30, hi: 100 },
+    { id: "tsh", label: "TSH", unit: "mUI/L", lo: 0.4, hi: 4.0 },
+    { id: "t4_livre", label: "T4 livre", unit: "ng/dL", lo: 0.8, hi: 1.8 },
+    { id: "sodio", label: "Sódio", unit: "mmol/L", lo: 135, hi: 145 },
+    { id: "potassio", label: "Potássio", unit: "mmol/L", lo: 3.5, hi: 5.1 },
+    { id: "magnesio", label: "Magnésio", unit: "mg/dL", lo: 1.7, hi: 2.4 },
+    { id: "calcio", label: "Cálcio", unit: "mg/dL", lo: 8.6, hi: 10.2 },
+    { id: "pcr", label: "PCR (proteína C reativa)", unit: "mg/L", lo: null, hi: 5 },
+    { id: "outro", label: "Outra análise…", unit: "", lo: null, hi: null },
+  ];
+  const markerOf = (id) => MARKERS.find((m) => m.id === id);
+  const labLabel = (e) => e.marker === "outro" ? (e.label || "Outra") : (markerOf(e.marker)?.label || e.label || e.marker);
+  const labKey = (e) => e.marker === "outro" ? "outro:" + (e.label || "").toLowerCase() : e.marker;
+  const outOfRange = (e) => (e.lo !== null && e.lo !== undefined && e.value < e.lo) ? "baixo" : (e.hi !== null && e.hi !== undefined && e.value > e.hi) ? "alto" : null;
+  const fmtNum = (v) => Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100).replace(".", ",");
+  const fmtRange = (e) => { const lo = e.lo ?? null, hi = e.hi ?? null; if (lo === null && hi === null) return ""; if (lo !== null && hi !== null) return `${fmtNum(lo)}–${fmtNum(hi)}`; return lo !== null ? `≥ ${fmtNum(lo)}` : `≤ ${fmtNum(hi)}`; };
+
+  function initLabForm() {
+    $("l_marker").innerHTML = MARKERS.map((m) => `<option value="${m.id}">${esc(m.label)}</option>`).join("");
+    $("l_date").value = localDate();
+    applyMarkerDefaults();
+  }
+  function applyMarkerDefaults() {
+    const m = markerOf($("l_marker").value); if (!m) return;
+    $("l_customWrap").hidden = m.id !== "outro";
+    $("l_unit").value = m.unit; $("l_lo").value = m.lo ?? ""; $("l_hi").value = m.hi ?? "";
+  }
+
+  function renderLabs() {
+    // lista por data
+    const byDate = new Map();
+    [...S.labs].sort((a, b) => b.date.localeCompare(a.date) || labLabel(a).localeCompare(labLabel(b))).forEach((e) => { if (!byDate.has(e.date)) byDate.set(e.date, []); byDate.get(e.date).push(e); });
+    $("labList").innerHTML = byDate.size === 0 ? `<p class="muted small">Sem análises registadas.</p>` :
+      [...byDate.entries()].map(([date, rows]) => `<div class="date-group"><h3>${date}</h3><ul class="list">${rows.map((e) => {
+        const o = outOfRange(e);
+        return `<li><span>${esc(labLabel(e))}: <strong class="num">${fmtNum(e.value)} ${esc(e.unit)}</strong> ${fmtRange(e) ? `<span class="meta num">ref. ${esc(fmtRange(e))}</span>` : ""} ${o ? `<span class="flag out">${o === "alto" ? "↑ alto" : "↓ baixo"}</span>` : (e.lo ?? e.hi) != null ? `<span class="flag ok">✓</span>` : ""}${e.notes ? `<br><span class="meta">${esc(e.notes)}</span>` : ""}</span><button type="button" class="btn ghost sm" data-dellab="${e.id}">remover</button></li>`;
+      }).join("")}</ul></div>`).join("");
+
+    // seletor + gráfico
+    const keys = new Map(); S.labs.forEach((e) => keys.set(labKey(e), labLabel(e)));
+    $("labChartCard").hidden = keys.size === 0;
+    if (keys.size === 0) return;
+    if (!S.labPick || !keys.has(S.labPick)) S.labPick = [...keys.keys()][0];
+    $("labPick").innerHTML = [...keys.entries()].map(([k, l]) => `<option value="${esc(k)}" ${k === S.labPick ? "selected" : ""}>${esc(l)}</option>`).join("");
+    renderLabChart();
+  }
+
+  function renderLabChart() {
+    const rows = S.labs.filter((e) => labKey(e) === S.labPick).sort((a, b) => a.date.localeCompare(b.date));
+    if (rows.length === 0) return;
+    const last = rows[rows.length - 1]; const o = outOfRange(last);
+    $("labLatest").innerHTML = `Último: <strong class="num">${fmtNum(last.value)} ${esc(last.unit)}</strong> em ${last.date} ${o ? `<span class="flag out">${o === "alto" ? "↑ acima da referência" : "↓ abaixo da referência"}</span>` : (last.lo ?? last.hi) != null ? `<span class="flag ok">✓ dentro da referência</span>` : ""}${rows.length > 1 ? ` · ${rows.length} registos` : ""}`;
+
+    const wrap = $("labChart"); const W = Math.max(300, Math.round(wrap.clientWidth || 720)), H = W < 480 ? 200 : 220, L = 46, R = 16, T = 18, B = 26;
+    const lo = last.lo ?? null, hi = last.hi ?? null;
+    const vals = rows.map((r) => r.value).concat(lo !== null ? [lo] : [], hi !== null ? [hi] : []);
+    let vmin = Math.min(...vals), vmax = Math.max(...vals); const span = (vmax - vmin) || Math.abs(vmax) * 0.2 || 1; vmin -= span * 0.25; vmax += span * 0.25; if (vmin < 0 && Math.min(...vals) >= 0) vmin = 0;
+    const iw = W - L - R, ih = H - T - B;
+    const y = (v) => T + ih - ((v - vmin) / (vmax - vmin)) * ih;
+    const toT = (iso) => new Date(iso).getTime(); const t0 = toT(rows[0].date), t1 = toT(last.date);
+    const x = (iso) => rows.length === 1 ? L + iw / 2 : L + ((toT(iso) - t0) / (t1 - t0)) * (iw - 20) + 10;
+    const ticks = 4; const step = (vmax - vmin) / ticks;
+    let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução de ${esc(labLabel(last))}">`;
+    g += `<g class="grid">`; for (let i = 0; i <= ticks; i++) g += `<line x1="${L}" x2="${W - R}" y1="${y(vmin + step * i)}" y2="${y(vmin + step * i)}"/>`; g += `</g>`;
+    if (lo !== null || hi !== null) { const yTop = y(hi !== null ? hi : vmax), yBot = y(lo !== null ? lo : vmin); g += `<rect class="band" x="${L}" y="${Math.min(yTop, yBot)}" width="${iw}" height="${Math.abs(yBot - yTop)}"/>`; g += `<text class="ref-label" x="${L + 4}" y="${Math.min(yTop, yBot) + 11}">referência ${esc(fmtRange(last))}</text>`; }
+    g += `<g class="axis">`; for (let i = 0; i <= ticks; i++) g += `<text x="${L - 6}" y="${y(vmin + step * i) + 4}" text-anchor="end">${fmtNum(Math.round((vmin + step * i) * 10) / 10)}</text>`;
+    const labelIdx = rows.length <= 4 ? rows.map((_, i) => i) : [0, Math.floor(rows.length / 2), rows.length - 1];
+    labelIdx.forEach((i) => g += `<text x="${x(rows[i].date)}" y="${H - 8}" text-anchor="middle">${rows[i].date.slice(5).replace("-", "/")}/${rows[i].date.slice(2, 4)}</text>`);
+    g += `</g>`;
+    if (rows.length > 1) g += `<path class="line" d="${rows.map((r, i) => `${i ? "L" : "M"}${x(r.date)},${y(r.value)}`).join(" ")}"/>`;
+    rows.forEach((r, i) => { g += `<circle class="pt" cx="${x(r.date)}" cy="${y(r.value)}" r="5" data-i="${i}"/>`; });
+    g += `<text class="pt-label" x="${x(last.date)}" y="${y(last.value) - 10}" text-anchor="${rows.length > 1 ? "end" : "middle"}">${fmtNum(last.value)}</text>`;
+    g += `</svg>`;
+    const tip = $("labTip"); wrap.innerHTML = g; wrap.appendChild(tip);
+    wrap.querySelectorAll(".pt").forEach((c) => {
+      const r = rows[+c.dataset.i];
+      const show = () => { const bb = c.getBoundingClientRect(); const wb = wrap.getBoundingClientRect(); tip.textContent = `${r.date} · ${fmtNum(r.value)} ${r.unit}`; tip.style.left = `${bb.left - wb.left + bb.width / 2}px`; tip.style.top = `${bb.top - wb.top - 4}px`; tip.style.display = "block"; };
+      c.addEventListener("mouseenter", show); c.addEventListener("touchstart", show, { passive: true }); c.addEventListener("mouseleave", () => tip.style.display = "none");
+    });
+  }
+
+  /** Última análise por marcador, para o contexto do assistente. */
+  function latestLabs() {
+    const m = new Map();
+    [...S.labs].sort((a, b) => b.date.localeCompare(a.date)).forEach((e) => { const k = labKey(e); if (!m.has(k)) m.set(k, e); });
+    return [...m.values()].map((e) => ({ analise: labLabel(e), valor: e.value, unidade: e.unit, referencia: fmtRange(e) || null, estado: outOfRange(e) || "normal", data: e.date }));
+  }
+
+  // ============================================================
+  // Plano alimentar
+  // ============================================================
+  const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/-feira/g, "").trim();
+  const todayDayName = () => DAYS[(new Date().getDay() + 6) % 7];
+  const mondayOf = (d = new Date()) => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return localDate(x); };
+
+  function planPromptContext() {
+    const p = profile(); const goal = waterGoal(p); const meds = (p.meds || []).filter((m) => m.active !== false);
+    return JSON.stringify({
+      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
+      glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, titulacao: (p.titrations || []).slice(-6) } : null,
+      medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
+      suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
+      analises_mais_recentes: latestLabs(),
+      meta_agua_ml: goal.ml,
+      evolucao_peso: S.weights.slice(-8),
+    });
+  }
+
+  const PLAN_SCHEMA = `{"metas_diarias":{"kcal":1500,"proteina_g":95,"fibra_g":28,"agua_ml":2300},"racional":"2 a 4 frases: como o plano tem em conta o perfil, GLP-1, análises e objetivo","dias":[{"dia":"segunda","refeicoes":[{"nome":"Pequeno-almoço","hora":"08:00","itens":[{"alimento":"iogurte grego natural","quantidade":"170 g"},{"alimento":"aveia","quantidade":"30 g"}],"kcal":320,"proteina_g":24,"fibra_g":5}]}]}`;
+
+  async function generatePlan() {
+    if (!S.sample) { $("planNote").hidden = false; $("planNote").textContent = "A geração do plano só funciona com a página aberta no claude.ai."; return; }
+    const p = profile();
+    if (!p.weight_kg) { $("planNote").hidden = false; $("planNote").innerHTML = `Preenche pelo menos o <strong>peso atual</strong> no perfil antes de gerar o plano.`; return; }
+    if (S.plan && !confirm("Gerar um plano novo substitui o atual (a versão anterior fica guardada para repor). Continuar?")) return;
+    $("planNote").hidden = true;
+    const ctl = new AbortController(); S.generating = ctl;
+    $("genPlan").disabled = true; $("regenPlan").disabled = true; $("genProgress").hidden = false; $("genMsg").textContent = "A gerar o plano… pode demorar até 2 minutos.";
+    let pct = 5; const tick = setInterval(() => { pct = Math.min(90, pct + 2); $("genProgress").firstElementChild.style.width = pct + "%"; }, 1500);
+    const prompt = `És nutricionista de apoio numa app familiar. Cria um PLANO ALIMENTAR SEMANAL (7 dias: segunda a domingo) para a pessoa descrita abaixo, em português de Portugal, com alimentos comuns em Portugal e quantidades exatas (g, ml, unidades, colheres de sopa).
+
+Regras:
+- Proteína: 1,4–1,6 g por kg de peso atual, distribuída por todas as refeições (mínimo ~20 g nas principais).
+- Fibra 25–30 g/dia; fruta, legumes, leguminosas e cereais integrais.
+- Energia: défice moderado para o objetivo de peso (nunca abaixo de 1200 kcal/dia); se não houver objetivo de perda, manutenção.
+- Com GLP-1: 4–5 refeições pequenas, pouco volume, pouca gordura e fritos, sem refeições muito pesadas; reforça hidratação.
+- Ajusta às análises: glicemia/HbA1c elevadas → hidratos de baixo índice glicémico e menos açúcar; LDL/triglicéridos altos → menos gordura saturada, mais ómega-3 e fibra solúvel; ferritina/B12/vitamina D baixas → alimentos ricos nesses nutrientes; função renal reduzida → moderar proteína e sal; ácido úrico alto → menos vísceras, marisco e álcool.
+- Respeita alergias, intolerâncias e preferências. Varia as refeições ao longo da semana, mas mantém-nas simples de preparar e reaproveita ingredientes.
+- Cada refeição tem no máximo 5 itens. Nomes curtos. Dias na ordem: segunda, terça, quarta, quinta, sexta, sábado, domingo.
+
+Dados da pessoa (JSON):
+${planPromptContext()}
+
+Responde APENAS com JSON válido, sem texto antes ou depois, exatamente com esta estrutura (exemplo abreviado, preenche os 7 dias):
+${PLAN_SCHEMA}`;
+    let err = null, data = null;
+    try {
+      data = await S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: "default" });
+      if (!data || !Array.isArray(data.dias) || data.dias.length === 0) throw { code: "invalid_json", message: "sem dias" };
+    } catch (e) { err = e; }
+    clearInterval(tick); S.generating = null;
+    $("genPlan").disabled = false; $("regenPlan").disabled = false; $("genProgress").hidden = true; $("genProgress").firstElementChild.style.width = "0%";
+    if (err) {
+      if (err.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = err.code === "invalid_json" ? "O plano veio incompleto. Tenta gerar outra vez." : (ERR_COPY[err.code] || "Não foi possível gerar o plano. Tenta outra vez."); }
+      $("genMsg").textContent = ""; return;
+    }
+    // normalizar
+    const days = DAYS.map((d) => { const found = data.dias.find((x) => norm(x.dia) === norm(d)) || data.dias[DAYS.indexOf(d)] || { refeicoes: [] }; return { dia: d, refeicoes: (found.refeicoes || []).map(normMeal) }; });
+    const plan = { metas_diarias: data.metas_diarias || {}, racional: String(data.racional || ""), dias: days };
+    S.plan = { week_start: mondayOf(), version: (S.plan?.version || 0) + 1, plan, previous: S.plan?.plan || null, changelog: [{ at: new Date().toISOString(), o_que: "Plano gerado" }], generatedAt: new Date().toISOString() };
+    S.planDay = todayDayName();
+    await savePlan(); $("genMsg").textContent = "Plano gerado ✓"; setTimeout(() => $("genMsg").textContent = "", 3000);
+  }
+  function normMeal(m) {
+    return { nome: String(m.nome || "Refeição"), hora: String(m.hora || ""), itens: (m.itens || []).map((i) => ({ alimento: String(i.alimento || ""), quantidade: String(i.quantidade || "") })), kcal: Number(m.kcal) || 0, proteina_g: Number(m.proteina_g) || 0, fibra_g: Number(m.fibra_g) || 0 };
+  }
+
+  function renderPlan() {
+    const has = !!(S.plan && S.plan.plan);
+    $("planEmpty").hidden = has; $("planBody").hidden = !has;
+    $("planBody").style.display = has ? "flex" : "none";
+    if (!has) { $("planMeta").textContent = "Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo de peso."; return; }
+    const pl = S.plan.plan; const t = pl.metas_diarias || {};
+    $("planMeta").textContent = `Versão ${S.plan.version} · semana de ${S.plan.week_start}${S.plan.changelog?.length > 1 ? ` · último ajuste: ${S.plan.changelog[S.plan.changelog.length - 1].o_que}` : ""}`;
+    $("planTargets").innerHTML = [["kcal", "kcal/dia"], ["proteina_g", "g proteína"], ["fibra_g", "g fibra"], ["agua_ml", "ml água"]].map(([k, l]) => `<div class="target"><div class="v num">${t[k] ?? "—"}</div><div class="k">${l}</div></div>`).join("");
+    $("planRationale").textContent = pl.racional || "";
+    if (!S.planDay) S.planDay = todayDayName();
+    const today = todayDayName();
+    $("planDays").innerHTML = DAYS.map((d) => `<button type="button" data-day="${d}" aria-pressed="${d === S.planDay}" class="${d === today ? "today" : ""}">${d.charAt(0).toUpperCase() + d.slice(1, 3)}${d === today ? " · hoje" : ""}</button>`).join("");
+    const day = pl.dias.find((x) => x.dia === S.planDay) || { refeicoes: [] };
+    $("planMealsList").innerHTML = day.refeicoes.length === 0 ? `<p class="muted small">Sem refeições neste dia.</p>` : day.refeicoes.map(mealHtml).join("");
+    const tot = day.refeicoes.reduce((a, m) => ({ k: a.k + (m.kcal || 0), p: a.p + (m.proteina_g || 0), f: a.f + (m.fibra_g || 0) }), { k: 0, p: 0, f: 0 });
+    $("dayTotals").textContent = `Total do dia: ~${Math.round(tot.k)} kcal · ${Math.round(tot.p)} g proteína · ${Math.round(tot.f)} g fibra`;
+    $("undoPlan").hidden = !S.plan.previous;
+  }
+  function mealHtml(m) {
+    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${m.kcal ? `${Math.round(m.kcal)} kcal · ` : ""}${Math.round(m.proteina_g || 0)} g prot · ${Math.round(m.fibra_g || 0)} g fibra</span></div><ul class="items">${(m.itens || []).map((i) => `<li><span>${esc(i.alimento)}</span><span class="qty num">${esc(i.quantidade)}</span></li>`).join("")}</ul></div>`;
+  }
+  function renderTodayMeals() {
+    const el = $("todayMeals"); if (!el) return;
+    if (!S.plan?.plan) { el.innerHTML = `<p class="muted small">Ainda não há plano. <a href="#" data-goto="plano">Gerar plano semanal</a>.</p>`; return; }
+    const day = S.plan.plan.dias.find((x) => x.dia === todayDayName());
+    el.innerHTML = day && day.refeicoes.length ? day.refeicoes.map(mealHtml).join("") : `<p class="muted small">Sem refeições para hoje.</p>`;
+  }
+
+  /** Ferramenta usada pelo chat para alterar refeições do plano guardado. */
+  async function applyMealUpdates(input) {
+    if (!S.plan?.plan) throw new Error("Não existe plano. Pede à pessoa para gerar um plano na aba Plano.");
+    const changes = Array.isArray(input?.alteracoes) ? input.alteracoes : [];
+    if (changes.length === 0) throw new Error("Sem alterações: envia uma lista 'alteracoes'.");
+    const plan = JSON.parse(JSON.stringify(S.plan.plan)); const done = [];
+    for (const c of changes) {
+      const day = plan.dias.find((d) => norm(d.dia) === norm(c.dia));
+      if (!day) throw new Error(`Dia desconhecido: ${c.dia}. Usa: ${DAYS.join(", ")}.`);
+      const idx = day.refeicoes.findIndex((m) => norm(m.nome) === norm(c.refeicao));
+      if (c.remover) { if (idx >= 0) { day.refeicoes.splice(idx, 1); done.push(`${c.dia}: removida "${c.refeicao}"`); } continue; }
+      if (!c.nova) throw new Error(`Falta 'nova' para ${c.dia} / ${c.refeicao}.`);
+      const nm = normMeal({ ...c.nova, nome: c.nova.nome || c.refeicao });
+      if (idx >= 0) { day.refeicoes[idx] = nm; done.push(`${c.dia}: "${c.refeicao}" → ${nm.itens.map((i) => `${i.alimento} ${i.quantidade}`).join(", ")}`); }
+      else { day.refeicoes.push(nm); day.refeicoes.sort((a, b) => (a.hora || "").localeCompare(b.hora || "")); done.push(`${c.dia}: adicionada "${nm.nome}"`); }
+    }
+    S.plan = { ...S.plan, plan, version: (S.plan.version || 1) + 1, previous: S.plan.plan, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: String(input.motivo || "Ajuste pelo chat") }].slice(-20) };
+    await savePlan();
+    return { ok: true, versao: S.plan.version, aplicado: done };
+  }
+
+  // ============================================================
   // Chat
   // ============================================================
   const RULES = `És a assistente nutricional da aplicação NutriGLP, uma app privada usada apenas por duas pessoas da mesma família (mãe e filha). Falas sempre em português de Portugal, num tom próximo, claro e prático.
@@ -702,6 +1077,8 @@ Limites de segurança (obrigatórios):
 - Recomenda contactar o médico/nutricionista perante vómitos persistentes, dor abdominal intensa, incapacidade de beber líquidos, sinais de desidratação, hipoglicemias, perda de peso muito rápida, ou qualquer sintoma novo ou preocupante.
 - Não sugiras dietas abaixo de ~1200 kcal/dia nem suplementos novos sem sugerir validação profissional.
 
+Plano alimentar: se existir um plano guardado (vem no contexto), é esse que a pessoa segue. Quando ela pedir para trocar, aligeirar ou ajustar refeições (ou relatar sintomas que justifiquem ajustar), usa a ferramenta atualizar_refeicoes para aplicar a mudança diretamente ao plano guardado e depois resume em 2–3 linhas o que mudou. Mantém proteína e fibra equivalentes na troca. Não uses a ferramenta para mudanças que a pessoa ainda não pediu.
+
 Formato: responde de forma direta e curta, em texto simples (sem títulos nem markdown pesado; podes usar listas com "-"). Quando ajustares o plano, diz claramente o que muda (ex: "amanhã ao jantar troco X por Y, ~150 g").`;
 
   function contextText() {
@@ -715,6 +1092,8 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
       evolucao_peso: S.weights.slice(-8),
+      analises_mais_recentes: latestLabs(),
+      plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, dias: S.plan.plan.dias } : null,
     };
     return `Contexto atual desta utilizadora (JSON, atualizado a cada mensagem):\n${JSON.stringify(ctx)}`;
   }
@@ -762,9 +1141,23 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     const history = S.chat.filter((m) => !m.error).slice(-40).map((m) => ({ role: m.role, content: m.content }));
     const turns = [{ role: "user", content: RULES + "\n\n" + contextText() }, ...history];
     let finalText = "", err = null;
+    const tools = (S.toolsOK && S.plan?.plan) ? [{
+      name: "atualizar_refeicoes",
+      description: "Altera refeições do plano alimentar guardado da pessoa e devolve o que foi aplicado. Usa quando a pessoa pede para trocar, aligeirar, adicionar ou remover uma refeição de um dia concreto.",
+      inputSchema: { type: "object", properties: {
+        motivo: { type: "string", description: "Resumo curto do porquê (ex: náuseas, não gosta de peixe)" },
+        alteracoes: { type: "array", items: { type: "object", properties: {
+          dia: { type: "string", description: "segunda|terça|quarta|quinta|sexta|sábado|domingo" },
+          refeicao: { type: "string", description: "Nome da refeição existente (ex: Jantar). Se não existir, é adicionada." },
+          remover: { type: "boolean" },
+          nova: { type: "object", properties: { nome: { type: "string" }, hora: { type: "string" }, itens: { type: "array", items: { type: "object", properties: { alimento: { type: "string" }, quantidade: { type: "string" } }, required: ["alimento", "quantidade"] } }, kcal: { type: "number" }, proteina_g: { type: "number" }, fibra_g: { type: "number" } }, required: ["itens", "proteina_g", "fibra_g"] },
+        }, required: ["dia", "refeicao"] } },
+      }, required: ["alteracoes"] },
+      execute: async (input) => { bubble.innerHTML = `<span class="thinking">a atualizar o plano…</span>`; return applyMealUpdates(input); },
+    }] : undefined;
     try {
       const res = await S.sample(turns, {
-        cache: false, signal: ctl.signal,
+        cache: false, signal: ctl.signal, ...(tools ? { tools } : {}),
         onText: ({ text: t }) => { bubble.textContent = t; log.scrollTop = log.scrollHeight; },
       });
       finalText = res.text; if (res.truncated) finalText += "\n\n(resposta cortada; pede menos de cada vez)";
@@ -788,7 +1181,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -799,6 +1192,8 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (t.dataset.chip !== undefined) { sendMessage(t.textContent); return; }
     if (t.dataset.deltit) { const p = profile(); await saveProfile({ ...p, titrations: (p.titrations || []).filter((x) => x.id !== t.dataset.deltit) }); return; }
     if (t.dataset.delmed) { const p = profile(); await saveProfile({ ...p, meds: (p.meds || []).filter((x) => x.id !== t.dataset.delmed) }); return; }
+    if (t.dataset.dellab) { S.labs = S.labs.filter((x) => x.id !== t.dataset.dellab); await saveLabs(); return; }
+    if (t.dataset.day) { S.planDay = t.dataset.day; renderPlan(); return; }
     if (t.dataset.togglemed) { const p = profile(); await saveProfile({ ...p, meds: (p.meds || []).map((x) => x.id === t.dataset.togglemed ? { ...x, active: x.active === false } : x) }); return; }
   });
 
@@ -828,6 +1223,16 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       if (!m.name) return;
       await saveProfile({ ...p, meds: [...(p.meds || []), m] }); f.reset(); return;
     }
+    if (f.id === "labForm") {
+      ev.preventDefault();
+      const mk = $("l_marker").value; const num = (v) => { const s = String(v).trim().replace(",", "."); if (!s) return null; const n = Number(s); return Number.isFinite(n) ? n : null; };
+      const e = { id: uid(), date: $("l_date").value, marker: mk, label: mk === "outro" ? $("l_custom").value.trim() : markerOf(mk).label, value: num($("l_value").value), unit: $("l_unit").value.trim(), lo: num($("l_lo").value), hi: num($("l_hi").value), notes: $("l_notes").value.trim() };
+      if (!e.date || e.value === null || (mk === "outro" && !e.label)) { $("labMsg").textContent = "Indica a data, a análise e o valor."; return; }
+      S.labs = [...S.labs, e]; S.labPick = labKey(e);
+      try { await saveLabs(); $("labMsg").textContent = `${e.label} guardado ✓`; } catch { $("labMsg").textContent = "Não foi possível guardar."; }
+      $("l_value").value = ""; $("l_notes").value = ""; $("l_value").focus(); setTimeout(() => $("labMsg").textContent = "", 3000);
+      return;
+    }
     if (f.id === "composer") { ev.preventDefault(); sendMessage($("chatInput").value); return; }
   });
 
@@ -837,24 +1242,33 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (!confirm("Apagar toda a conversa? O assistente deixa de se lembrar dos ajustes anteriores.")) return;
     S.chat = []; await saveChat(); renderChat();
   });
-  let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => renderWater(), 150); });
+  let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { renderWater(); if (S.labs.length) renderLabChart(); }, 150); });
+  $("l_marker").addEventListener("change", applyMarkerDefaults);
+  $("labPick").addEventListener("change", (e) => { S.labPick = e.target.value; renderLabChart(); });
+  $("genPlan").addEventListener("click", generatePlan);
+  $("regenPlan").addEventListener("click", generatePlan);
+  $("undoPlan").addEventListener("click", async () => {
+    if (!S.plan?.previous || !confirm("Repor a versão anterior do plano?")) return;
+    S.plan = { ...S.plan, plan: S.plan.previous, previous: null, version: (S.plan.version || 1) + 1, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: "Reposta versão anterior" }].slice(-20) };
+    await savePlan();
+  });
   $("f_glp1").addEventListener("change", (e) => { $("glp1Fields").hidden = !e.target.checked; });
 
   const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
   function switchProfile(pid) {
     if (!PROFILE_IDS.includes(pid)) pid = PROFILE_IDS[0];
-    if (S.streaming) S.streaming.abort();
+    if (S.streaming) S.streaming.abort(); if (S.generating) S.generating.abort();
     S.pid = pid; try { localStorage.setItem("nutriglp.pid", pid); } catch {}
     renderWho(); subscribeProfile();
   }
 
-  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); }
+  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); renderLabs(); renderPlan(); }
 
   // ============================================================
   // Arranque
   // ============================================================
-  renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2");
+  renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();
@@ -868,9 +1282,10 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     } else {
       db.collection("profiles").onSnapshot((snap) => {
         const next = {}; snap.docs.forEach((d) => { next[d.id] = d.data(); }); S.profiles = next;
-        renderWho(); renderHome(); renderWater(); renderChat(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
+        renderWho(); renderHome(); renderWater(); renderChat(); renderPlan(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
       }, (e) => console.warn("profiles", e));
     }
+    if (sample) { const lim = await sample.limits().catch(() => null); S.toolsOK = !!lim?.tools; }
     if (!sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat com o assistente só está disponível com a página aberta no claude.ai."; }
     subscribeProfile();
   })();

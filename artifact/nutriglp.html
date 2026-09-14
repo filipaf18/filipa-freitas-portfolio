@@ -1066,16 +1066,34 @@
   async function loadPdfJs() {
     if (window.pdfjsLib) return window.pdfjsLib;
     if (!pdfjsPromise) pdfjsPromise = (async () => {
-      const cands = [["https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"], ["https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js", "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"]];
-      for (const [lib, worker] of cands) { try { await loadScript(lib); window.pdfjsLib.GlobalWorkerOptions.workerSrc = worker; return window.pdfjsLib; } catch { /* tenta o seguinte */ } }
+      const cands = [
+        ["https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"],
+        ["https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js", "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"],
+        ["https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs", null],
+      ];
+      for (const [lib, worker] of cands) {
+        try {
+          if (lib.endsWith(".mjs")) { const m = await import(lib); window.pdfjsLib = m; }
+          else await loadScript(lib);
+          if (!window.pdfjsLib?.getDocument) continue;
+          if (worker) window.pdfjsLib.GlobalWorkerOptions.workerSrc = worker;
+          return window.pdfjsLib;
+        } catch (e) { console.warn("pdfjs", lib, e); }
+      }
+      pdfjsPromise = null; // permite nova tentativa
       throw new Error("pdfjs");
     })();
-    return pdfjsPromise;
+    return pdfjsPromise.catch((e) => { pdfjsPromise = null; throw e; });
   }
   /** Lê um PDF: texto das páginas (o habitual em relatórios) ou, se for digitalizado, imagens. */
-  async function pdfToContent(file, maxPages = 12) {
-    let pdfjs; try { pdfjs = await loadPdfJs(); } catch { throw { code: "pdf_lib", message: "não foi possível carregar o leitor de PDF" }; }
-    const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  async function pdfToContent(file, maxPages = 30) {
+    let pdfjs;
+    try { pdfjs = await loadPdfJs(); } catch { throw { code: "pdf_lib", message: "não foi possível carregar o leitor de PDF" }; }
+    let pdf;
+    try {
+      const task = pdfjs.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false });
+      pdf = await Promise.race([task.promise, new Promise((_, rej) => setTimeout(() => rej({ code: "pdf_open", message: "demorou demasiado a abrir" }), 60000))]);
+    } catch (e) { throw { code: "pdf_open", message: e?.name === "PasswordException" ? "o PDF está protegido por palavra-passe" : (e?.message || "não foi possível abrir o PDF") }; }
     const n = Math.min(pdf.numPages, maxPages); const pagesText = [];
     for (let i = 1; i <= n; i++) {
       const page = await pdf.getPage(i); const tc = await page.getTextContent();
@@ -1084,11 +1102,21 @@
       if (line.length) lines.push(line.join(" "));
       pagesText.push(lines.map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n"));
     }
-    const text = pagesText.map((t, i) => `--- página ${i + 1} ---\n${t}`).join("\n\n");
-    if (text.replace(/[^\p{L}\p{N}]/gu, "").length >= 60) return { text, pages: pdf.numPages, read: n };
-    // digitalizado: sem texto útil → imagens
-    if (!S.imageLimits) throw { code: "pdf_scanned", message: "o PDF parece digitalizado (sem texto) e esta conta não permite enviar imagens" };
-    const images = []; const m = Math.min(n, 6);
+    const letters = (t) => t.replace(/[^\p{L}\p{N}]/gu, "").length;
+    if (pagesText.reduce((a, t) => a + letters(t), 0) >= 60) {
+      // agrupa páginas em pedaços de ~40 000 caracteres (relatórios longos, MAPA, etc.)
+      const chunks = []; let cur = "";
+      pagesText.forEach((t, i) => {
+        const piece = `--- página ${i + 1} ---\n${t}\n\n`;
+        if (cur.length + piece.length > 40000 && cur) { chunks.push(cur); cur = ""; }
+        cur += piece.length > 40000 ? piece.slice(0, 40000) : piece;
+      });
+      if (cur.trim()) chunks.push(cur);
+      return { texts: chunks, pages: pdf.numPages, read: n };
+    }
+    // digitalizado: sem texto útil → imagens das páginas
+    if (!S.imageLimits) throw { code: "pdf_scanned", message: "o PDF parece digitalizado (só imagem) e esta conta não permite enviar imagens ao Claude" };
+    const images = []; const m = Math.min(n, 8);
     for (let i = 1; i <= m; i++) {
       const page = await pdf.getPage(i); const vp0 = page.getViewport({ scale: 1 }); const scale = Math.min(2, 1400 / Math.max(vp0.width, vp0.height)); const vp = page.getViewport({ scale });
       const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
@@ -1097,29 +1125,32 @@
     }
     return { images, pages: pdf.numPages, read: m };
   }
-  async function filesToContent(files) {
-    const images = []; const texts = []; const notes = [];
-    for (const f of files) {
-      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
-        const r = await pdfToContent(f);
-        if (r.text) texts.push({ name: f.name, text: r.text }); else images.push(...r.images);
-        if (r.pages > r.read) notes.push(`${f.name}: só as primeiras ${r.read} de ${r.pages} páginas foram lidas`);
-      } else if (f.type.startsWith("image/")) {
-        if (S.imageLimits) images.push(f); else notes.push(`${f.name}: esta conta não permite enviar imagens ao Claude a partir da página; envia o documento em PDF`);
-      } else if (f.type.startsWith("text/") || /\.(txt|csv)$/i.test(f.name)) {
-        texts.push({ name: f.name, text: await f.text() });
-      } else notes.push(`${f.name}: formato não suportado (usa PDF${S.imageLimits ? ", foto ou imagem" : ""})`);
+
+  /** Converte um ficheiro no que vai ser enviado ao Claude. */
+  async function fileToContent(f) {
+    if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+      const r = await pdfToContent(f);
+      return { texts: r.texts || [], images: r.images || [], note: r.pages > r.read ? `só as primeiras ${r.read} de ${r.pages} páginas foram lidas` : "" };
     }
-    return { images, texts, notes };
+    if (f.type.startsWith("image/")) {
+      if (!S.imageLimits) throw { code: "images_unavailable", message: "esta conta não permite enviar fotos ao Claude a partir da página; envia o documento em PDF" };
+      return { texts: [], images: [f], note: "" };
+    }
+    if (f.type.startsWith("text/") || /\.(txt|csv)$/i.test(f.name)) {
+      const t = await f.text();
+      return { texts: [t.slice(0, 40000)], images: [], note: t.length > 40000 ? "texto demasiado longo, li só o início" : "" };
+    }
+    throw { code: "formato", message: `formato não suportado (usa PDF${S.imageLimits ? ", foto ou imagem" : ""})` };
   }
 
-  const EXTRACT_PROMPT = `Lê o(s) documento(s) de saúde nas imagens (relatório de análises, registo de tensão arterial, eletrocardiograma, relatório médico, receita, etc.) e extrai a informação em português de Portugal.
+  const EXTRACT_PROMPT_TEXT = `Lê o texto de documento(s) de saúde no fim desta mensagem (relatório de análises, registo de tensão arterial, eletrocardiograma, relatório médico, receita, etc.) e extrai a informação em português de Portugal.
 Responde APENAS com JSON com esta estrutura:
 {"documentos":[{"tipo":"analises|tensao_arterial|ecg|outro","data":"YYYY-MM-DD ou null","titulo":"título curto (ex: Análises Hospital X)","resumo":"2 a 4 frases com o essencial, sem repetir todos os valores",
 "analises":[{"analise":"nome exatamente como no documento","valor":5.6,"unidade":"%","ref_min":null,"ref_max":5.7}],
 "tensao":[{"data":"YYYY-MM-DD","hora":"HH:MM ou null","sistolica":128,"diastolica":82,"pulso":70}],
 "relevante_para_nutricao":["pontos concretos e curtos que um nutricionista deve ter em conta (ex: LDL alto, ferritina baixa, hipertensão, alteração no ECG, medicação nova)"]}]}
-Regras: um objeto por documento distinto; valores numéricos com ponto decimal; inclui o intervalo de referência quando aparece; em análises inclui todos os parâmetros com valor numérico (hemograma, bioquímica, lípidos, tiroide, vitaminas, urina); se não for um documento de saúde, tipo "outro" e explica no resumo; não inventes valores que não estejam visíveis.`;
+Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tensão, inclui TODAS as medições em "tensao"; valores numéricos com ponto decimal; inclui o intervalo de referência quando aparece; em análises inclui todos os parâmetros com valor numérico (hemograma, bioquímica, lípidos, tiroide, vitaminas, urina); se não for um documento de saúde, tipo "outro" e explica no resumo; não inventes valores que não estejam visíveis.`;
+  const EXTRACT_PROMPT = EXTRACT_PROMPT_TEXT.replace("o texto de documento(s) de saúde no fim desta mensagem", "o(s) documento(s) de saúde nas imagens");
 
   /** Regista no estado o que foi extraído; devolve um resumo em texto para o chat. */
   async function registerExtraction(docsArr, sourceLabel) {
@@ -1158,27 +1189,59 @@ Regras: um objeto por documento distinto; valores numéricos com ponto decimal; 
     return lines.join("\n");
   }
 
+  const FILE_ERR = {
+    pdf_lib: "não consegui carregar o leitor de PDF (o script externo não abriu)",
+    pdf_open: "não consegui abrir o PDF",
+    pdf_scanned: "o PDF é digitalizado (só imagem) e esta conta não permite enviar imagens",
+    images_unavailable: "esta conta não permite enviar fotos; envia o documento em PDF",
+    formato: "formato não suportado",
+    invalid_json: "não consegui extrair dados legíveis",
+    rate_limited: "limite de utilização do Claude atingido; tenta daqui a pouco",
+    refused: "o Claude não pôde processar este documento",
+    prompt_too_large: "documento demasiado grande",
+  };
+  const fileErrText = (e) => FILE_ERR[e?.code] || e?.message || "falha inesperada";
+
+  /** Lê cada ficheiro e regista o que encontrar. Um ficheiro que falhe não trava os outros. */
   async function ingestAttachments(files, bubble) {
-    bubble.innerHTML = `<span class="thinking">a preparar o documento…</span>`;
-    const { images, texts, notes } = await filesToContent(files);
-    if (images.length === 0 && texts.length === 0) throw { code: "image_rejected", message: notes.join("; ") || "sem conteúdo legível" };
-    const allDocs = []; const asDocs = (res) => Array.isArray(res?.documentos) ? res.documentos : (res && (res.tipo || res.analises)) ? [res] : [];
-    let step = 0; const steps = texts.length + (S.imageLimits ? Math.ceil(images.length / S.imageLimits.maxCount) : 0);
-    for (const t of texts) {
-      step++; bubble.innerHTML = `<span class="thinking">a ler ${esc(t.name)}${steps > 1 ? ` (${step}/${steps})` : ""}…</span>`;
-      const body = t.text.length > 45000 ? t.text.slice(0, 45000) + "\n[texto truncado]" : t.text;
-      const res = await S.sample.json(EXTRACT_PROMPT.replace("nas imagens", "no texto abaixo") + `\n\nTexto extraído do ficheiro "${t.name}":\n${body}`, { cache: false, signal: S.streaming?.signal });
-      allDocs.push(...asDocs(res));
+    const asDocs = (res) => Array.isArray(res?.documentos) ? res.documentos : (res && (res.tipo || res.analises || res.tensao)) ? [res] : [];
+    const allDocs = []; const notes = []; const failed = []; const okFiles = [];
+    const sig = () => S.streaming?.signal;
+
+    for (let fi = 0; fi < files.length; fi++) {
+      const f = files[fi]; const tag = files.length > 1 ? ` (${fi + 1}/${files.length})` : "";
+      let got = 0;
+      try {
+        bubble.innerHTML = `<span class="thinking">a preparar ${esc(f.name)}${tag}…</span>`;
+        const c = await fileToContent(f);
+        if (c.note) notes.push(`${f.name}: ${c.note}`);
+        for (let i = 0; i < c.texts.length; i++) {
+          if (sig()?.aborted) throw { code: "cancelled" };
+          bubble.innerHTML = `<span class="thinking">a ler ${esc(f.name)}${tag}${c.texts.length > 1 ? ` · parte ${i + 1}/${c.texts.length}` : ""}…</span>`;
+          const res = await S.sample.json(`${EXTRACT_PROMPT_TEXT}\n\nTexto extraído do ficheiro "${f.name}":\n${c.texts[i]}`, { cache: false, signal: sig() });
+          const d = asDocs(res); allDocs.push(...d); got += d.length;
+        }
+        const lim = S.imageLimits;
+        for (let i = 0; lim && i < c.images.length; i += lim.maxCount) {
+          if (sig()?.aborted) throw { code: "cancelled" };
+          bubble.innerHTML = `<span class="thinking">a ler as páginas de ${esc(f.name)}${tag}…</span>`;
+          const res = await S.sample.json(EXTRACT_PROMPT, { images: c.images.slice(i, i + lim.maxCount), cache: false, signal: sig() });
+          const d = asDocs(res); allDocs.push(...d); got += d.length;
+        }
+        if (got === 0) failed.push(`${f.name}: ${FILE_ERR.invalid_json}`); else okFiles.push(f.name);
+      } catch (e) {
+        if (e?.code === "cancelled") throw e;
+        console.warn("ingest", f.name, e);
+        failed.push(`${f.name}: ${fileErrText(e)}`);
+      }
     }
-    const lim = S.imageLimits;
-    for (let i = 0; lim && i < images.length; i += lim.maxCount) {
-      step++; bubble.innerHTML = `<span class="thinking">a ler as imagens${steps > 1 ? ` (${step}/${steps})` : ""}…</span>`;
-      const res = await S.sample.json(EXTRACT_PROMPT, { images: images.slice(i, i + lim.maxCount), cache: false, signal: S.streaming?.signal });
-      allDocs.push(...asDocs(res));
-    }
-    if (allDocs.length === 0) throw { code: "invalid_json", message: "sem documentos" };
-    const summary = await registerExtraction(allDocs, files.map((f) => f.name).join(", "));
-    return "Li o que enviaste e registei:\n" + summary + (notes.length ? "\n" + notes.map((n) => "⚠️ " + n).join("\n") : "") + "\n\nPodes ver tudo na aba Análises. O plano e as minhas sugestões passam a ter isto em conta.";
+
+    if (allDocs.length === 0) throw { code: "nenhum", message: failed.join("; ") || "sem documentos legíveis", detalhes: failed };
+    const summary = await registerExtraction(allDocs, okFiles.join(", ") || "documento");
+    return "Li o que enviaste e registei:\n" + summary +
+      (notes.length ? "\n" + notes.map((n) => "⚠️ " + n).join("\n") : "") +
+      (failed.length ? "\n\nNão consegui ler:\n" + failed.map((n) => "• " + n).join("\n") : "") +
+      "\n\nPodes ver tudo na aba Análises. O plano e as minhas sugestões passam a ter isto em conta.";
   }
 
   // ============================================================
@@ -1448,13 +1511,16 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       const b0 = document.createElement("div"); b0.className = "msg assistant"; log.appendChild(b0);
       let summary = "", e0 = null;
       try { summary = await ingestAttachments(files, b0); } catch (e) { e0 = e; }
-      if (e0) {
-        const copy = e0.code === "cancelled" ? "" : e0.code === "image_rejected" ? `Não consegui usar o ficheiro (${e0.message || "formato ou tamanho"}).` : e0.code === "pdf_lib" ? "Não consegui carregar o leitor de PDF (sem acesso ao script). Tenta outra vez ou envia uma captura de ecrã." : e0.code === "pdf_scanned" ? "O PDF parece ser digitalizado (só imagem) e esta conta não permite enviar imagens. Pede ao laboratório o PDF original ou copia os valores para o formulário das Análises." : e0.code === "images_unavailable" ? "Esta conta não permite enviar imagens ao Claude a partir da página. Envia o documento em PDF." : e0.code === "invalid_json" ? "Não consegui extrair dados do documento. Tenta uma imagem mais nítida ou só a página com os valores." : (ERR_COPY[e0.code] || `Falha a ler o documento${e0.message ? ` (${e0.message})` : ""}.`);
-        if (copy) S.chat.push({ role: "assistant", content: "⚠️ " + copy, at: new Date().toISOString(), error: true });
-      } else {
+      if (e0 && e0.code !== "cancelled") {
+        const copy = e0.code === "nenhum"
+          ? "Não consegui ler nenhum dos ficheiros:\n" + (e0.detalhes || [e0.message]).map((d) => "• " + d).join("\n") + "\n\nPodes registar os valores à mão na aba Análises."
+          : (ERR_COPY[e0.code] || `Falha a ler o documento (${fileErrText(e0)}).`);
+        S.chat.push({ role: "assistant", content: "⚠️ " + copy, at: new Date().toISOString(), error: true });
+        if (e0.code === "nenhum" || e0.code === "pdf_lib") { S.attachments = files; renderAttachments(); }
+      } else if (!e0) {
         S.chat.push({ role: "assistant", content: summary, at: new Date().toISOString() });
       }
-      renderChat(); if (!e0) await saveChat();
+      renderChat(); await saveChat();
       if (!text || e0) { S.streaming = null; $("sendChat").disabled = false; $("stopChat").hidden = true; renderChat(); return; }
     } else {
       S.chat.push({ role: "user", content: text, at: new Date().toISOString() });

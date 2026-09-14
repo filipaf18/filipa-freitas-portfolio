@@ -638,6 +638,8 @@
   };
 
   const $ = (id) => document.getElementById(id);
+  /** Cópia editável: as leituras da base de dados chegam congeladas. */
+  const thaw = (v) => { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch { return v; } };
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   // ============================================================
@@ -731,37 +733,37 @@
     S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.attachments = [];
     const from = addDays(localDate(), -29);
     if (!S.db) {
-      const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: w[k].entries, total: w[k].total });
-      S.chat = mem.chat[S.pid]?.messages || []; S.weights = mem.weights[S.pid]?.entries || [];
-      S.labs = mem.labs[S.pid]?.entries || []; S.plan = mem.plans[S.pid] || null; S.vitals = mem.vitals[S.pid]?.entries || []; S.docs = mem.docs[S.pid]?.entries || [];
+      const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
+      S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
+      S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || [];
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
       S.water = new Map();
-      snap.docs.forEach((d) => { const b = d.data(); S.water.set(b.date, { entries: b.entries || [], total: b.total || 0 }); });
+      snap.docs.forEach((d) => { const b = d.data(); S.water.set(b.date, { entries: thaw(b.entries) || [], total: b.total || 0 }); });
       renderWater();
     }, (e) => console.warn("water", e)));
     S.unsub.push(S.db.doc(`chat/${S.pid}`).onSnapshot((snap) => {
       if (S.streaming) return; // não sobrescrever durante uma resposta
-      S.chat = snap.exists ? (snap.data().messages || []) : [];
+      S.chat = snap.exists ? (thaw(snap.data().messages) || []) : [];
       renderChat();
     }, (e) => console.warn("chat", e)));
     S.unsub.push(S.db.doc(`weights/${S.pid}`).onSnapshot((snap) => {
-      S.weights = snap.exists ? (snap.data().entries || []) : [];
+      S.weights = snap.exists ? (thaw(snap.data().entries) || []) : [];
     }, (e) => console.warn("weights", e)));
     S.unsub.push(S.db.doc(`labs/${S.pid}`).onSnapshot((snap) => {
-      S.labs = snap.exists ? (snap.data().entries || []) : [];
+      S.labs = snap.exists ? (thaw(snap.data().entries) || []) : [];
       if (document.activeElement?.form?.id !== "labForm") renderLabs();
     }, (e) => console.warn("labs", e)));
     S.unsub.push(S.db.doc(`vitals/${S.pid}`).onSnapshot((snap) => {
-      S.vitals = snap.exists ? (snap.data().entries || []) : []; renderVitals();
+      S.vitals = snap.exists ? (thaw(snap.data().entries) || []) : []; renderVitals();
     }, (e) => console.warn("vitals", e)));
     S.unsub.push(S.db.doc(`docs/${S.pid}`).onSnapshot((snap) => {
-      S.docs = snap.exists ? (snap.data().entries || []) : []; renderDocs();
+      S.docs = snap.exists ? (thaw(snap.data().entries) || []) : []; renderDocs();
     }, (e) => console.warn("docs", e)));
     S.unsub.push(S.db.doc(`plans/${S.pid}`).onSnapshot((snap) => {
       if (S.generating) return;
-      S.plan = snap.exists ? snap.data() : null;
+      S.plan = snap.exists ? thaw(snap.data()) : null;
       renderPlan(); renderHome();
     }, (e) => console.warn("plans", e)));
     renderAll();
@@ -1168,7 +1170,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
 
   /** Regista no estado o que foi extraído; devolve um resumo em texto para o chat. */
   async function registerExtraction(docsArr, sourceLabel) {
-    const lines = [];
+    const lines = []; const newLabs = [...S.labs], newVitals = [...S.vitals], newDocs = [...S.docs];
     for (const d of docsArr) {
       const date = /^\d{4}-\d{2}-\d{2}$/.test(String(d.data || "")) ? d.data : localDate();
       let added = 0, skipped = 0, flagged = [];
@@ -1180,17 +1182,17 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
         const num = (v) => { if (v === null || v === undefined || v === "") return null; const n = Number(String(v).replace(",", ".")); return Number.isFinite(n) ? n : null; };
         const lo = num(a.ref_min) ?? (sameUnit ? def.lo : null), hi = num(a.ref_max) ?? (sameUnit ? def.hi : null);
         const e = { id: uid(), date, marker: mk, label: mk === "outro" ? String(a.analise).trim() : def.label, value, unit, lo, hi, notes: `de "${d.titulo || sourceLabel}"` };
-        if (S.labs.some((x) => x.date === date && labKey(x) === labKey(e))) { skipped++; continue; }
-        S.labs.push(e); added++; const o = outOfRange(e); if (o) flagged.push(`${labLabel(e)} ${fmtNum(value)} ${unit} (${o})`);
+        if (newLabs.some((x) => x.date === date && labKey(x) === labKey(e))) { skipped++; continue; }
+        newLabs.push(e); added++; const o = outOfRange(e); if (o) flagged.push(`${labLabel(e)} ${fmtNum(value)} ${unit} (${o})`);
       }
       let bp = 0;
       for (const t of (d.tensao || [])) {
         const sys = Number(t.sistolica), dia = Number(t.diastolica); if (!Number.isFinite(sys) || !Number.isFinite(dia)) continue;
         const bdate = /^\d{4}-\d{2}-\d{2}$/.test(String(t.data || "")) ? t.data : date; const time = /^\d{2}:\d{2}$/.test(String(t.hora || "")) ? t.hora : "";
-        if (S.vitals.some((x) => x.date === bdate && x.time === time && x.sys === sys && x.dia === dia)) continue;
-        S.vitals.push({ id: uid(), date: bdate, time, sys, dia, pulse: Number(t.pulso) || null, source: d.titulo || sourceLabel }); bp++;
+        if (newVitals.some((x) => x.date === bdate && x.time === time && x.sys === sys && x.dia === dia)) continue;
+        newVitals.push({ id: uid(), date: bdate, time, sys, dia, pulse: Number(t.pulso) || null, source: d.titulo || sourceLabel }); bp++;
       }
-      S.docs.push({ id: uid(), date, tipo: d.tipo || "outro", titulo: String(d.titulo || sourceLabel), resumo: String(d.resumo || ""), pontos: (d.relevante_para_nutricao || []).map(String).slice(0, 8), at: new Date().toISOString() });
+      newDocs.push({ id: uid(), date, tipo: d.tipo || "outro", titulo: String(d.titulo || sourceLabel), resumo: String(d.resumo || ""), pontos: (d.relevante_para_nutricao || []).map(String).slice(0, 8), at: new Date().toISOString() });
       const parts = [`${tipoLabel(d.tipo || "outro")}${d.titulo ? ` "${d.titulo}"` : ""} de ${date}`];
       if (added) parts.push(`${added} análises registadas${skipped ? ` (${skipped} já existiam)` : ""}`);
       else if (skipped) parts.push(`${skipped} análises já estavam registadas`);
@@ -1199,6 +1201,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       if (flagged.length) lines.push("  Fora da referência: " + flagged.join("; "));
       if (d.resumo) lines.push("  " + d.resumo);
     }
+    S.labs = newLabs; S.vitals = newVitals; S.docs = newDocs;
     await Promise.all([saveLabs(), saveVitals(), saveDocs()]);
     return lines.join("\n");
   }
@@ -1426,7 +1429,7 @@ ${PLAN_SCHEMA}`;
     const sys = Number(input?.sistolica), dia = Number(input?.diastolica);
     if (!Number.isFinite(sys) || !Number.isFinite(dia)) throw new Error("Indica sistolica e diastolica numéricas.");
     const e = { id: uid(), date: /^\d{4}-\d{2}-\d{2}$/.test(String(input.data || "")) ? input.data : localDate(), time: /^\d{2}:\d{2}$/.test(String(input.hora || "")) ? input.hora : "", sys, dia, pulse: Number(input.pulso) || null, source: "chat" };
-    S.vitals.push(e); await saveVitals();
+    S.vitals = [...S.vitals, e]; await saveVitals();
     return { ok: true, registado: e, classificacao: bpClass(e) || "normal", media_ultimas: bpAverage() };
   }
 
@@ -1512,6 +1515,9 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     }
   }
 
+  /** Acrescenta uma mensagem sem mexer em listas congeladas vindas da base de dados. */
+  function pushChat(m) { S.chat = [...S.chat, m]; }
+
   function renderChat() {
     const log = $("chatLog"); const p = profile();
     if (S.chat.length === 0) {
@@ -1558,7 +1564,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     } catch (e) {
       console.error("sendMessage", e);
       S.diag.lastErr = `${e?.code || e?.name || "erro"}: ${e?.message || String(e)}`;
-      S.chat.push({ role: "assistant", content: `⚠️ Algo falhou a meio (${S.diag.lastErr}). Abre o Diagnóstico por baixo para veres os detalhes.`, at: new Date().toISOString(), error: true });
+      pushChat({ role: "assistant", content: `⚠️ Algo falhou a meio (${S.diag.lastErr}). Abre o Diagnóstico por baixo para veres os detalhes.`, at: new Date().toISOString(), error: true });
       if (files.length) { S.attachments = files; renderAttachments(); }
       renderChat(); saveChat().catch(() => {});
     } finally {
@@ -1571,7 +1577,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
 
     // 1) documentos anexados: ler e registar antes da conversa
     if (files.length) {
-      S.chat.push({ role: "user", content: `📎 ${files.map((f) => f.name).join(", ")}${text ? "\n" + text : ""}`, at: new Date().toISOString() });
+      pushChat({ role: "user", content: `📎 ${files.map((f) => f.name).join(", ")}${text ? "\n" + text : ""}`, at: new Date().toISOString() });
       renderChat(); await saveChat();
       const b0 = document.createElement("div"); b0.className = "msg assistant"; log.appendChild(b0);
       let summary = "", e0 = null;
@@ -1580,16 +1586,16 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
         const copy = e0.code === "nenhum"
           ? "Não consegui ler nenhum dos ficheiros:\n" + (e0.detalhes || [e0.message]).map((d) => "• " + d).join("\n") + "\n\nPodes registar os valores à mão na aba Análises."
           : (ERR_COPY[e0.code] || `Falha a ler o documento (${fileErrText(e0)}).`);
-        S.chat.push({ role: "assistant", content: "⚠️ " + copy, at: new Date().toISOString(), error: true });
+        pushChat({ role: "assistant", content: "⚠️ " + copy, at: new Date().toISOString(), error: true });
         if (e0.code === "nenhum" || e0.code === "pdf_lib") { S.attachments = files; renderAttachments(); }
       } else if (!e0) {
-        S.chat.push({ role: "assistant", content: summary, at: new Date().toISOString() });
+        pushChat({ role: "assistant", content: summary, at: new Date().toISOString() });
       }
       renderChat(); await saveChat();
       if (e0 && e0.code !== "cancelled") { S.diag.lastErr = `${e0.code || "erro"}: ${(e0.detalhes || [e0.message]).join(" | ")}`; renderDiag(); }
       if (!text || e0) return;
     } else {
-      S.chat.push({ role: "user", content: text, at: new Date().toISOString() });
+      pushChat({ role: "user", content: text, at: new Date().toISOString() });
       renderChat();
       await saveChat();
     }
@@ -1638,9 +1644,9 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     if (err && err.code !== "cancelled") {
       const copy = ERR_COPY[err.code] || "Falha ao contactar o assistente. Tenta outra vez.";
       if (err.code === "refused") finalText = "";
-      S.chat.push({ role: "assistant", content: (finalText ? finalText + "\n\n" : "") + "⚠️ " + copy, at: new Date().toISOString(), error: true });
+      pushChat({ role: "assistant", content: (finalText ? finalText + "\n\n" : "") + "⚠️ " + copy, at: new Date().toISOString(), error: true });
     } else if (finalText) {
-      S.chat.push({ role: "assistant", content: finalText, at: new Date().toISOString() });
+      pushChat({ role: "assistant", content: finalText, at: new Date().toISOString() });
     }
     renderChat();
     if (!err || err.code === "cancelled") await saveChat();
@@ -1709,7 +1715,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       ev.preventDefault();
       const e = { id: uid(), date: $("b_date").value, time: $("b_time").value, sys: Number($("b_sys").value), dia: Number($("b_dia").value), pulse: Number($("b_pulse").value) || null, source: "" };
       if (!e.date || !e.sys || !e.dia) return;
-      S.vitals.push(e); await saveVitals(); $("b_sys").value = ""; $("b_dia").value = ""; $("b_pulse").value = "";
+      S.vitals = [...S.vitals, e]; await saveVitals(); $("b_sys").value = ""; $("b_dia").value = ""; $("b_pulse").value = "";
       return;
     }
     if (f.id === "composer") { ev.preventDefault(); sendMessage($("chatInput").value); return; }
@@ -1782,7 +1788,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       $("dbNotice").textContent = "Sem ligação à base de dados: os registos ficam apenas nesta sessão. Abre a página no claude.ai para guardar.";
     } else {
       db.collection("profiles").onSnapshot((snap) => {
-        const next = {}; snap.docs.forEach((d) => { next[d.id] = d.data(); }); S.profiles = next;
+        const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.profiles = next;
         renderWho(); renderHome(); renderWater(); renderChat(); renderPlan(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
       }, (e) => console.warn("profiles", e));
     }

@@ -1,0 +1,878 @@
+<title>NutriGLP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #F2F6F4;
+    --surface: #FFFFFF;
+    --surface-2: #E9F1ED;
+    --ink: #17231F;
+    --ink-2: #405049;
+    --muted: #6B7B75;
+    --line: #D8E2DD;
+    --accent: #1E6B5C;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #DDEEE7;
+    --water: #2F6FB3;
+    --water-soft: #DEEAF7;
+    --warn-bg: #FFF3D6;
+    --warn-ink: #7A4B00;
+    --warn-line: #EFD49A;
+    --danger: #B3372F;
+    --grid: #E4ECE8;
+    --shadow: 0 1px 2px rgba(23, 35, 31, 0.06), 0 8px 24px -16px rgba(23, 35, 31, 0.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1614;
+      --surface: #182220;
+      --surface-2: #1F2B28;
+      --ink: #E7EEEA;
+      --ink-2: #C3CFC9;
+      --muted: #93A39D;
+      --line: #2C3A35;
+      --accent: #63C2A8;
+      --accent-ink: #0F1614;
+      --accent-soft: #1E3630;
+      --water: #3E8FDB;
+      --water-soft: #1A2B3D;
+      --warn-bg: #3A2C10;
+      --warn-ink: #F4D78E;
+      --warn-line: #6B5220;
+      --danger: #F08A82;
+      --grid: #243130;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -16px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1614;
+    --surface: #182220;
+    --surface-2: #1F2B28;
+    --ink: #E7EEEA;
+    --ink-2: #C3CFC9;
+    --muted: #93A39D;
+    --line: #2C3A35;
+    --accent: #63C2A8;
+    --accent-ink: #0F1614;
+    --accent-soft: #1E3630;
+    --water: #3E8FDB;
+    --water-soft: #1A2B3D;
+    --warn-bg: #3A2C10;
+    --warn-ink: #F4D78E;
+    --warn-line: #6B5220;
+    --danger: #F08A82;
+    --grid: #243130;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -16px rgba(0, 0, 0, 0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: "Bricolage Grotesque", "Manrope", system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1 { font-size: 1.6rem; line-height: 1.15; }
+  h2 { font-size: 1.15rem; line-height: 1.25; }
+  h3 { font-size: 0.95rem; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .small { font-size: 0.85rem; }
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---------- shell ---------- */
+  .top {
+    position: sticky; top: 0; z-index: 5;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top-inner {
+    max-width: 760px; margin: 0 auto;
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .brand {
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .brand .leaf { width: 22px; height: 22px; border-radius: 50% 50% 50% 0; background: var(--accent); transform: rotate(-45deg); }
+  .who { margin-left: auto; display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--surface-2); }
+  .who button {
+    border: 0; background: transparent; border-radius: 999px;
+    padding: 6px 14px; font-weight: 600; color: var(--ink-2);
+  }
+  .who button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .tabs {
+    max-width: 760px; margin: 0 auto; padding: 0 16px 8px;
+    display: flex; gap: 2px; width: 100%;
+  }
+  .tabs button {
+    flex: 1; border: 0; background: transparent; padding: 8px 4px;
+    color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent;
+  }
+  .tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+  main {
+    max-width: 760px; margin: 0 auto;
+    padding: 20px 16px 48px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .view { display: none; flex-direction: column; gap: 20px; }
+  .view.active { display: flex; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .card.link { text-decoration: none; color: inherit; transition: border-color 0.15s; }
+  .card.link:hover { border-color: var(--accent); }
+  .card.lift { box-shadow: var(--shadow); border-color: transparent; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .row.between { justify-content: space-between; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .notice {
+    border-radius: 12px; padding: 12px 14px; font-size: 0.9rem;
+    background: var(--warn-bg); color: var(--warn-ink); border: 1px solid var(--warn-line);
+  }
+  .notice strong { font-weight: 700; }
+  .status {
+    border-radius: 12px; padding: 10px 14px; font-size: 0.88rem;
+    background: var(--accent-soft); color: var(--ink-2);
+  }
+
+  /* ---------- buttons & inputs ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border-radius: 12px; padding: 9px 16px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--surface);
+    transition: background 0.15s, transform 0.05s;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+  .btn.water { background: var(--water); color: #fff; border-color: var(--water); }
+  .btn.water:hover { filter: brightness(1.08); background: var(--water); }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 6px 8px; }
+  .btn.ghost:hover { color: var(--ink); background: var(--surface-2); }
+  .btn.sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+  .input {
+    width: 100%; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); padding: 9px 11px; min-width: 0;
+  }
+  .input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+  textarea.input { resize: vertical; min-height: 68px; }
+  .hint { font-size: 0.78rem; color: var(--muted); }
+  .toggle { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+  .list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .list li:first-child { border-top: 0; }
+  .list .meta { color: var(--muted); font-size: 0.85rem; }
+  .inline-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
+  @media (max-width: 640px) { .inline-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .inline-form .btn { grid-column: span 2; } }
+
+  /* ---------- water ---------- */
+  .hero-num { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .hero-num .big { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 2.6rem; font-weight: 600; line-height: 1; color: var(--water); letter-spacing: -0.02em; }
+  .bar { height: 10px; border-radius: 999px; background: var(--water-soft); overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 999px; background: var(--water); transition: width 0.4s ease; }
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .chart-wrap .bar-rect { fill: var(--water); }
+  .chart-wrap .bar-rect.hit { fill: var(--water); }
+  .chart-wrap .grid line { stroke: var(--grid); stroke-width: 1; }
+  .chart-wrap .axis text { fill: var(--muted); font-size: 11px; font-family: "Manrope", system-ui, sans-serif; }
+  .chart-wrap .goal line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .chart-wrap .goal text { fill: var(--accent); font-size: 11px; font-weight: 700; font-family: "Manrope", system-ui, sans-serif; }
+  .chart-wrap .hit-area { fill: transparent; }
+  .tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--ink); color: var(--bg); font-size: 0.8rem; font-weight: 600;
+    padding: 6px 9px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, -110%);
+  }
+  .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); gap: 2px; }
+  .seg button { border: 0; background: transparent; border-radius: 8px; padding: 5px 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+  /* ---------- chat ---------- */
+  .chat-log { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; padding-right: 2px; }
+  .msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; white-space: pre-wrap; line-height: 1.5; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+  .msg.assistant { align-self: flex-start; background: var(--surface-2); border-bottom-left-radius: 4px; }
+  .msg.assistant.error { border: 1px solid var(--warn-line); background: var(--warn-bg); color: var(--warn-ink); }
+  .thinking { color: var(--muted); font-style: italic; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .thinking { animation: none; } .bar > div { transition: none; } }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 0.85rem; text-align: left; }
+  .chip:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .composer { display: flex; flex-direction: column; gap: 8px; }
+
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.9rem; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-weight: 600; }
+  footer { max-width: 760px; margin: 0 auto; padding: 0 16px 32px; }
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand"><span class="leaf" aria-hidden="true"></span> NutriGLP</div>
+    <div class="who" role="group" aria-label="Perfil" id="who"></div>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-view="hoje" aria-selected="true">Hoje</button>
+    <button role="tab" data-view="agua" aria-selected="false">Água</button>
+    <button role="tab" data-view="chat" aria-selected="false">Chat</button>
+    <button role="tab" data-view="perfil" aria-selected="false">Perfil</button>
+  </nav>
+</header>
+
+<main>
+  <div id="dbNotice" class="status" hidden></div>
+
+  <!-- ============ HOJE ============ -->
+  <section class="view active" id="view-hoje">
+    <div>
+      <h1 id="greet">Olá</h1>
+      <p class="muted" id="glp1line"></p>
+    </div>
+    <div class="status" id="missingNote" hidden></div>
+
+    <div class="card lift">
+      <div class="row between">
+        <h2>Água de hoje</h2>
+        <button class="btn ghost sm" data-goto="agua">Histórico →</button>
+      </div>
+      <div class="hero-num">
+        <span class="big num" id="todayTotal">0</span>
+        <span class="muted num" id="todayGoal">/ — ml</span>
+        <span class="muted num" style="margin-left:auto" id="todayPct">0%</span>
+      </div>
+      <div class="bar"><div id="todayBar" style="width:0%"></div></div>
+      <div class="row" id="quickAdd1"></div>
+    </div>
+
+    <div class="grid-2">
+      <a class="card link" href="#" data-goto="chat">
+        <h2>Chat de ajuste</h2>
+        <p class="muted small" id="chatSummary">Fala com o assistente sobre o teu plano, sintomas ou preferências.</p>
+      </a>
+      <a class="card link" href="#" data-goto="perfil">
+        <h2>Perfil</h2>
+        <p class="muted small">Dados base, GLP-1 e titulação, medicação, suplementos, alimentação.</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ ÁGUA ============ -->
+  <section class="view" id="view-agua">
+    <div>
+      <h1>Hidratação</h1>
+      <p class="muted small" id="goalExplain"></p>
+    </div>
+    <div class="card lift">
+      <div class="hero-num">
+        <span class="big num" id="todayTotal2">0</span>
+        <span class="muted num" id="todayGoal2">/ — ml hoje</span>
+        <span class="muted num" style="margin-left:auto" id="todayPct2">0%</span>
+      </div>
+      <div class="bar"><div id="todayBar2" style="width:0%"></div></div>
+      <div class="row" id="quickAdd2"></div>
+      <ul class="list" id="todayList"></ul>
+    </div>
+    <div class="card">
+      <div class="row between">
+        <h2>Histórico</h2>
+        <div class="seg" role="group" aria-label="Intervalo">
+          <button aria-pressed="true" data-range="7">7 dias</button>
+          <button aria-pressed="false" data-range="30">30 dias</button>
+        </div>
+      </div>
+      <p class="small muted" id="chartStats"></p>
+      <div class="chart-wrap" id="chart"><div class="tooltip" id="tip"></div></div>
+    </div>
+    <p class="small muted" id="glp1tip" hidden>Com GLP-1 a sensação de sede diminui e a digestão fica mais lenta. Beber em pequenos goles ao longo do dia ajuda a prevenir desidratação, obstipação e náuseas.</p>
+  </section>
+
+  <!-- ============ CHAT ============ -->
+  <section class="view" id="view-chat">
+    <div>
+      <h1>Chat de ajuste</h1>
+      <p class="muted small">Conversa ligada ao perfil selecionado. O histórico fica guardado para o assistente se lembrar das preferências.</p>
+    </div>
+    <div class="status" id="sampleNote" hidden></div>
+    <div class="card lift">
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chips" id="chips"></div>
+      <form class="composer" id="composer">
+        <textarea class="input" id="chatInput" rows="2" placeholder="Escreve aqui… (Enter envia, Shift+Enter nova linha)"></textarea>
+        <div class="row between">
+          <button type="button" class="btn ghost sm" id="clearChat">Limpar conversa</button>
+          <div class="row">
+            <button type="button" class="btn sm" id="stopChat" hidden>Parar</button>
+            <button type="submit" class="btn primary" id="sendChat">Enviar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ PERFIL ============ -->
+  <section class="view" id="view-perfil">
+    <div>
+      <h1>Perfil</h1>
+      <p class="muted small" id="profileSummary"></p>
+    </div>
+
+    <form class="card" id="profileForm">
+      <h2>Dados base</h2>
+      <div class="grid-2">
+        <div class="field"><label for="f_name">Nome</label><input class="input" id="f_name" name="name"></div>
+        <div class="field"><label for="f_birth">Data de nascimento</label><input class="input" id="f_birth" name="birth_date" type="date"></div>
+        <div class="field"><label for="f_sex">Sexo</label>
+          <select class="input" id="f_sex" name="sex"><option value="">—</option><option value="feminino">Feminino</option><option value="masculino">Masculino</option><option value="outro">Outro</option></select></div>
+        <div class="field"><label for="f_height">Altura (cm)</label><input class="input num" id="f_height" name="height_cm" type="number" step="0.5" min="100" max="250"></div>
+        <div class="field"><label for="f_weight">Peso atual (kg)</label><input class="input num" id="f_weight" name="weight_kg" type="number" step="0.1" min="25" max="350"></div>
+        <div class="field"><label for="f_target">Peso objetivo (kg)</label><input class="input num" id="f_target" name="target_kg" type="number" step="0.1" min="25" max="350"></div>
+        <div class="field"><label for="f_water">Meta de água (ml)</label><input class="input num" id="f_water" name="water_goal_ml" type="number" step="50" min="500" max="6000" placeholder="automática"><span class="hint">Vazio = calculada pelo peso e GLP-1.</span></div>
+      </div>
+
+      <h2>GLP-1</h2>
+      <label class="toggle"><input type="checkbox" id="f_glp1" name="uses_glp1"> Está a usar GLP-1?</label>
+      <div class="grid-2" id="glp1Fields" hidden>
+        <div class="field"><label for="f_sub">Substância</label>
+          <input class="input" id="f_sub" name="glp1_substance" list="glp1list" placeholder="tirzepatida (Mounjaro)">
+          <datalist id="glp1list"><option value="tirzepatida (Mounjaro)"><option value="semaglutido (Ozempic)"><option value="semaglutido (Wegovy)"><option value="liraglutido (Saxenda)"><option value="dulaglutido (Trulicity)"></datalist></div>
+        <div class="field"><label for="f_dose">Dose atual</label><input class="input" id="f_dose" name="glp1_dose" placeholder="5 mg / semana"></div>
+        <div class="field"><label for="f_start">Início do tratamento</label><input class="input" id="f_start" name="glp1_start" type="date"></div>
+      </div>
+
+      <h2>Alimentação</h2>
+      <div class="grid-2">
+        <div class="field"><label for="f_allergies">Alergias (separadas por vírgula)</label><input class="input" id="f_allergies" name="allergies" placeholder="amendoim, marisco"></div>
+        <div class="field"><label for="f_intol">Intolerâncias</label><input class="input" id="f_intol" name="intolerances" placeholder="lactose, glúten"></div>
+      </div>
+      <div class="field"><label for="f_prefs">Preferências e restrições</label><textarea class="input" id="f_prefs" name="preferences" placeholder="Não gosto de peixe cozido; prefiro jantares leves; vegetariana às terças…"></textarea></div>
+      <div class="field"><label for="f_notes">Outras notas</label><textarea class="input" id="f_notes" name="notes" placeholder="Horários, treino, sintomas frequentes…"></textarea></div>
+      <div class="row">
+        <button type="submit" class="btn primary" id="saveProfile">Guardar perfil</button>
+        <span class="small" id="saveMsg"></span>
+      </div>
+    </form>
+
+    <div class="card">
+      <h2>Histórico de titulação GLP-1</h2>
+      <ul class="list" id="titList"></ul>
+      <form class="inline-form" id="titForm">
+        <div class="field"><label for="t_date">Data</label><input class="input" id="t_date" type="date" required></div>
+        <div class="field"><label for="t_sub">Substância</label><input class="input" id="t_sub" required placeholder="tirzepatida"></div>
+        <div class="field"><label for="t_dose">Dose</label><input class="input" id="t_dose" required placeholder="5 mg"></div>
+        <div class="field"><label for="t_notes">Notas</label><input class="input" id="t_notes" placeholder="opcional"></div>
+        <button type="submit" class="btn">Adicionar</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Medicação e suplementos</h2>
+      <h3>Medicação concomitante</h3>
+      <ul class="list" id="medList"></ul>
+      <h3>Suplementação</h3>
+      <ul class="list" id="supList"></ul>
+      <form class="inline-form" id="medForm">
+        <div class="field"><label for="m_kind">Tipo</label><select class="input" id="m_kind"><option value="medicacao">Medicação</option><option value="suplemento">Suplemento</option></select></div>
+        <div class="field"><label for="m_name">Nome</label><input class="input" id="m_name" required></div>
+        <div class="field"><label for="m_dose">Dose</label><input class="input" id="m_dose" placeholder="ex: 1000 UI"></div>
+        <div class="field"><label for="m_freq">Frequência</label><input class="input" id="m_freq" placeholder="ex: 1x/dia"></div>
+        <button type="submit" class="btn">Adicionar</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="notice" role="note">
+    <strong>Aviso:</strong> esta aplicação é uma ferramenta de apoio pessoal e <strong>não substitui</strong> acompanhamento médico ou nutricional profissional. Mudanças de dose de GLP-1, sintomas novos (náuseas persistentes, vómitos, dor abdominal intensa, sinais de desidratação) ou dúvidas sobre medicação devem ser discutidos com o médico ou nutricionista.
+  </div>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  // ============================================================
+  // Estado
+  // ============================================================
+  const PROFILE_IDS = ["filipa", "mae"];
+  const DEFAULT_NAMES = { filipa: "Filipa", mae: "Mãe" };
+  const PRESETS = [150, 250, 330, 500];
+  const CHAT_KEEP = 200;
+
+  const S = {
+    db: null,
+    sample: null,
+    pid: null,
+    profiles: {},          // id -> doc data
+    water: new Map(),      // date -> {entries:[{ml,at}], total}
+    chat: [],              // [{role, content, at}]
+    weights: [],           // [{date, kg}]
+    range: 7,
+    view: "hoje",
+    unsub: [],
+    streaming: null,       // AbortController
+    memory: false,         // sem db: guarda em memória
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ============================================================
+  // Datas
+  // ============================================================
+  const pad = (n) => String(n).padStart(2, "0");
+  const localDate = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const addDays = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); return localDate(new Date(y, m - 1, d + n)); };
+  const fmtTime = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const weekday = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("pt-PT", { weekday: "short" }).replace(".", ""); };
+  const ageFrom = (iso) => {
+    if (!iso) return null;
+    const [y, m, d] = iso.split("-").map(Number); const t = new Date();
+    let a = t.getFullYear() - y; if (t.getMonth() + 1 < m || (t.getMonth() + 1 === m && t.getDate() < d)) a--; return a;
+  };
+  const bmi = (h, w) => (h && w) ? Math.round((w / ((h / 100) ** 2)) * 10) / 10 : null;
+
+  // ============================================================
+  // Meta de água: ~33 ml/kg; GLP-1 +15 % e mín. 2000 ml; 1500–3500; arredonda a 50.
+  // ============================================================
+  function waterGoal(p) {
+    if (p.water_goal_ml) return { ml: p.water_goal_ml, why: "meta definida manualmente" };
+    const w = p.weight_kg || 60; let g = w * 33; const parts = [`${w} kg × 33 ml`];
+    if (p.uses_glp1) { g = Math.max(g * 1.15, 2000); parts.push("+15 % por GLP-1 (mín. 2000 ml)"); }
+    g = Math.round(Math.min(3500, Math.max(1500, g)) / 50) * 50;
+    return { ml: g, why: parts.join(" ") };
+  }
+
+  const profile = () => S.profiles[S.pid] || { name: DEFAULT_NAMES[S.pid] };
+
+  // ============================================================
+  // Persistência (db ou memória)
+  // ============================================================
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {} };
+
+  async function saveProfile(data) {
+    S.profiles[S.pid] = data;
+    if (S.db) await S.db.doc(`profiles/${S.pid}`).set(data); else mem.profiles[S.pid] = data;
+    renderAll();
+  }
+  async function saveWaterDay(date, day) {
+    S.water.set(date, day);
+    const body = { profile: S.pid, date, entries: day.entries, total: day.total };
+    if (S.db) await S.db.doc(`water/${S.pid}_${date}`).set(body); else mem.water[`${S.pid}_${date}`] = body;
+    renderWater();
+  }
+  async function saveChat() {
+    if (S.chat.length > CHAT_KEEP) S.chat = S.chat.slice(-CHAT_KEEP);
+    const body = { profile: S.pid, messages: S.chat, updatedAt: new Date().toISOString() };
+    if (S.db) await S.db.doc(`chat/${S.pid}`).set(body); else mem.chat[S.pid] = body;
+  }
+  async function saveWeights() {
+    const body = { profile: S.pid, entries: S.weights };
+    if (S.db) await S.db.doc(`weights/${S.pid}`).set(body); else mem.weights[S.pid] = body;
+  }
+
+  function unsubscribeAll() { S.unsub.forEach((u) => { try { u(); } catch {} }); S.unsub = []; }
+
+  function subscribeProfile() {
+    unsubscribeAll();
+    S.water = new Map(); S.chat = []; S.weights = [];
+    const from = addDays(localDate(), -29);
+    if (!S.db) {
+      const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: w[k].entries, total: w[k].total });
+      S.chat = mem.chat[S.pid]?.messages || []; S.weights = mem.weights[S.pid]?.entries || [];
+      renderAll(); return;
+    }
+    S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
+      S.water = new Map();
+      snap.docs.forEach((d) => { const b = d.data(); S.water.set(b.date, { entries: b.entries || [], total: b.total || 0 }); });
+      renderWater();
+    }, (e) => console.warn("water", e)));
+    S.unsub.push(S.db.doc(`chat/${S.pid}`).onSnapshot((snap) => {
+      if (S.streaming) return; // não sobrescrever durante uma resposta
+      S.chat = snap.exists ? (snap.data().messages || []) : [];
+      renderChat();
+    }, (e) => console.warn("chat", e)));
+    S.unsub.push(S.db.doc(`weights/${S.pid}`).onSnapshot((snap) => {
+      S.weights = snap.exists ? (snap.data().entries || []) : [];
+    }, (e) => console.warn("weights", e)));
+    renderAll();
+  }
+
+  // ============================================================
+  // Render: cabeçalho / navegação
+  // ============================================================
+  function renderWho() {
+    $("who").innerHTML = PROFILE_IDS.map((id) =>
+      `<button type="button" data-pid="${id}" aria-pressed="${id === S.pid}">${esc(S.profiles[id]?.name || DEFAULT_NAMES[id])}</button>`).join("");
+  }
+  function setView(v) {
+    S.view = v;
+    document.querySelectorAll(".view").forEach((el) => el.classList.toggle("active", el.id === `view-${v}`));
+    document.querySelectorAll("#tabs [role=tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === v)));
+    if (v === "chat") setTimeout(() => $("chatLog").scrollTop = $("chatLog").scrollHeight, 0);
+    window.scrollTo({ top: 0 });
+  }
+
+  // ============================================================
+  // Render: hoje + água
+  // ============================================================
+  function todayDay() { return S.water.get(localDate()) || { entries: [], total: 0 }; }
+
+  function renderQuickAdd(id) {
+    $(id).innerHTML = PRESETS.map((ml) => `<button type="button" class="btn water sm num" data-ml="${ml}">+${ml} ml</button>`).join("") +
+      `<form class="row" data-custom style="gap:6px"><input class="input num" type="number" inputmode="numeric" min="1" max="5000" placeholder="outro (ml)" style="width:120px" aria-label="Quantidade em ml"><button class="btn sm" type="submit">Adicionar</button></form>`;
+  }
+
+  function renderWater() {
+    const p = profile(); const goal = waterGoal(p); const day = todayDay();
+    const pct = Math.min(100, Math.round((day.total / goal.ml) * 100));
+    for (const sfx of ["", "2"]) {
+      $("todayTotal" + sfx).textContent = day.total;
+      $("todayGoal" + sfx).textContent = `/ ${goal.ml} ml${sfx ? " hoje" : ""}`;
+      $("todayPct" + sfx).textContent = `${pct}%`;
+      $("todayBar" + sfx).style.width = `${pct}%`;
+    }
+    $("goalExplain").innerHTML = `Meta diária <strong class="num">${goal.ml} ml</strong> (${esc(goal.why)}). Podes ajustá-la no perfil.`;
+    $("glp1tip").hidden = !p.uses_glp1;
+    $("todayList").innerHTML = day.entries.length === 0
+      ? `<li class="muted small">Ainda não registaste água hoje.</li>`
+      : [...day.entries].reverse().map((e, i) => `<li><span><strong class="num">${e.ml} ml</strong> <span class="meta">às ${fmtTime(e.at)}</span></span><button type="button" class="btn ghost sm" data-del="${day.entries.length - 1 - i}">remover</button></li>`).join("");
+    renderChart(goal.ml);
+  }
+
+  function renderChart(goalMl) {
+    const today = localDate(); const n = S.range;
+    const days = []; for (let i = n - 1; i >= 0; i--) { const d = addDays(today, -i); days.push({ date: d, total: S.water.get(d)?.total || 0 }); }
+    const avg = Math.round(days.reduce((s, d) => s + d.total, 0) / n); const hit = days.filter((d) => d.total >= goalMl).length;
+    $("chartStats").innerHTML = `Média <strong class="num">${avg} ml</strong> por dia · meta atingida em <strong class="num">${hit}/${n}</strong> dias`;
+
+    const wrapEl = $("chart");
+    const W = Math.max(300, Math.round(wrapEl.clientWidth || 720)), H = W < 480 ? 200 : 220, L = 40, R = 10, T = 16, B = 26;
+    const maxV = Math.max(goalMl * 1.15, ...days.map((d) => d.total), 500);
+    const yMax = Math.ceil(maxV / 500) * 500;
+    const iw = W - L - R, ih = H - T - B;
+    const y = (v) => T + ih - (v / yMax) * ih;
+    const slot = iw / n; const bw = Math.max(4, Math.min(28, slot - 6));
+    let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Água por dia, últimos ${n} dias">`;
+    g += `<g class="grid">`; for (let v = 0; v <= yMax; v += 500) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`; g += `</g>`;
+    g += `<g class="axis">`; for (let v = 0; v <= yMax; v += 1000) g += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v >= 1000 ? (v / 1000) + " L" : v}</text>`;
+    days.forEach((d, i) => { const show = n === 7 || i % 5 === 0 || i === n - 1; if (show) g += `<text x="${L + slot * i + slot / 2}" y="${H - 8}" text-anchor="middle">${n === 7 ? weekday(d.date) : d.date.slice(8)}</text>`; });
+    g += `</g>`;
+    days.forEach((d, i) => {
+      const x = L + slot * i + (slot - bw) / 2; const top = y(d.total); const h = Math.max(0, T + ih - top);
+      if (d.total > 0) g += `<rect class="bar-rect" x="${x}" y="${top}" width="${bw}" height="${h}" rx="4" ry="4"/>`;
+      g += `<rect class="hit-area" x="${L + slot * i}" y="${T}" width="${slot}" height="${ih}" data-i="${i}"/>`;
+    });
+    g += `<g class="goal"><line x1="${L}" x2="${W - R}" y1="${y(goalMl)}" y2="${y(goalMl)}"/><text x="${W - R}" y="${y(goalMl) - 4}" text-anchor="end">meta ${goalMl} ml</text></g>`;
+    g += `</svg>`;
+    const wrap = $("chart"); const tip = $("tip"); wrap.innerHTML = g; wrap.appendChild(tip);
+    wrap.querySelectorAll(".hit-area").forEach((r) => {
+      const d = days[+r.dataset.i];
+      const show = () => { const bb = r.getBoundingClientRect(); const wb = wrap.getBoundingClientRect(); tip.textContent = `${d.date} · ${d.total} ml`; tip.style.left = `${bb.left - wb.left + bb.width / 2}px`; tip.style.top = `${y(d.total) / H * wb.height}px`; tip.style.display = "block"; };
+      r.addEventListener("mouseenter", show); r.addEventListener("touchstart", show, { passive: true });
+      r.addEventListener("mouseleave", () => tip.style.display = "none");
+    });
+  }
+
+  async function addWater(ml) {
+    ml = Math.round(Number(ml)); if (!Number.isFinite(ml) || ml < 1 || ml > 5000) return;
+    const date = localDate(); const day = todayDay();
+    const entries = [...day.entries, { ml, at: new Date().toISOString() }];
+    await saveWaterDay(date, { entries, total: entries.reduce((s, e) => s + e.ml, 0) });
+  }
+  async function removeWater(idx) {
+    const date = localDate(); const day = todayDay();
+    const entries = day.entries.filter((_, i) => i !== idx);
+    await saveWaterDay(date, { entries, total: entries.reduce((s, e) => s + e.ml, 0) });
+  }
+
+  // ============================================================
+  // Render: hoje (cabeçalho) e perfil
+  // ============================================================
+  function renderHome() {
+    const p = profile();
+    $("greet").textContent = `Olá, ${p.name || DEFAULT_NAMES[S.pid]}`;
+    $("glp1line").textContent = p.uses_glp1 ? `Em tratamento com ${p.glp1_substance || "GLP-1"}${p.glp1_dose ? " · " + p.glp1_dose : ""}` : "Sem GLP-1 ativo";
+    const missing = []; if (!p.weight_kg) missing.push("peso atual"); if (!p.height_cm) missing.push("altura"); if (!p.birth_date) missing.push("data de nascimento");
+    $("missingNote").hidden = missing.length === 0;
+    $("missingNote").innerHTML = `Para metas e sugestões mais precisas, completa o perfil: <strong>${esc(missing.join(", "))}</strong>. <a href="#" data-goto="perfil">Ir ao perfil</a>`;
+    $("chatSummary").textContent = S.chat.length ? `${S.chat.length} mensagens guardadas. Continua a conversa.` : "Fala com o assistente sobre o teu plano, sintomas ou preferências.";
+    const age = ageFrom(p.birth_date); const imc = bmi(p.height_cm, p.weight_kg);
+    const bits = []; if (age !== null) bits.push(`${age} anos`); if (imc) bits.push(`IMC ${imc}`); if (p.weight_kg && p.target_kg) bits.push(`${p.weight_kg} kg → objetivo ${p.target_kg} kg`);
+    $("profileSummary").textContent = bits.length ? bits.join(" · ") : "Completa os dados para veres o resumo.";
+  }
+
+  function renderProfileForm() {
+    const p = profile(); const f = (n) => $("profileForm").elements.namedItem(n);
+    f("name").value = p.name || DEFAULT_NAMES[S.pid]; f("birth_date").value = p.birth_date || ""; f("sex").value = p.sex || "";
+    f("height_cm").value = p.height_cm ?? ""; f("weight_kg").value = p.weight_kg ?? ""; f("target_kg").value = p.target_kg ?? ""; f("water_goal_ml").value = p.water_goal_ml ?? "";
+    f("uses_glp1").checked = !!p.uses_glp1; $("glp1Fields").hidden = !p.uses_glp1;
+    f("glp1_substance").value = p.glp1_substance || ""; f("glp1_dose").value = p.glp1_dose || ""; f("glp1_start").value = p.glp1_start || "";
+    f("allergies").value = (p.allergies || []).join(", "); f("intolerances").value = (p.intolerances || []).join(", ");
+    f("preferences").value = p.preferences || ""; f("notes").value = p.notes || "";
+    $("f_water").placeholder = `automática: ${waterGoal({ ...p, water_goal_ml: null }).ml}`;
+
+    const tit = [...(p.titrations || [])].sort((a, b) => b.date.localeCompare(a.date));
+    $("titList").innerHTML = tit.length === 0 ? `<li class="muted small">Sem registos.</li>` :
+      tit.map((t) => `<li><span><strong>${esc(t.dose)}</strong> · ${esc(t.substance)} <span class="meta">desde ${t.date}</span>${t.notes ? `<br><span class="meta">${esc(t.notes)}</span>` : ""}</span><button type="button" class="btn ghost sm" data-deltit="${t.id}">remover</button></li>`).join("");
+    const meds = p.meds || [];
+    const li = (m) => `<li style="${m.active === false ? "opacity:.5" : ""}"><span><strong>${esc(m.name)}</strong>${m.dose ? " · " + esc(m.dose) : ""}${m.freq ? ` <span class="meta">· ${esc(m.freq)}</span>` : ""}</span><span class="row" style="gap:2px"><button type="button" class="btn ghost sm" data-togglemed="${m.id}">${m.active === false ? "reativar" : "suspender"}</button><button type="button" class="btn ghost sm" data-delmed="${m.id}">remover</button></span></li>`;
+    const medRows = meds.filter((m) => m.kind !== "suplemento"), supRows = meds.filter((m) => m.kind === "suplemento");
+    $("medList").innerHTML = medRows.length ? medRows.map(li).join("") : `<li class="muted small">Sem registos.</li>`;
+    $("supList").innerHTML = supRows.length ? supRows.map(li).join("") : `<li class="muted small">Sem registos.</li>`;
+  }
+
+  function readProfileForm() {
+    const f = new Proxy({}, { get: (_, n) => $("profileForm").elements.namedItem(n) }); const p = profile();
+    const num = (v) => { const s = String(v).trim().replace(",", "."); if (!s) return null; const n = Number(s); return Number.isFinite(n) ? n : null; };
+    const list = (v) => String(v).split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
+    const uses = f.uses_glp1.checked;
+    return {
+      ...p,
+      name: f.name.value.trim() || DEFAULT_NAMES[S.pid],
+      birth_date: f.birth_date.value || null, sex: f.sex.value || null,
+      height_cm: num(f.height_cm.value), weight_kg: num(f.weight_kg.value), target_kg: num(f.target_kg.value), water_goal_ml: num(f.water_goal_ml.value),
+      uses_glp1: uses,
+      glp1_substance: uses ? f.glp1_substance.value.trim() || null : null,
+      glp1_dose: uses ? f.glp1_dose.value.trim() || null : null,
+      glp1_start: uses ? f.glp1_start.value || null : null,
+      allergies: list(f.allergies.value), intolerances: list(f.intolerances.value),
+      preferences: f.preferences.value.trim(), notes: f.notes.value.trim(),
+      titrations: p.titrations || [], meds: p.meds || [],
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  // ============================================================
+  // Chat
+  // ============================================================
+  const RULES = `És a assistente nutricional da aplicação NutriGLP, uma app privada usada apenas por duas pessoas da mesma família (mãe e filha). Falas sempre em português de Portugal, num tom próximo, claro e prático.
+
+O teu papel:
+- Ajudar a pessoa a seguir e ajustar o plano alimentar dela, com quantidades concretas (gramas, porções, número de peças) sempre que fizer sentido.
+- Priorizar proteína adequada (referência 1,2–1,6 g/kg/dia, mais perto de 1,6 g/kg em perda de peso ou com GLP-1), fibra (25–30 g/dia), densidade nutricional e hidratação.
+- Ter em conta o contexto completo: dados base, uso e dose de GLP-1, medicação e suplementos, alergias/intolerâncias, preferências, hidratação e peso.
+- Lembrar-te de preferências e ajustes já ditos nesta conversa e respeitá-los sem que a pessoa os repita.
+- Quando a pessoa não gostar de algo, propor alternativas equivalentes em proteína/fibra/energia.
+- Quando relatar sintomas (náuseas, enfartamento, obstipação, refluxo, hipoglicemia, cansaço), adaptar: refeições mais pequenas e frequentes, menos gordura e fritos, mais líquidos e fibra solúvel, comer devagar.
+
+Com GLP-1 (tirzepatida, semaglutido, liraglutido, dulaglutido): o apetite e a sede diminuem e o esvaziamento gástrico é mais lento. Insiste em proteína em todas as refeições, hidratação em pequenos goles, fibra gradual, e evita refeições muito volumosas ou gordas, sobretudo nos dias após a injeção e nas semanas de subida de dose. Nunca recomendes alterar, saltar ou antecipar doses de GLP-1 nem de outra medicação; isso é decisão do médico.
+
+Limites de segurança (obrigatórios):
+- Não és médica nem nutricionista; és uma ferramenta de apoio. Lembra isso com naturalidade quando for relevante, sem repetir em todas as mensagens.
+- Recomenda contactar o médico/nutricionista perante vómitos persistentes, dor abdominal intensa, incapacidade de beber líquidos, sinais de desidratação, hipoglicemias, perda de peso muito rápida, ou qualquer sintoma novo ou preocupante.
+- Não sugiras dietas abaixo de ~1200 kcal/dia nem suplementos novos sem sugerir validação profissional.
+
+Formato: responde de forma direta e curta, em texto simples (sem títulos nem markdown pesado; podes usar listas com "-"). Quando ajustares o plano, diz claramente o que muda (ex: "amanhã ao jantar troco X por Y, ~150 g").`;
+
+  function contextText() {
+    const p = profile(); const goal = waterGoal(p); const day = todayDay();
+    const meds = (p.meds || []).filter((m) => m.active !== false);
+    const ctx = {
+      data_de_hoje: localDate(),
+      perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), alergias: p.allergies || [], intolerancias: p.intolerances || [], preferencias: p.preferences || null, notas: p.notes || null },
+      glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, historico_titulacao: p.titrations || [] } : null,
+      medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
+      suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
+      hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
+      evolucao_peso: S.weights.slice(-8),
+    };
+    return `Contexto atual desta utilizadora (JSON, atualizado a cada mensagem):\n${JSON.stringify(ctx)}`;
+  }
+
+  const CHIPS = ["Hoje tive náuseas. Ajusta as refeições de amanhã.", "Não gosto de peixe cozido, sugere outra coisa com a mesma proteína.", "Que lanches ricos em proteína posso ter em casa?", "Estou com pouca fome esta semana. O que devo priorizar?"];
+
+  function renderChat() {
+    const log = $("chatLog"); const p = profile();
+    if (S.chat.length === 0) {
+      log.innerHTML = `<p class="muted small">Olá, ${esc(p.name || "")}! Tenho acesso ao teu perfil, medicação, hidratação e peso. Diz-me o que queres ajustar.</p>`;
+      $("chips").innerHTML = CHIPS.map((c) => `<button type="button" class="chip" data-chip>${esc(c)}</button>`).join("");
+    } else {
+      log.innerHTML = S.chat.map((m) => `<div class="msg ${m.role}${m.error ? " error" : ""}">${esc(m.content)}</div>`).join("");
+      $("chips").innerHTML = "";
+    }
+    log.scrollTop = log.scrollHeight;
+    $("clearChat").disabled = S.chat.length === 0 || !!S.streaming;
+  }
+
+  const ERR_COPY = {
+    not_granted: "Não deste permissão para esta página usar o Claude. Recarrega a página para voltar a pedir.",
+    sampling_disabled: "O Claude não está disponível nesta conta.",
+    rate_limited: "Chegaste ao limite de utilização do Claude por agora. Tenta mais tarde.",
+    session_expired: "A sessão expirou. Volta a iniciar sessão no Claude.",
+    refused: "O assistente não pode responder a isto. Se for uma questão de saúde, fala com o teu médico.",
+    prompt_too_large: "A conversa ficou demasiado longa. Limpa a conversa e continua.",
+    empty_completion: "O assistente não devolveu texto. Tenta reformular.",
+  };
+
+  async function sendMessage(text) {
+    text = String(text || "").trim(); if (!text || S.streaming) return;
+    if (!S.sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat só funciona com a página aberta no claude.ai."; return; }
+    $("chatInput").value = "";
+    S.chat.push({ role: "user", content: text, at: new Date().toISOString() });
+    renderChat();
+    await saveChat();
+
+    const log = $("chatLog");
+    const bubble = document.createElement("div"); bubble.className = "msg assistant";
+    bubble.innerHTML = `<span class="thinking">a pensar…</span>`; log.appendChild(bubble); log.scrollTop = log.scrollHeight;
+
+    const ctl = new AbortController(); S.streaming = ctl;
+    $("sendChat").disabled = true; $("stopChat").hidden = false; $("clearChat").disabled = true;
+
+    const history = S.chat.filter((m) => !m.error).slice(-40).map((m) => ({ role: m.role, content: m.content }));
+    const turns = [{ role: "user", content: RULES + "\n\n" + contextText() }, ...history];
+    let finalText = "", err = null;
+    try {
+      const res = await S.sample(turns, {
+        cache: false, signal: ctl.signal,
+        onText: ({ text: t }) => { bubble.textContent = t; log.scrollTop = log.scrollHeight; },
+      });
+      finalText = res.text; if (res.truncated) finalText += "\n\n(resposta cortada; pede menos de cada vez)";
+    } catch (e) {
+      err = e; finalText = e?.text || "";
+    } finally {
+      S.streaming = null; $("sendChat").disabled = false; $("stopChat").hidden = true;
+    }
+    if (err && err.code !== "cancelled") {
+      const copy = ERR_COPY[err.code] || "Falha ao contactar o assistente. Tenta outra vez.";
+      if (err.code === "refused") finalText = "";
+      S.chat.push({ role: "assistant", content: (finalText ? finalText + "\n\n" : "") + "⚠️ " + copy, at: new Date().toISOString(), error: true });
+    } else if (finalText) {
+      S.chat.push({ role: "assistant", content: finalText, at: new Date().toISOString() });
+    }
+    renderChat();
+    if (!err || err.code === "cancelled") await saveChat();
+  }
+
+  // ============================================================
+  // Eventos
+  // ============================================================
+  document.addEventListener("click", async (ev) => {
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed]");
+    if (!t) return;
+    if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
+    if (t.dataset.view) { setView(t.dataset.view); return; }
+    if (t.dataset.goto) { ev.preventDefault(); setView(t.dataset.goto); return; }
+    if (t.dataset.ml) { t.disabled = true; try { await addWater(t.dataset.ml); } finally { t.disabled = false; } return; }
+    if (t.dataset.del !== undefined) { await removeWater(+t.dataset.del); return; }
+    if (t.dataset.range) { S.range = +t.dataset.range; document.querySelectorAll("[data-range]").forEach((b) => b.setAttribute("aria-pressed", String(b === t))); renderWater(); return; }
+    if (t.dataset.chip !== undefined) { sendMessage(t.textContent); return; }
+    if (t.dataset.deltit) { const p = profile(); await saveProfile({ ...p, titrations: (p.titrations || []).filter((x) => x.id !== t.dataset.deltit) }); return; }
+    if (t.dataset.delmed) { const p = profile(); await saveProfile({ ...p, meds: (p.meds || []).filter((x) => x.id !== t.dataset.delmed) }); return; }
+    if (t.dataset.togglemed) { const p = profile(); await saveProfile({ ...p, meds: (p.meds || []).map((x) => x.id === t.dataset.togglemed ? { ...x, active: x.active === false } : x) }); return; }
+  });
+
+  document.addEventListener("submit", async (ev) => {
+    const f = ev.target;
+    if (f.matches("[data-custom]")) { ev.preventDefault(); const inp = f.querySelector("input"); if (inp.value) { await addWater(inp.value); inp.value = ""; } return; }
+    if (f.id === "profileForm") {
+      ev.preventDefault(); const data = readProfileForm(); $("saveProfile").disabled = true;
+      try {
+        await saveProfile(data);
+        if (data.weight_kg) { const today = localDate(); S.weights = [...S.weights.filter((w) => w.date !== today), { date: today, kg: data.weight_kg }].sort((a, b) => a.date.localeCompare(b.date)).slice(-120); await saveWeights(); }
+        $("saveMsg").textContent = "Guardado ✓"; $("saveMsg").style.color = "var(--accent)";
+      } catch (e) { $("saveMsg").textContent = "Não foi possível guardar. Tenta outra vez."; $("saveMsg").style.color = "var(--danger)"; }
+      finally { $("saveProfile").disabled = false; setTimeout(() => $("saveMsg").textContent = "", 3000); }
+      return;
+    }
+    if (f.id === "titForm") {
+      ev.preventDefault(); const p = profile();
+      const t = { id: uid(), date: $("t_date").value, substance: $("t_sub").value.trim(), dose: $("t_dose").value.trim(), notes: $("t_notes").value.trim() };
+      if (!t.date || !t.substance || !t.dose) return;
+      await saveProfile({ ...p, uses_glp1: true, glp1_substance: t.substance, glp1_dose: t.dose, titrations: [...(p.titrations || []), t] });
+      f.reset(); return;
+    }
+    if (f.id === "medForm") {
+      ev.preventDefault(); const p = profile();
+      const m = { id: uid(), kind: $("m_kind").value, name: $("m_name").value.trim(), dose: $("m_dose").value.trim(), freq: $("m_freq").value.trim(), active: true };
+      if (!m.name) return;
+      await saveProfile({ ...p, meds: [...(p.meds || []), m] }); f.reset(); return;
+    }
+    if (f.id === "composer") { ev.preventDefault(); sendMessage($("chatInput").value); return; }
+  });
+
+  $("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage($("chatInput").value); } });
+  $("stopChat").addEventListener("click", () => S.streaming?.abort());
+  $("clearChat").addEventListener("click", async () => {
+    if (!confirm("Apagar toda a conversa? O assistente deixa de se lembrar dos ajustes anteriores.")) return;
+    S.chat = []; await saveChat(); renderChat();
+  });
+  let rsz; window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => renderWater(), 150); });
+  $("f_glp1").addEventListener("change", (e) => { $("glp1Fields").hidden = !e.target.checked; });
+
+  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+  function switchProfile(pid) {
+    if (!PROFILE_IDS.includes(pid)) pid = PROFILE_IDS[0];
+    if (S.streaming) S.streaming.abort();
+    S.pid = pid; try { localStorage.setItem("nutriglp.pid", pid); } catch {}
+    renderWho(); subscribeProfile();
+  }
+
+  function renderAll() { renderWho(); renderHome(); renderWater(); renderChat(); renderProfileForm(); }
+
+  // ============================================================
+  // Arranque
+  // ============================================================
+  renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2");
+  let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
+  S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
+  renderAll();
+
+  (async () => {
+    const [db, sample] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("sample") ?? null]);
+    S.db = db; S.sample = sample;
+    if (!db) {
+      S.memory = true; $("dbNotice").hidden = false;
+      $("dbNotice").textContent = "Sem ligação à base de dados: os registos ficam apenas nesta sessão. Abre a página no claude.ai para guardar.";
+    } else {
+      db.collection("profiles").onSnapshot((snap) => {
+        const next = {}; snap.docs.forEach((d) => { next[d.id] = d.data(); }); S.profiles = next;
+        renderWho(); renderHome(); renderWater(); renderChat(); if (document.activeElement?.form?.id !== "profileForm") renderProfileForm();
+      }, (e) => console.warn("profiles", e));
+    }
+    if (!sample) { $("sampleNote").hidden = false; $("sampleNote").textContent = "O chat com o assistente só está disponível com a página aberta no claude.ai."; }
+    subscribeProfile();
+  })();
+})();
+</script>

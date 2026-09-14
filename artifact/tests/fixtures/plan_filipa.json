@@ -1,0 +1,2334 @@
+{
+  "changelog": [
+    {
+      "at": "2026-09-14T16:29:57.751Z",
+      "o_que": "Plano gerado"
+    }
+  ],
+  "extras": [],
+  "generatedAt": "2026-09-14T16:29:57.751Z",
+  "plan": {
+    "dias": [
+      {
+        "dia": "segunda",
+        "refeicoes": [
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "iogurte grego",
+                "trocar_por": "skyr 200 g ou queijo fresco magro 100 g"
+              }
+            ],
+            "fibra_g": 6,
+            "gordura_g": 13,
+            "hidratos_g": 32,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural 0%",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 embalagem + ½ (≈1,5 unidade)",
+                "quantidade": "200 g"
+              },
+              {
+                "alimento": "aveia integral",
+                "estado": "crua",
+                "grupo": "hidratos",
+                "medida_caseira": "3 c. sopa",
+                "quantidade": "30 g"
+              },
+              {
+                "alimento": "noz",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "3 metades",
+                "quantidade": "15 g"
+              },
+              {
+                "alimento": "sementes de chia",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. chá",
+                "quantidade": "5 g"
+              },
+              {
+                "alimento": "canela em pó",
+                "estado": "seca",
+                "grupo": "outro",
+                "medida_caseira": "qb",
+                "quantidade": "qb"
+              }
+            ],
+            "kcal": 352,
+            "nome": "Pequeno-almoço",
+            "ordem": [
+              "lacticínio/proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Arranca o dia com proteína completa e leucina suficiente, e gordura para a vesícula sem sobrecarregar o estômago.",
+            "preparacao": "Misturar a aveia no iogurte, deixar 5 minutos a hidratar, polvilhar com noz picada, chia e canela.",
+            "proteina_g": 27
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "maçã",
+                "trocar_por": "pera ou kiwi 120 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 4,
+            "hidratos_g": 17,
+            "hora": "11:00",
+            "itens": [
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "¼ de unidade",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "maçã",
+                "estado": "crua",
+                "grupo": "fruta",
+                "medida_caseira": "1 peça pequena",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "amêndoa",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "4 unidades",
+                "quantidade": "5 g"
+              }
+            ],
+            "kcal": 142,
+            "nome": "Meio da manhã",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta",
+              "gordura"
+            ],
+            "porque": "Reforça a proteína a meio da manhã sem sobrecarregar de volume.",
+            "preparacao": "Comer o queijo fresco com a maçã em pedaços e as amêndoas à parte, devagar.",
+            "proteina_g": 12
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "pescada",
+                "trocar_por": "bacalhau demolhado 140 g ou grão-de-bico cozido 180 g com ovo"
+              }
+            ],
+            "fibra_g": 6,
+            "gordura_g": 22,
+            "hidratos_g": 39,
+            "hora": "13:00",
+            "itens": [
+              {
+                "alimento": "sopa de legumes passada (couve, cenoura, cebola)",
+                "estado": "cozinhada",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "200 ml"
+              },
+              {
+                "alimento": "pescada",
+                "estado": "crua",
+                "grupo": "proteina",
+                "medida_caseira": "1 posta média",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "batata cozida",
+                "estado": "cozinhada",
+                "grupo": "hidratos",
+                "medida_caseira": "2 batatas médias",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "2 c. sopa",
+                "quantidade": "20 g"
+              },
+              {
+                "alimento": "tomate e alface",
+                "estado": "crus",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena pequena",
+                "quantidade": "50 g"
+              }
+            ],
+            "kcal": 423,
+            "nome": "Almoço",
+            "ordem": [
+              "sopa/legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Legumes primeiro para baixar o pico de glicemia; proteína e gordura suficientes para saciedade e para a vesícula contrair.",
+            "preparacao": "Sopa bem passada no liquidificador. Pescada grelhada ou cozida a vapor, temperada com limão, alho e ervas, regada com o azeite no fim. Batata cozida inteira.",
+            "proteina_g": 30
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "skyr",
+                "trocar_por": "iogurte grego 150 g"
+              }
+            ],
+            "fibra_g": 4,
+            "gordura_g": 1,
+            "hidratos_g": 28,
+            "hora": "16:30",
+            "itens": [
+              {
+                "alimento": "skyr natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 embalagem +¼",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "pera",
+                "estado": "crua",
+                "grupo": "fruta",
+                "medida_caseira": "1 peça pequena",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "torrada integral",
+                "estado": "pronta",
+                "grupo": "hidratos",
+                "medida_caseira": "1 fatia",
+                "quantidade": "20 g"
+              }
+            ],
+            "kcal": 178,
+            "nome": "Lanche",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta",
+              "hidratos"
+            ],
+            "porque": "Mantém o ritmo de proteína entre almoço e jantar sem enche muito o estômago.",
+            "preparacao": "Comer o skyr com a pera cortada em cubos; a torrada à parte.",
+            "proteina_g": 17
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "frango",
+                "trocar_por": "peixe branco 130 g"
+              }
+            ],
+            "fibra_g": 3,
+            "gordura_g": 12,
+            "hidratos_g": 20,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "puré de brócolos e batata-doce",
+                "estado": "cozinhados",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "peito de frango grelhado",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 bife pequeno",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "⅙ de unidade",
+                "quantidade": "30 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "quase 1 c. sopa",
+                "quantidade": "8 g"
+              }
+            ],
+            "kcal": 319,
+            "nome": "Jantar",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Fecha o dia perto da meta de proteína, com jantar cedo e leve para não atrasar o sono.",
+            "preparacao": "Cozer o brócolo e a batata-doce e triturar em puré. Grelhar o frango temperado com ervas e alho, servir com o queijo fresco e regar com azeite.",
+            "proteina_g": 32
+          }
+        ]
+      },
+      {
+        "dia": "terça",
+        "refeicoes": [
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "ovo",
+                "trocar_por": "omelete de claras (3) com 1 gema"
+              }
+            ],
+            "fibra_g": 4,
+            "gordura_g": 11,
+            "hidratos_g": 22,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "ovo",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "2 unidades M",
+                "quantidade": "110 g"
+              },
+              {
+                "alimento": "pão integral",
+                "estado": "pronto",
+                "grupo": "hidratos",
+                "medida_caseira": "⅘ de papo-seco",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "⅕ de unidade",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "tomate",
+                "estado": "cru",
+                "grupo": "legumes",
+                "medida_caseira": "½ tomate pequeno",
+                "quantidade": "50 g"
+              }
+            ],
+            "kcal": 289,
+            "nome": "Pequeno-almoço",
+            "ordem": [
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Proteína de alto valor biológico logo pela manhã, sem gordura em excesso.",
+            "preparacao": "Ovos mexidos em frigideira antiaderente sem gordura extra, com tomate picado. Servir com o pão e o queijo fresco.",
+            "proteina_g": 26
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "morangos",
+                "trocar_por": "framboesas 100 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 3,
+            "hidratos_g": 13,
+            "hora": "11:00",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 embalagem +¼",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "morangos",
+                "estado": "crus",
+                "grupo": "fruta",
+                "medida_caseira": "8 a 10 morangos",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "amêndoa",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "4 unidades",
+                "quantidade": "5 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Meio da manhã",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta",
+              "gordura"
+            ],
+            "porque": "Mantém a proteína distribuída sem volume grande.",
+            "preparacao": "Servir o iogurte com os morangos cortados e as amêndoas por cima.",
+            "proteina_g": 16
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "salmão",
+                "trocar_por": "sardinha grelhada 140 g"
+              }
+            ],
+            "fibra_g": 5,
+            "gordura_g": 23,
+            "hidratos_g": 39,
+            "hora": "13:00",
+            "itens": [
+              {
+                "alimento": "puré de abóbora e cenoura",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "200 ml"
+              },
+              {
+                "alimento": "salmão",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 posta pequena",
+                "quantidade": "110 g"
+              },
+              {
+                "alimento": "arroz integral",
+                "estado": "cozinhado",
+                "grupo": "hidratos",
+                "medida_caseira": "3 a 4 c. sopa",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "quase 1 c. sopa",
+                "quantidade": "8 g"
+              },
+              {
+                "alimento": "alface e pepino",
+                "estado": "crus",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena pequena",
+                "quantidade": "40 g"
+              }
+            ],
+            "kcal": 462,
+            "nome": "Almoço",
+            "ordem": [
+              "sopa/legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "O salmão traz vitamina D, que está baixa nas análises, sempre acompanhado de gordura para absorção.",
+            "preparacao": "Salmão grelhado ou no forno com ervas e limão, sem pele frita. Puré bem cremoso, arroz simples.",
+            "proteina_g": 26
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "pêssego",
+                "trocar_por": "ameixa 100 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 9,
+            "hidratos_g": 19,
+            "hora": "16:30",
+            "itens": [
+              {
+                "alimento": "requeijão",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "½ unidade",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "pêssego",
+                "estado": "cru",
+                "grupo": "fruta",
+                "medida_caseira": "1 peça pequena",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "torrada integral",
+                "estado": "pronta",
+                "grupo": "hidratos",
+                "medida_caseira": "¾ de fatia",
+                "quantidade": "15 g"
+              }
+            ],
+            "kcal": 203,
+            "nome": "Lanche",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta",
+              "hidratos"
+            ],
+            "porque": "Lanche simples que continua a somar proteína sem gordura em excesso.",
+            "preparacao": "Servir o requeijão com o pêssego em pedaços, torrada à parte.",
+            "proteina_g": 12
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "atum",
+                "trocar_por": "ovo cozido 1 unidade"
+              }
+            ],
+            "fibra_g": 11,
+            "gordura_g": 10,
+            "hidratos_g": 39,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "puré de curgete",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena pequena",
+                "quantidade": "150 ml"
+              },
+              {
+                "alimento": "grão-de-bico cozido",
+                "estado": "cozinhado",
+                "grupo": "proteina",
+                "medida_caseira": "4 c. sopa",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "atum em água",
+                "estado": "escorrido",
+                "grupo": "proteina",
+                "medida_caseira": "pouco mais de meia lata",
+                "quantidade": "60 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "quase 1 c. sopa",
+                "quantidade": "8 g"
+              },
+              {
+                "alimento": "pão integral",
+                "estado": "pronto",
+                "grupo": "hidratos",
+                "medida_caseira": "½ fatia",
+                "quantidade": "20 g"
+              }
+            ],
+            "kcal": 360,
+            "nome": "Jantar",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Combina leguminosa com peixe para chegar à leucina necessária, jantar leve e cedo.",
+            "preparacao": "Aquecer o puré, misturar o grão-de-bico e o atum escorrido, regar com azeite no fim.",
+            "proteina_g": 26
+          }
+        ]
+      },
+      {
+        "dia": "quarta",
+        "refeicoes": [
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "panquecas",
+                "trocar_por": "aveia cozida com leite e ovo mexido à parte"
+              }
+            ],
+            "fibra_g": 5,
+            "gordura_g": 6,
+            "hidratos_g": 38,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "aveia integral",
+                "estado": "crua",
+                "grupo": "hidratos",
+                "medida_caseira": "4 c. sopa",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "ovo",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 unidade M",
+                "quantidade": "55 g"
+              },
+              {
+                "alimento": "skyr natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "quase 1 embalagem",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "⅒ de unidade",
+                "quantidade": "20 g"
+              },
+              {
+                "alimento": "mirtilos",
+                "estado": "crus",
+                "grupo": "fruta",
+                "medida_caseira": "⅓ de chávena",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "canela",
+                "estado": "seca",
+                "grupo": "outro",
+                "medida_caseira": "qb",
+                "quantidade": "qb"
+              }
+            ],
+            "kcal": 340,
+            "nome": "Pequeno-almoço",
+            "ordem": [
+              "proteína/lacticínio",
+              "hidratos",
+              "fruta"
+            ],
+            "porque": "Boa combinação de leucina (ovo + lacticínio) para arrancar o dia.",
+            "preparacao": "Fazer panquecas com a aveia triturada, o ovo e metade do skyr, cozer em frigideira antiaderente. Servir com o resto do skyr, queijo fresco e mirtilos.",
+            "proteina_g": 27
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "banana",
+                "trocar_por": "maçã 100 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 4,
+            "hidratos_g": 23,
+            "hora": "11:00",
+            "itens": [
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "⅕ de unidade",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "banana",
+                "estado": "crua",
+                "grupo": "fruta",
+                "medida_caseira": "1 banana pequena",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "amêndoa",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "4 unidades",
+                "quantidade": "5 g"
+              }
+            ],
+            "kcal": 159,
+            "nome": "Meio da manhã",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta",
+              "gordura"
+            ],
+            "porque": "Reforço de proteína a meio da manhã, volume pequeno.",
+            "preparacao": "Comer o queijo fresco com a banana em rodelas e as amêndoas.",
+            "proteina_g": 10
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "bacalhau",
+                "trocar_por": "carapau 160 g"
+              }
+            ],
+            "fibra_g": 7,
+            "gordura_g": 16,
+            "hidratos_g": 32,
+            "hora": "13:00",
+            "itens": [
+              {
+                "alimento": "caldo verde ligeiro (couve e batata)",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "200 ml"
+              },
+              {
+                "alimento": "bacalhau demolhado",
+                "estado": "cru/demolhado",
+                "grupo": "proteina",
+                "medida_caseira": "1 posta média",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "grão-de-bico cozido",
+                "estado": "cozinhado",
+                "grupo": "hidratos",
+                "medida_caseira": "1½ c. sopa",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa +",
+                "quantidade": "13 g"
+              }
+            ],
+            "kcal": 466,
+            "nome": "Almoço",
+            "ordem": [
+              "sopa/legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Proteína alta com gordura suficiente para a vesícula, sem exagerar no volume vegetal.",
+            "preparacao": "Bacalhau cozido em lume brando, servido com o caldo verde e o grão-de-bico à parte, regado com azeite.",
+            "proteina_g": 38
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "kiwi",
+                "trocar_por": "morangos 100 g"
+              }
+            ],
+            "fibra_g": 3,
+            "gordura_g": 4,
+            "hidratos_g": 19,
+            "hora": "16:30",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 embalagem +¼",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "kiwi",
+                "estado": "cru",
+                "grupo": "fruta",
+                "medida_caseira": "1 unidade",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "noz",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "1 metade",
+                "quantidade": "5 g"
+              }
+            ],
+            "kcal": 182,
+            "nome": "Lanche",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta",
+              "gordura"
+            ],
+            "porque": "Mantém o ritmo proteico entre almoço e jantar.",
+            "preparacao": "Servir o iogurte com o kiwi em cubos e a noz picada.",
+            "proteina_g": 16
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "peru",
+                "trocar_por": "peixe branco 130 g"
+              }
+            ],
+            "fibra_g": 5,
+            "gordura_g": 21,
+            "hidratos_g": 29,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "puré de abóbora",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena pequena",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "peito de peru grelhado",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 bife pequeno",
+                "quantidade": "110 g"
+              },
+              {
+                "alimento": "ovo cozido",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 unidade M",
+                "quantidade": "55 g"
+              },
+              {
+                "alimento": "batata-doce cozida",
+                "estado": "cozinhada",
+                "grupo": "hidratos",
+                "medida_caseira": "1 batata-doce pequena",
+                "quantidade": "80 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa +",
+                "quantidade": "13 g"
+              }
+            ],
+            "kcal": 443,
+            "nome": "Jantar",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Fecha o dia perto da meta de proteína, jantar às 19h30 para dar tempo antes de deitar.",
+            "preparacao": "Peru grelhado com ervas, ovo cozido em rodelas por cima do puré, batata-doce ao lado, regar com azeite.",
+            "proteina_g": 33
+          }
+        ]
+      },
+      {
+        "dia": "quinta",
+        "refeicoes": [
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "ovo escalfado",
+                "trocar_por": "ovo mexido"
+              }
+            ],
+            "fibra_g": 4,
+            "gordura_g": 12,
+            "hidratos_g": 25,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "pão integral",
+                "estado": "pronto",
+                "grupo": "hidratos",
+                "medida_caseira": "1 papo-seco",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "ovo escalfado",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 unidade M",
+                "quantidade": "55 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "⅓ de unidade",
+                "quantidade": "60 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "½ c. sopa",
+                "quantidade": "5 g"
+              }
+            ],
+            "kcal": 308,
+            "nome": "Pequeno-almoço",
+            "ordem": [
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Boa dose de leucina logo pela manhã com fonte animal completa.",
+            "preparacao": "Torrar o pão, colocar o queijo fresco e o ovo escalfado por cima, regar com um fio de azeite.",
+            "proteina_g": 25
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "skyr",
+                "trocar_por": "iogurte grego 50 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 3,
+            "hidratos_g": 18,
+            "hora": "11:00",
+            "itens": [
+              {
+                "alimento": "leite meio-gordo",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 copo",
+                "quantidade": "200 ml"
+              },
+              {
+                "alimento": "skyr natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "⅓ de embalagem",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "morangos",
+                "estado": "crus",
+                "grupo": "fruta",
+                "medida_caseira": "6 a 8 morangos",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 147,
+            "nome": "Meio da manhã",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta"
+            ],
+            "porque": "Formato líquido em dia de rotina normal, útil como variação de proteína rápida.",
+            "preparacao": "Bater o leite, o skyr e os morangos em batido simples.",
+            "proteina_g": 12
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "vitela",
+                "trocar_por": "frango 130 g"
+              }
+            ],
+            "fibra_g": 5,
+            "gordura_g": 13,
+            "hidratos_g": 36,
+            "hora": "13:00",
+            "itens": [
+              {
+                "alimento": "puré de cenoura, ervilha e curgete",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena pequena",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "vitela magra",
+                "estado": "crua",
+                "grupo": "proteina",
+                "medida_caseira": "1 bife pequeno",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "batata cozida",
+                "estado": "cozinhada",
+                "grupo": "hidratos",
+                "medida_caseira": "1½ batata média",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "quase 1 c. sopa",
+                "quantidade": "8 g"
+              }
+            ],
+            "kcal": 426,
+            "nome": "Almoço",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Carne vermelha limitada a uma vez por semana, dada a ferritina muito alta.",
+            "preparacao": "Jardineira de vitela e legumes estufados em lume brando, batata cozida à parte, regar com azeite no fim.",
+            "proteina_g": 30
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "ameixa",
+                "trocar_por": "pêra 100 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 9,
+            "hidratos_g": 21,
+            "hora": "16:30",
+            "itens": [
+              {
+                "alimento": "requeijão",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "½ unidade",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "ameixa",
+                "estado": "crua",
+                "grupo": "fruta",
+                "medida_caseira": "2 ameixas pequenas",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "torrada integral",
+                "estado": "pronta",
+                "grupo": "hidratos",
+                "medida_caseira": "¾ de fatia",
+                "quantidade": "15 g"
+              }
+            ],
+            "kcal": 210,
+            "nome": "Lanche",
+            "ordem": [
+              "proteína/lacticínio",
+              "fruta",
+              "hidratos"
+            ],
+            "porque": "Mantém proteína alta sem volume grande a meio da tarde.",
+            "preparacao": "Servir o requeijão com as ameixas cortadas e a torrada à parte.",
+            "proteina_g": 12
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "atum",
+                "trocar_por": "frango desfiado 100 g"
+              }
+            ],
+            "fibra_g": 10,
+            "gordura_g": 15,
+            "hidratos_g": 34,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "grão-de-bico cozido",
+                "estado": "cozinhado",
+                "grupo": "proteina",
+                "medida_caseira": "4 c. sopa",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "atum em água",
+                "estado": "escorrido",
+                "grupo": "proteina",
+                "medida_caseira": "quase 1 lata",
+                "quantidade": "80 g"
+              },
+              {
+                "alimento": "ovo cozido",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 unidade M",
+                "quantidade": "55 g"
+              },
+              {
+                "alimento": "tomate e pepino",
+                "estado": "crus",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena pequena",
+                "quantidade": "60 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "cru",
+                "grupo": "gordura",
+                "medida_caseira": "quase 1 c. sopa",
+                "quantidade": "8 g"
+              },
+              {
+                "alimento": "pão integral",
+                "estado": "pronto",
+                "grupo": "hidratos",
+                "medida_caseira": "½ fatia",
+                "quantidade": "20 g"
+              }
+            ],
+            "kcal": 425,
+            "nome": "Jantar",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos",
+              "gordura"
+            ],
+            "porque": "Refeição fria e simples, boa para uma noite sem grande apetência para cozinhar, mantém proteína alta.",
+            "preparacao": "Salada fria de grão-de-bico, atum escorrido, ovo cozido em quartos, tomate e pepino, temperada com azeite.",
+            "proteina_g": 36
+          }
+        ]
+      },
+      {
+        "dia": "sexta",
+        "refeicoes": [
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "skyr natural",
+                "trocar_por": "iogurte grego natural 0% 200 g"
+              },
+              {
+                "em_vez_de": "mirtilos",
+                "trocar_por": "morangos 80 g"
+              }
+            ],
+            "fibra_g": 5,
+            "gordura_g": 9,
+            "hidratos_g": 30,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "skyr natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "¾ chávena almoçadeira",
+                "quantidade": "180 g"
+              },
+              {
+                "alimento": "aveia integral",
+                "estado": "crua",
+                "grupo": "hidratos",
+                "medida_caseira": "2 c. sopa",
+                "quantidade": "30 g"
+              },
+              {
+                "alimento": "noz",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "2 unidades",
+                "quantidade": "8 g"
+              },
+              {
+                "alimento": "mirtilos",
+                "estado": "crus",
+                "grupo": "fruta",
+                "medida_caseira": "1/3 chávena",
+                "quantidade": "60 g"
+              },
+              {
+                "alimento": "canela em pó",
+                "estado": "seca",
+                "grupo": "gordura",
+                "medida_caseira": "a gosto",
+                "quantidade": "q.b."
+              }
+            ],
+            "kcal": 320,
+            "nome": "Pequeno-almoço",
+            "ordem": [
+              "proteína/lacticínio",
+              "hidratos",
+              "fruta"
+            ],
+            "porque": "Garante proteína logo pela manhã com leucina do lacticínio e hidratos de absorção lenta para segurar a glicemia de jejum.",
+            "preparacao": "Misturar a aveia no skyr e deixar hidratar 5 minutos, juntar os mirtilos e a noz picada por cima, polvilhar com canela.",
+            "proteina_g": 26
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "kiwi",
+                "trocar_por": "pera pequena 120 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 4,
+            "hidratos_g": 14,
+            "hora": "11:00",
+            "itens": [
+              {
+                "alimento": "skyr natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "meio copo",
+                "quantidade": "130 g"
+              },
+              {
+                "alimento": "kiwi",
+                "estado": "cru",
+                "grupo": "fruta",
+                "medida_caseira": "1 unidade pequena",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 130,
+            "nome": "Meio da manhã",
+            "ordem": [
+              "lacticínio",
+              "fruta"
+            ],
+            "porque": "Aporte extra de proteína para não deixar mais de 4 horas sem comer.",
+            "preparacao": "Descascar o kiwi e cortar em rodelas, servir com o skyr.",
+            "proteina_g": 12
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "pescada",
+                "trocar_por": "bacalhau demolhado 150 g"
+              },
+              {
+                "em_vez_de": "arroz integral",
+                "trocar_por": "batata cozida 150 g"
+              }
+            ],
+            "fibra_g": 7,
+            "gordura_g": 15,
+            "hidratos_g": 48,
+            "hora": "13:00",
+            "itens": [
+              {
+                "alimento": "puré de curgete e cenoura",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "pescada",
+                "estado": "crua",
+                "grupo": "proteina",
+                "medida_caseira": "1 posta grande",
+                "quantidade": "170 g"
+              },
+              {
+                "alimento": "arroz integral",
+                "estado": "cozinhado",
+                "grupo": "hidratos",
+                "medida_caseira": "4 c. sopa",
+                "quantidade": "110 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "líquido",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa",
+                "quantidade": "10 g"
+              },
+              {
+                "alimento": "tomate e pepino em salada",
+                "estado": "crus",
+                "grupo": "legumes",
+                "medida_caseira": "meia chávena",
+                "quantidade": "100 g"
+              }
+            ],
+            "kcal": 450,
+            "nome": "Almoço",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Legumes primeiro para reduzir o pico de glicemia, proteína rica em leucina e hidratos de baixo índice glicémico no almoço principal.",
+            "preparacao": "Cozer a pescada em água temperada com louro e reduzir os legumes a puré; servir o arroz com fio de azeite e a salada crua temperada com limão e ervas.",
+            "proteina_g": 30
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "iogurte grego",
+                "trocar_por": "skyr natural 150 g"
+              },
+              {
+                "em_vez_de": "pera",
+                "trocar_por": "maçã 120 g"
+              }
+            ],
+            "fibra_g": 3,
+            "gordura_g": 7,
+            "hidratos_g": 18,
+            "hora": "16:30",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural 0%",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 unidade grande",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "pera",
+                "estado": "crua",
+                "grupo": "fruta",
+                "medida_caseira": "1 unidade",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "noz",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "2 unidades",
+                "quantidade": "8 g"
+              }
+            ],
+            "kcal": 190,
+            "nome": "Lanche",
+            "ordem": [
+              "lacticínio",
+              "fruta"
+            ],
+            "porque": "Mantém o ritmo de proteína a cada 3-4 horas sem sobrecarregar o estômago.",
+            "preparacao": "Cortar a pera em cubos e juntar ao iogurte, finalizar com a noz picada.",
+            "proteina_g": 14
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "peito de frango",
+                "trocar_por": "peito de peru grelhado 130 g"
+              },
+              {
+                "em_vez_de": "batata-doce",
+                "trocar_por": "batata cozida 120 g"
+              }
+            ],
+            "fibra_g": 7,
+            "gordura_g": 20,
+            "hidratos_g": 30,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "puré de couve-flor e batata",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "peito de frango grelhado",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 bife médio",
+                "quantidade": "130 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "derretido",
+                "grupo": "lacticinio",
+                "medida_caseira": "fatia fina",
+                "quantidade": "30 g"
+              },
+              {
+                "alimento": "batata-doce cozida",
+                "estado": "cozinhada",
+                "grupo": "hidratos",
+                "medida_caseira": "1 unidade pequena",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "líquido",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa",
+                "quantidade": "10 g"
+              }
+            ],
+            "kcal": 410,
+            "nome": "Jantar",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Jantar leve mas completo em proteína, com gordura suficiente para a vesícula contrair sem desencadear náusea.",
+            "preparacao": "Grelhar o frango temperado com alho, limão e pimentão-doce, derreter o queijo fresco por cima ainda quente; servir com o puré e a batata-doce regados com azeite.",
+            "proteina_g": 27
+          }
+        ]
+      },
+      {
+        "dia": "sábado",
+        "refeicoes": [
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "ovo mexido",
+                "trocar_por": "3 claras + 1 gema mexidas"
+              },
+              {
+                "em_vez_de": "torrada integral",
+                "trocar_por": "pão de mistura 40 g"
+              }
+            ],
+            "fibra_g": 5,
+            "gordura_g": 9,
+            "hidratos_g": 30,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "ovo M",
+                "estado": "cru, mexido",
+                "grupo": "proteina",
+                "medida_caseira": "2 unidades",
+                "quantidade": "110 g"
+              },
+              {
+                "alimento": "cogumelos salteados",
+                "estado": "cozinhados",
+                "grupo": "legumes",
+                "medida_caseira": "1/3 chávena",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "líquido",
+                "grupo": "gordura",
+                "medida_caseira": "1/2 c. sopa",
+                "quantidade": "5 g"
+              },
+              {
+                "alimento": "torrada integral",
+                "estado": "tostada",
+                "grupo": "hidratos",
+                "medida_caseira": "1 fatia",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "cru",
+                "grupo": "lacticinio",
+                "medida_caseira": "fatia fina",
+                "quantidade": "20 g"
+              },
+              {
+                "alimento": "uvas",
+                "estado": "cruas",
+                "grupo": "fruta",
+                "medida_caseira": "1/3 chávena",
+                "quantidade": "60 g"
+              }
+            ],
+            "kcal": 320,
+            "nome": "Pequeno-almoço",
+            "ordem": [
+              "proteína",
+              "legumes",
+              "hidratos",
+              "fruta"
+            ],
+            "porque": "Ovo e queijo fresco dão leucina logo de manhã, e os cogumelos ajudam na vitamina D que está baixa nas análises.",
+            "preparacao": "Saltear os cogumelos em azeite, juntar os ovos batidos e mexer em lume brando até cremosos; servir com a torrada, o queijo fresco e as uvas.",
+            "proteina_g": 26
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "requeijão",
+                "trocar_por": "queijo fresco magro 60 g"
+              },
+              {
+                "em_vez_de": "morangos",
+                "trocar_por": "kiwi 80 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 4,
+            "hidratos_g": 14,
+            "hora": "11:00",
+            "itens": [
+              {
+                "alimento": "requeijão",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "quase ½ unidade",
+                "quantidade": "80 g"
+              },
+              {
+                "alimento": "morangos",
+                "estado": "crus",
+                "grupo": "fruta",
+                "medida_caseira": "1 chávena pequena",
+                "quantidade": "100 g"
+              }
+            ],
+            "kcal": 130,
+            "nome": "Meio da manhã",
+            "ordem": [
+              "lacticínio",
+              "fruta"
+            ],
+            "porque": "Reforça a proteína a meio da manhã com pouco volume.",
+            "preparacao": "Esmagar levemente os morangos e misturar com o requeijão.",
+            "proteina_g": 12
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "cavala",
+                "trocar_por": "sardinha assada 150 g"
+              },
+              {
+                "em_vez_de": "batata cozida",
+                "trocar_por": "arroz integral 90 g"
+              }
+            ],
+            "fibra_g": 7,
+            "gordura_g": 15,
+            "hidratos_g": 48,
+            "hora": "13:00",
+            "itens": [
+              {
+                "alimento": "puré de brócolos",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "cavala grelhada",
+                "estado": "crua",
+                "grupo": "proteina",
+                "medida_caseira": "1 filete",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "batata cozida",
+                "estado": "cozinhada",
+                "grupo": "hidratos",
+                "medida_caseira": "2 unidades médias",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "líquido",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa",
+                "quantidade": "10 g"
+              },
+              {
+                "alimento": "alface e tomate",
+                "estado": "crus",
+                "grupo": "legumes",
+                "medida_caseira": "meia chávena",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 450,
+            "nome": "Almoço",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Peixe gordo reforça a vitamina D, que está baixa nas análises, e mantém a proteína alta do almoço.",
+            "preparacao": "Grelhar a cavala com ervas e limão, cozer o brócolo e reduzir a puré, servir com batata cozida e salada temperada com azeite.",
+            "proteina_g": 30
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "iogurte grego",
+                "trocar_por": "skyr natural 150 g"
+              },
+              {
+                "em_vez_de": "banana",
+                "trocar_por": "maçã 120 g"
+              }
+            ],
+            "fibra_g": 3,
+            "gordura_g": 7,
+            "hidratos_g": 18,
+            "hora": "16:30",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 unidade grande",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "banana pequena",
+                "estado": "crua",
+                "grupo": "fruta",
+                "medida_caseira": "1 unidade pequena",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "amêndoa",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "6-7 unidades",
+                "quantidade": "8 g"
+              }
+            ],
+            "kcal": 190,
+            "nome": "Lanche",
+            "ordem": [
+              "lacticínio",
+              "fruta"
+            ],
+            "porque": "Lanche simples que mantém o aporte proteico sem pesar no estômago.",
+            "preparacao": "Cortar a banana em rodelas e servir com o iogurte, finalizar com a amêndoa picada.",
+            "proteina_g": 14
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "feijão branco",
+                "trocar_por": "grão-de-bico cozido 100 g"
+              },
+              {
+                "em_vez_de": "atum",
+                "trocar_por": "sardinha em água 100 g"
+              }
+            ],
+            "fibra_g": 7,
+            "gordura_g": 20,
+            "hidratos_g": 30,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "espinafres salteados",
+                "estado": "cozinhados",
+                "grupo": "legumes",
+                "medida_caseira": "1/2 chávena",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "feijão branco cozido",
+                "estado": "cozinhado",
+                "grupo": "hidratos",
+                "medida_caseira": "4 c. sopa",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "atum em água",
+                "estado": "escorrido",
+                "grupo": "proteina",
+                "medida_caseira": "1 lata",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "ovo cozido",
+                "estado": "cozido",
+                "grupo": "proteina",
+                "medida_caseira": "1 unidade",
+                "quantidade": "55 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "líquido",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa",
+                "quantidade": "10 g"
+              }
+            ],
+            "kcal": 410,
+            "nome": "Jantar",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Combina leguminosa com atum e ovo para garantir a leucina necessária, num jantar leve mas completo.",
+            "preparacao": "Escorrer o atum e misturar com o feijão branco e o espinafre salteado em azeite; finalizar com o ovo cozido às rodelas.",
+            "proteina_g": 27
+          }
+        ]
+      },
+      {
+        "dia": "domingo",
+        "refeicoes": [
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "iogurte grego",
+                "trocar_por": "skyr natural 180 g"
+              },
+              {
+                "em_vez_de": "maçã",
+                "trocar_por": "pera 100 g"
+              }
+            ],
+            "fibra_g": 5,
+            "gordura_g": 9,
+            "hidratos_g": 30,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 copo",
+                "quantidade": "200 g"
+              },
+              {
+                "alimento": "aveia integral",
+                "estado": "crua",
+                "grupo": "hidratos",
+                "medida_caseira": "1,5 c. sopa",
+                "quantidade": "25 g"
+              },
+              {
+                "alimento": "amêndoa",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "6-7 unidades",
+                "quantidade": "8 g"
+              },
+              {
+                "alimento": "maçã",
+                "estado": "crua",
+                "grupo": "fruta",
+                "medida_caseira": "meia unidade",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "canela em pó",
+                "estado": "seca",
+                "grupo": "gordura",
+                "medida_caseira": "a gosto",
+                "quantidade": "q.b."
+              }
+            ],
+            "kcal": 320,
+            "nome": "Pequeno-almoço",
+            "ordem": [
+              "proteína/lacticínio",
+              "hidratos",
+              "fruta"
+            ],
+            "porque": "Início do dia com proteína completa e hidratos de absorção lenta.",
+            "preparacao": "Misturar a aveia no iogurte, deixar repousar 5 minutos, juntar a maçã em cubos e a amêndoa picada, polvilhar com canela.",
+            "proteina_g": 26
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "queijo fresco",
+                "trocar_por": "requeijão 60 g"
+              },
+              {
+                "em_vez_de": "uvas",
+                "trocar_por": "morangos 100 g"
+              }
+            ],
+            "fibra_g": 2,
+            "gordura_g": 4,
+            "hidratos_g": 14,
+            "hora": "11:00",
+            "itens": [
+              {
+                "alimento": "queijo fresco magro",
+                "estado": "cru",
+                "grupo": "lacticinio",
+                "medida_caseira": "¼ unidade",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "uvas",
+                "estado": "cruas",
+                "grupo": "fruta",
+                "medida_caseira": "2/3 chávena",
+                "quantidade": "100 g"
+              }
+            ],
+            "kcal": 130,
+            "nome": "Meio da manhã",
+            "ordem": [
+              "lacticínio",
+              "fruta"
+            ],
+            "porque": "Mantém o intervalo entre refeições sem quebrar o aporte proteico.",
+            "preparacao": "Servir o queijo fresco com as uvas lavadas.",
+            "proteina_g": 12
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "carapau",
+                "trocar_por": "cavala grelhada 150 g"
+              },
+              {
+                "em_vez_de": "arroz integral",
+                "trocar_por": "batata cozida 150 g"
+              }
+            ],
+            "fibra_g": 7,
+            "gordura_g": 15,
+            "hidratos_g": 48,
+            "hora": "13:00",
+            "itens": [
+              {
+                "alimento": "puré de curgete e alho-francês",
+                "estado": "cozinhado",
+                "grupo": "legumes",
+                "medida_caseira": "1 chávena almoçadeira",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "carapau grelhado",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "2 unidades pequenas",
+                "quantidade": "160 g"
+              },
+              {
+                "alimento": "arroz integral",
+                "estado": "cozinhado",
+                "grupo": "hidratos",
+                "medida_caseira": "4 c. sopa",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "líquido",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa",
+                "quantidade": "10 g"
+              },
+              {
+                "alimento": "pepino e tomate",
+                "estado": "crus",
+                "grupo": "legumes",
+                "medida_caseira": "meia chávena",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 450,
+            "nome": "Almoço",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Peixe rico em vitamina D e ferro sem sobrecarregar a ferritina já elevada, mantendo a proteína alta do almoço.",
+            "preparacao": "Grelhar o carapau temperado com limão e alho, reduzir os legumes a puré, servir com arroz integral e salada.",
+            "proteina_g": 30
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "skyr natural",
+                "trocar_por": "iogurte grego natural 150 g"
+              },
+              {
+                "em_vez_de": "pêssego",
+                "trocar_por": "ameixa 100 g"
+              }
+            ],
+            "fibra_g": 3,
+            "gordura_g": 7,
+            "hidratos_g": 18,
+            "hora": "16:30",
+            "itens": [
+              {
+                "alimento": "skyr natural",
+                "estado": "pronto a consumir",
+                "grupo": "lacticinio",
+                "medida_caseira": "1 unidade grande",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "pêssego",
+                "estado": "cru",
+                "grupo": "fruta",
+                "medida_caseira": "1 unidade",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "noz",
+                "estado": "crua",
+                "grupo": "gordura",
+                "medida_caseira": "2 unidades",
+                "quantidade": "8 g"
+              }
+            ],
+            "kcal": 190,
+            "nome": "Lanche",
+            "ordem": [
+              "lacticínio",
+              "fruta"
+            ],
+            "porque": "Lanche rápido que fecha o intervalo da tarde sem gordura excessiva.",
+            "preparacao": "Cortar o pêssego em fatias e servir com o skyr, finalizar com a noz picada.",
+            "proteina_g": 14
+          },
+          {
+            "alternativas": [
+              {
+                "em_vez_de": "peito de peru",
+                "trocar_por": "peito de frango grelhado 100 g"
+              },
+              {
+                "em_vez_de": "lentilhas",
+                "trocar_por": "grão-de-bico cozido 100 g"
+              }
+            ],
+            "fibra_g": 7,
+            "gordura_g": 20,
+            "hidratos_g": 30,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "couve galega salteada",
+                "estado": "cozinhada",
+                "grupo": "legumes",
+                "medida_caseira": "1/2 chávena",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "lentilhas cozidas",
+                "estado": "cozinhadas",
+                "grupo": "hidratos",
+                "medida_caseira": "4 c. sopa",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "peito de peru grelhado",
+                "estado": "cru",
+                "grupo": "proteina",
+                "medida_caseira": "1 bife pequeno",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "ovo cozido",
+                "estado": "cozido",
+                "grupo": "proteina",
+                "medida_caseira": "1 unidade",
+                "quantidade": "55 g"
+              },
+              {
+                "alimento": "azeite",
+                "estado": "líquido",
+                "grupo": "gordura",
+                "medida_caseira": "1 c. sopa",
+                "quantidade": "10 g"
+              }
+            ],
+            "kcal": 410,
+            "nome": "Jantar",
+            "ordem": [
+              "legumes",
+              "proteína",
+              "hidratos"
+            ],
+            "porque": "Combina leguminosa com peru e ovo para atingir a leucina necessária e reforça cálcio e ferro através da couve galega.",
+            "preparacao": "Cozer as lentilhas com louro, saltear a couve galega em azeite e alho, grelhar o peru e servir tudo junto com o ovo cozido às rodelas.",
+            "proteina_g": 27
+          }
+        ]
+      }
+    ],
+    "dias_dificeis": {
+      "dia_da_injecao": [
+        "Não aplicável: não há medicação GLP-1 registada. Se alguma vez for iniciada, esta secção passa a valer e o plano tem de ser revisto com o médico."
+      ],
+      "diarreia": [
+        "Reduzir fibra insolúvel (casca, saladas cruas, cereais integrais) durante 24 a 48 horas.",
+        "Evitar adoçantes tipo sorbitol, maltitol e xilitol, frequentes em produtos 'sem açúcar' e barras proteicas.",
+        "Base de arroz branco, banana, maçã cozida, batata e cenoura cozida, com proteína magra (frango cozido, pescada).",
+        "Reforçar líquidos em goles ao longo do dia; solução de rehidratação oral só nestes dias."
+      ],
+      "fora_de_casa": [
+        "Método do prato: metade legumes ou sopa/salada, um quarto proteína (peixe grelhado, frango, ovos), um quarto hidratos (batata cozida, arroz, massa).",
+        "Pedir peixe ou carne grelhada com batata cozida e legumes salteados; pedir o molho à parte e dispensar o pão da mesa.",
+        "Em tasca portuguesa: bacalhau cozido, carne de porco magra grelhada, caldeirada, salada de atum com grão e ovo. Evitar açorda, migas, bacalhau com natas, folhados e pastéis.",
+        "Água como bebida, sem álcool e sem refrigerantes; sobremesa, se houver, é fruta."
+      ],
+      "nauseas": [
+        "Refeições pequenas de 150 a 250 g, com menos de 15 g de gordura cada, e alimentos frios ou à temperatura ambiente (iogurte grego, queijo fresco, atum em água), que libertam menos cheiro.",
+        "Ao acordar, sólido seco e simples antes de sair da cama: 2 tostas ou 2 bolachas de água e sal.",
+        "Chá de gengibre entre refeições, nunca líquidos à refeição; retomar a água 30 a 60 minutos depois.",
+        "Sem fritos, enchidos, natas, molhos gordos, picante, álcool e bebidas gaseificadas nesse dia."
+      ],
+      "obstipacao": [
+        "Fibra solúvel primeiro: aveia ao pequeno-almoço, kiwi ou 2 ameixas secas demolhadas, leguminosas bem cozidas e passadas.",
+        "Subir a fibra devagar, 3 a 5 g por semana, e juntar 250 ml de água por cada 5 g adicionais.",
+        "Caminhada de 15 minutos depois do almoço e do jantar e ir à casa de banho sempre à mesma hora, sem pressa."
+      ],
+      "refluxo": [
+        "Refeições pequenas e sem enchimento excessivo; última refeição 3 horas antes de deitar (19h30–20h00).",
+        "Ficar de pé ou sentada 60 minutos depois de comer, nunca deitada no sofá.",
+        "Menos gordura, fritos, picante, chocolate, hortelã-pimenta, café, citrinos e gaseificadas.",
+        "Cabeceira da cama ligeiramente elevada; sem vinagre antes das refeições neste caso."
+      ],
+      "sem_apetite": [
+        "Escolher alimentos com muita proteína por caloria: atum em água, frango desfiado, queijo fresco magro, requeijão, skyr, claras.",
+        "Nos piores dias, batido com 25 a 30 g de proteína em 200 a 250 ml de leite ou bebida de soja, bebido devagar em 15 minutos.",
+        "Nunca saltar o aporte: mesmo sem fome, garantir pelo menos 20 g de proteína a cada refeição principal.",
+        "Se houver 2 ou 3 dias seguidos sem apetite e cansaço, verificar primeiro se está mesmo a comer a energia e a proteína planeadas, antes de pensar em análises."
+      ],
+      "sem_tempo": [
+        "Refeição de 5 minutos: lata de atum em água escorrida + 3 c. sopa de grão de lata lavado + 1 c. sopa rasa de azeite + tomate ou cenoura ralada.",
+        "Ovos mexidos com 2 ovos + 1 ovo extra ou 2 c. sopa de queijo fresco, com 1 papo-seco de mistura.",
+        "Iogurte grego ou skyr com 1 c. sopa de aveia e canela como refeição de emergência (rende cerca de 15 g de proteína).",
+        "Ter sempre em casa: atum e sardinha em lata, ovos, grão e feijão de frasco, skyr, sopa congelada em porções."
+      ]
+    },
+    "hidratacao": [
+      {
+        "hora": "07:30",
+        "nota": "ao acordar, em goles, antes do pequeno-almoço",
+        "quantidade_ml": 250
+      },
+      {
+        "hora": "09:30",
+        "nota": "água ou chá sem açúcar",
+        "quantidade_ml": 250
+      },
+      {
+        "hora": "11:30",
+        "nota": "parar 30 minutos antes do almoço",
+        "quantidade_ml": 250
+      },
+      {
+        "hora": "14:00",
+        "nota": "retomar 30 a 60 minutos depois do almoço, durante a caminhada",
+        "quantidade_ml": 250
+      },
+      {
+        "hora": "15:30",
+        "nota": "água simples",
+        "quantidade_ml": 250
+      },
+      {
+        "hora": "16:00",
+        "nota": "antes do lanche",
+        "quantidade_ml": 200
+      },
+      {
+        "hora": "17:30",
+        "nota": "meio da tarde",
+        "quantidade_ml": 250
+      },
+      {
+        "hora": "18:45",
+        "nota": "parar 30 minutos antes do jantar",
+        "quantidade_ml": 200
+      },
+      {
+        "hora": "20:30",
+        "nota": "depois do jantar, em goles",
+        "quantidade_ml": 250
+      },
+      {
+        "hora": "21:30",
+        "nota": "última água do dia, para não interromper o sono",
+        "quantidade_ml": 200
+      }
+    ],
+    "lista_compras": [
+      {
+        "categoria": "Proteína",
+        "itens": [
+          {
+            "alimento": "Peito de frango",
+            "quantidade": "360 g"
+          },
+          {
+            "alimento": "Peito de peru",
+            "quantidade": "210 g"
+          },
+          {
+            "alimento": "Vitela magra",
+            "quantidade": "120 g"
+          },
+          {
+            "alimento": "Ovos",
+            "quantidade": "12 unidades"
+          },
+          {
+            "alimento": "Grão-de-bico cozido",
+            "quantidade": "340 g"
+          },
+          {
+            "alimento": "Feijão branco cozido",
+            "quantidade": "100 g"
+          },
+          {
+            "alimento": "Lentilhas cozidas",
+            "quantidade": "100 g"
+          }
+        ]
+      },
+      {
+        "categoria": "Peixe",
+        "itens": [
+          {
+            "alimento": "Pescada",
+            "quantidade": "320 g"
+          },
+          {
+            "alimento": "Salmão",
+            "quantidade": "110 g"
+          },
+          {
+            "alimento": "Bacalhau demolhado",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Cavala",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Carapau",
+            "quantidade": "160 g"
+          },
+          {
+            "alimento": "Atum em água",
+            "quantidade": "240 g"
+          }
+        ]
+      },
+      {
+        "categoria": "Legumes",
+        "itens": [
+          {
+            "alimento": "Sopa de legumes passada",
+            "quantidade": "200 ml"
+          },
+          {
+            "alimento": "Caldo verde",
+            "quantidade": "200 ml"
+          },
+          {
+            "alimento": "Puré de brócolos e batata-doce",
+            "quantidade": "300 g"
+          },
+          {
+            "alimento": "Puré de abóbora e cenoura",
+            "quantidade": "200 ml"
+          },
+          {
+            "alimento": "Puré de curgete",
+            "quantidade": "450 ml"
+          },
+          {
+            "alimento": "Puré de abóbora",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Puré de cenoura, ervilha e curgete",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Puré de curgete e cenoura",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Puré de couve-flor e batata",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Puré de brócolos",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Puré de curgete e alho-francês",
+            "quantidade": "150 g"
+          },
+          {
+            "alimento": "Batata cozida",
+            "quantidade": "720 g"
+          },
+          {
+            "alimento": "Batata-doce cozida",
+            "quantidade": "280 g"
+          },
+          {
+            "alimento": "Couve galega salteada",
+            "quantidade": "100 g"
+          },
+          {
+            "alimento": "Espinafres salteados",
+            "quantidade": "100 g"
+          },
+          {
+            "alimento": "Cogumelos salteados",
+            "quantidade": "50 g"
+          },
+          {
+            "alimento": "Tomate",
+            "quantidade": "340 g"
+          },
+          {
+            "alimento": "Alface",
+            "quantidade": "210 g"
+          },
+          {
+            "alimento": "Pepino",
+            "quantidade": "220 g"
+          }
+        ]
+      },
+      {
+        "categoria": "Fruta",
+        "itens": [
+          {
+            "alimento": "Maçã",
+            "quantidade": "220 g"
+          },
+          {
+            "alimento": "Pera",
+            "quantidade": "220 g"
+          },
+          {
+            "alimento": "Banana",
+            "quantidade": "200 g"
+          },
+          {
+            "alimento": "Morangos",
+            "quantidade": "380 g"
+          },
+          {
+            "alimento": "Mirtilos",
+            "quantidade": "110 g"
+          },
+          {
+            "alimento": "Kiwi",
+            "quantidade": "180 g"
+          },
+          {
+            "alimento": "Pêssego",
+            "quantidade": "220 g"
+          },
+          {
+            "alimento": "Ameixa",
+            "quantidade": "100 g"
+          },
+          {
+            "alimento": "Uvas",
+            "quantidade": "160 g"
+          }
+        ]
+      },
+      {
+        "categoria": "Mercearia",
+        "itens": [
+          {
+            "alimento": "Aveia integral",
+            "quantidade": "165 g"
+          },
+          {
+            "alimento": "Sementes de chia",
+            "quantidade": "5 g"
+          },
+          {
+            "alimento": "Pão integral",
+            "quantidade": "170 g"
+          },
+          {
+            "alimento": "Torrada integral",
+            "quantidade": "90 g"
+          },
+          {
+            "alimento": "Arroz integral",
+            "quantidade": "310 g"
+          },
+          {
+            "alimento": "Azeite",
+            "quantidade": "1 litro"
+          },
+          {
+            "alimento": "Canela em pó",
+            "quantidade": "q.b."
+          }
+        ]
+      },
+      {
+        "categoria": "Lacticínios",
+        "itens": [
+          {
+            "alimento": "Iogurte grego natural 0%",
+            "quantidade": "1 kg"
+          },
+          {
+            "alimento": "Skyr natural",
+            "quantidade": "810 g"
+          },
+          {
+            "alimento": "Queijo fresco magro",
+            "quantidade": "360 g"
+          },
+          {
+            "alimento": "Requeijão",
+            "quantidade": "280 g"
+          },
+          {
+            "alimento": "Leite meio-gordo",
+            "quantidade": "200 ml"
+          }
+        ]
+      },
+      {
+        "categoria": "Outros",
+        "itens": [
+          {
+            "alimento": "Noz",
+            "quantidade": "42 g"
+          },
+          {
+            "alimento": "Amêndoa",
+            "quantidade": "44 g"
+          }
+        ]
+      }
+    ],
+    "metas_diarias": {
+      "agua_ml": 2150,
+      "fibra_g": 24,
+      "gordura_g": 55,
+      "hidratos_g": 140,
+      "kcal": 1500,
+      "proteina_g": 105,
+      "sal_g": 5
+    },
+    "preparacao_antecipada": [
+      "Cozer 12 ovos de uma vez (10 minutos): rendem 5 a 6 tomas de 2 ovos, duram 5 a 7 dias no frigorífico com casca.",
+      "Assar no forno 1 kg de peito de frango ou de peru em filetes temperados com limão, alho e ervas: rende 6 a 7 doses de 120 a 150 g, dura 3 a 4 dias no frigorífico ou 2 meses congelado em porções individuais.",
+      "Fazer 3 litros de sopa passada de legumes com feijão branco (legumes triturados até ficar lisa, sem pedaços visíveis, 1 c. sopa de azeite por panela): rende 10 a 12 taças, dura 4 dias no frigorífico e congela bem em doses de 250 ml.",
+      "Cozer 500 g de grão ou lentilhas demolhadas de véspera e lavadas: rendem 6 a 8 porções de 3 c. sopa (80 g cozinhados), duram 4 dias no frigorífico ou 3 meses congelados.",
+      "Cozer 8 a 10 batatas médias e 2 batatas-doces com casca: rendem os hidratos de 4 a 5 refeições, duram 4 dias no frigorífico e reaquecem em 2 minutos.",
+      "Deixar 4 frascos de overnight oats prontos (3 c. sopa de aveia + 1 iogurte grego + canela): duram 3 a 4 dias e resolvem os pequenos-almoços de dias corridos."
+    ],
+    "principios": [
+      "Proteína primeiro: 5 aportes/dia, nunca menos de 20 g nas refeições principais, sempre com fonte rica em leucina (ovos, lacticínios, peixe, carne).",
+      "Hidratos sempre de baixo índice glicémico e nunca sozinhos: acompanhados de proteína e de gordura para segurar a glicemia de jejum de 105 mg/dL.",
+      "Azeite em pelo menos duas refeições por dia (7 a 10 g cada) — gordura suficiente para a vesícula contrair em perda de peso.",
+      "Hortícolas de forma tolerável: sopas passadas, puré de legumes em molhos, legumes bem cozinhados e cortados fino, começando por 2 a 3 colheres de sopa.",
+      "Sem reforço de ferro: ferritina muito alta, portanto carne vermelha e vísceras no máximo 1x/semana e sem vitamina C a acompanhar fontes de ferro.",
+      "Vitamina D pela mesa: peixe gordo 3 a 4 vezes por semana, gema de ovo e cogumelos, sempre numa refeição com azeite.",
+      "Sal abaixo de 5 g: sem sal à mesa, poucos enchidos, queijos curados, conservas e pré-cozinhados; tempero com ervas, limão, alho e pimentão-doce.",
+      "Ritmo e rotina: comer devagar (20 minutos), caminhada de 10 a 15 minutos depois do almoço e do jantar, jantar até às 19h30–20h00 e 2 a 3 sessões de treino de força de corpo inteiro por semana."
+    ],
+    "racional": "Usei 105 g de proteína por dia, cerca de 1,6 g/kg sobre o peso ajustado de 64,1 kg e acima do alvo de referência de 96 g, repartidos por 5 aportes (26–30 g nas refeições principais) porque a massa muscular está em 22,1 kg (34,2 %) e o objetivo é perder os 7,5 kg quase todos à custa de gordura; a proteína fica em 28 % da energia, dentro do limite de 35 %. A energia ficou em 1500 kcal, um défice aproximado de 500 kcal face às necessidades estimadas e bem acima do piso de 1200 kcal, para um ritmo de 0,5 a 0,75 kg por semana — acima de 1,5 kg/semana subiria o risco de cálculos biliares e queda de cabelo. Pelas análises: glicemia em jejum de 105 mg/dL com HbA1c normal e perfil hormonal sugestivo de SOPC levaram-me a hidratos de baixo índice glicémico sempre com proteína e gordura e a cortar açúcar livre; vitamina D de 24 ng/mL fez-me colocar sardinha, cavala, salmão, gema e cogumelos 3 a 4 vezes por semana e a gordura (azeite) distribuída para ajudar a absorção; ferritina de 307 ng/mL com hemograma concentrado e fibrinogénio alto fez-me NÃO reforçar ferro nem juntar vitamina C a alimentos ricos em ferro, reduzir vísceras e carne vermelha para o máximo de uma vez por semana e subir a hidratação; TSH e T4 livre alterados, cortisol alto e homocisteína elevada apesar de B12 e folato altos ficam sinalizados para avaliação médica, e por isso o plano é conservador e o complexo B mantém-se exatamente como já é tomado. A preferência 'não gosto de vegetais' foi respeitada com hortícolas escondidos em sopas passadas, molhos e pratos compostos, começando por porções pequenas. Esta é uma sugestão alimentar de apoio e deve ser validada por nutricionista e pelo médico assistente, sobretudo pela ferritina, tiroide e cortisol.",
+    "regras_aplicadas": [],
+    "suplementos": [
+      {
+        "hora": "08:15",
+        "nome": "Methyl B Complex da Lamberts — 1 vez por dia, tal como já toma",
+        "nota": "Ao pequeno-almoço, com comida, para reduzir o desconforto gástrico e porque as vitaminas B tomadas à noite podem atrapalhar o sono. Mantém-se a dose e a marca sem qualquer alteração; a B12 e o folato estão altos nas análises, provavelmente por este suplemento, pelo que vale a pena mostrar o rótulo ao médico na próxima consulta, sobretudo com a homocisteína em 13,9 μmol/L."
+      }
+    ]
+  },
+  "previous": null,
+  "profile": "filipa",
+  "version": 1,
+  "week_start": "2026-09-14"
+}

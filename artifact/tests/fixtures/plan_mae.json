@@ -1,0 +1,862 @@
+{
+  "changelog": [
+    {
+      "at": "2026-09-14T14:23:30.993Z",
+      "o_que": "Plano gerado"
+    }
+  ],
+  "extras": [],
+  "generatedAt": "2026-09-14T14:23:30.994Z",
+  "plan": {
+    "dias": [
+      {
+        "dia": "segunda",
+        "refeicoes": [
+          {
+            "fibra_g": 5,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "quantidade": "170 g"
+              },
+              {
+                "alimento": "aveia",
+                "quantidade": "30 g"
+              },
+              {
+                "alimento": "morangos",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "canela",
+                "quantidade": "1 pitada"
+              }
+            ],
+            "kcal": 310,
+            "nome": "Pequeno-almoço",
+            "proteina_g": 24
+          },
+          {
+            "fibra_g": 4,
+            "hora": "10:30",
+            "itens": [
+              {
+                "alimento": "maçã",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "amêndoas",
+                "quantidade": "15 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Lanche da manhã",
+            "proteina_g": 4
+          },
+          {
+            "fibra_g": 6,
+            "hora": "12:30",
+            "itens": [
+              {
+                "alimento": "peito de frango grelhado",
+                "quantidade": "140 g"
+              },
+              {
+                "alimento": "arroz integral cozido",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "brócolos cozidos",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.sopa"
+              }
+            ],
+            "kcal": 460,
+            "nome": "Almoço",
+            "proteina_g": 38
+          },
+          {
+            "fibra_g": 3,
+            "hora": "16:00",
+            "itens": [
+              {
+                "alimento": "queijo fresco magro",
+                "quantidade": "60 g"
+              },
+              {
+                "alimento": "pão de centeio",
+                "quantidade": "30 g"
+              },
+              {
+                "alimento": "tomate",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 170,
+            "nome": "Lanche da tarde",
+            "proteina_g": 13
+          },
+          {
+            "fibra_g": 5,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "salmão grelhado",
+                "quantidade": "130 g"
+              },
+              {
+                "alimento": "batata-doce assada",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "espinafres salteados",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.chá"
+              }
+            ],
+            "kcal": 400,
+            "nome": "Jantar",
+            "proteina_g": 31
+          }
+        ]
+      },
+      {
+        "dia": "terça",
+        "refeicoes": [
+          {
+            "fibra_g": 4,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "ovos mexidos",
+                "quantidade": "2 unid."
+              },
+              {
+                "alimento": "pão integral",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "tomate cherry",
+                "quantidade": "80 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.chá"
+              }
+            ],
+            "kcal": 330,
+            "nome": "Pequeno-almoço",
+            "proteina_g": 22
+          },
+          {
+            "fibra_g": 2,
+            "hora": "10:30",
+            "itens": [
+              {
+                "alimento": "iogurte natural magro",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "nozes",
+                "quantidade": "15 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Lanche da manhã",
+            "proteina_g": 10
+          },
+          {
+            "fibra_g": 7,
+            "hora": "12:30",
+            "itens": [
+              {
+                "alimento": "pescada cozida",
+                "quantidade": "160 g"
+              },
+              {
+                "alimento": "puré de batata-doce",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "feijão verde",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.sopa"
+              }
+            ],
+            "kcal": 440,
+            "nome": "Almoço",
+            "proteina_g": 34
+          },
+          {
+            "fibra_g": 3,
+            "hora": "16:00",
+            "itens": [
+              {
+                "alimento": "pêra",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "quantidade": "50 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Lanche da tarde",
+            "proteina_g": 10
+          },
+          {
+            "fibra_g": 8,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "sopa de legumes",
+                "quantidade": "250 ml"
+              },
+              {
+                "alimento": "grão-de-bico cozido",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "frango desfiado",
+                "quantidade": "60 g"
+              },
+              {
+                "alimento": "espinafres",
+                "quantidade": "100 g"
+              }
+            ],
+            "kcal": 420,
+            "nome": "Jantar",
+            "proteina_g": 28
+          }
+        ]
+      },
+      {
+        "dia": "quarta",
+        "refeicoes": [
+          {
+            "fibra_g": 6,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "quantidade": "170 g"
+              },
+              {
+                "alimento": "sementes de chia",
+                "quantidade": "15 g"
+              },
+              {
+                "alimento": "kiwi",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 300,
+            "nome": "Pequeno-almoço",
+            "proteina_g": 21
+          },
+          {
+            "fibra_g": 4,
+            "hora": "10:30",
+            "itens": [
+              {
+                "alimento": "maçã",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "amêndoas",
+                "quantidade": "15 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Lanche da manhã",
+            "proteina_g": 4
+          },
+          {
+            "fibra_g": 11,
+            "hora": "12:30",
+            "itens": [
+              {
+                "alimento": "lentilhas cozidas",
+                "quantidade": "220 g"
+              },
+              {
+                "alimento": "legumes salteados (courgette, cenoura)",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "ovo cozido",
+                "quantidade": "1 unid."
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.sopa"
+              }
+            ],
+            "kcal": 440,
+            "nome": "Almoço",
+            "proteina_g": 26
+          },
+          {
+            "fibra_g": 2,
+            "hora": "16:00",
+            "itens": [
+              {
+                "alimento": "queijo fresco magro",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "tostas integrais",
+                "quantidade": "20 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Lanche da tarde",
+            "proteina_g": 12
+          },
+          {
+            "fibra_g": 5,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "atum grelhado",
+                "quantidade": "130 g"
+              },
+              {
+                "alimento": "quinoa cozida",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "salada verde",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.chá"
+              }
+            ],
+            "kcal": 410,
+            "nome": "Jantar",
+            "proteina_g": 34
+          }
+        ]
+      },
+      {
+        "dia": "quinta",
+        "refeicoes": [
+          {
+            "fibra_g": 4,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "ovos mexidos",
+                "quantidade": "2 unid."
+              },
+              {
+                "alimento": "pão de mistura",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "espinafres salteados",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.chá"
+              }
+            ],
+            "kcal": 320,
+            "nome": "Pequeno-almoço",
+            "proteina_g": 22
+          },
+          {
+            "fibra_g": 3,
+            "hora": "10:30",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "morangos",
+                "quantidade": "100 g"
+              }
+            ],
+            "kcal": 170,
+            "nome": "Lanche da manhã",
+            "proteina_g": 15
+          },
+          {
+            "fibra_g": 7,
+            "hora": "12:30",
+            "itens": [
+              {
+                "alimento": "peito de peru grelhado",
+                "quantidade": "140 g"
+              },
+              {
+                "alimento": "batata cozida",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "cenoura e brócolos",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.sopa"
+              }
+            ],
+            "kcal": 440,
+            "nome": "Almoço",
+            "proteina_g": 34
+          },
+          {
+            "fibra_g": 4,
+            "hora": "16:00",
+            "itens": [
+              {
+                "alimento": "húmus",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "cenoura baby",
+                "quantidade": "80 g"
+              },
+              {
+                "alimento": "tosta integral",
+                "quantidade": "20 g"
+              }
+            ],
+            "kcal": 160,
+            "nome": "Lanche da tarde",
+            "proteina_g": 6
+          },
+          {
+            "fibra_g": 6,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "sardinha assada",
+                "quantidade": "130 g"
+              },
+              {
+                "alimento": "arroz integral",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "salada de tomate e pepino",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.chá"
+              }
+            ],
+            "kcal": 410,
+            "nome": "Jantar",
+            "proteina_g": 28
+          }
+        ]
+      },
+      {
+        "dia": "sexta",
+        "refeicoes": [
+          {
+            "fibra_g": 5,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "quantidade": "170 g"
+              },
+              {
+                "alimento": "aveia",
+                "quantidade": "30 g"
+              },
+              {
+                "alimento": "banana",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 330,
+            "nome": "Pequeno-almoço",
+            "proteina_g": 22
+          },
+          {
+            "fibra_g": 4,
+            "hora": "10:30",
+            "itens": [
+              {
+                "alimento": "maçã",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "amêndoas",
+                "quantidade": "15 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Lanche da manhã",
+            "proteina_g": 4
+          },
+          {
+            "fibra_g": 8,
+            "hora": "12:30",
+            "itens": [
+              {
+                "alimento": "bacalhau cozido",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "grão-de-bico salteado",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "espinafres",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.sopa"
+              }
+            ],
+            "kcal": 440,
+            "nome": "Almoço",
+            "proteina_g": 36
+          },
+          {
+            "fibra_g": 3,
+            "hora": "16:00",
+            "itens": [
+              {
+                "alimento": "queijo fresco magro",
+                "quantidade": "50 g"
+              },
+              {
+                "alimento": "tostas integrais",
+                "quantidade": "20 g"
+              },
+              {
+                "alimento": "tomate",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 160,
+            "nome": "Lanche da tarde",
+            "proteina_g": 12
+          },
+          {
+            "fibra_g": 5,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "frango grelhado",
+                "quantidade": "130 g"
+              },
+              {
+                "alimento": "puré de courgette e batata-doce",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "salada verde",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.chá"
+              }
+            ],
+            "kcal": 380,
+            "nome": "Jantar",
+            "proteina_g": 30
+          }
+        ]
+      },
+      {
+        "dia": "sábado",
+        "refeicoes": [
+          {
+            "fibra_g": 5,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "panquecas de aveia (aveia, ovo, leite)",
+                "quantidade": "1 dose (aveia 40g, ovo 1, leite 50ml)"
+              },
+              {
+                "alimento": "morangos",
+                "quantidade": "100 g"
+              }
+            ],
+            "kcal": 320,
+            "nome": "Pequeno-almoço",
+            "proteina_g": 16
+          },
+          {
+            "fibra_g": 1,
+            "hora": "10:30",
+            "itens": [
+              {
+                "alimento": "iogurte natural magro",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "nozes",
+                "quantidade": "15 g"
+              }
+            ],
+            "kcal": 150,
+            "nome": "Lanche da manhã",
+            "proteina_g": 10
+          },
+          {
+            "fibra_g": 6,
+            "hora": "12:30",
+            "itens": [
+              {
+                "alimento": "lombo de porco grelhado (magro)",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "arroz integral",
+                "quantidade": "100 g"
+              },
+              {
+                "alimento": "legumes salteados",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.sopa"
+              }
+            ],
+            "kcal": 450,
+            "nome": "Almoço",
+            "proteina_g": 32
+          },
+          {
+            "fibra_g": 3,
+            "hora": "16:00",
+            "itens": [
+              {
+                "alimento": "pêra",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "queijo fresco magro",
+                "quantidade": "40 g"
+              }
+            ],
+            "kcal": 140,
+            "nome": "Lanche da tarde",
+            "proteina_g": 8
+          },
+          {
+            "fibra_g": 5,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "salmão grelhado",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "batata-doce",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "brócolos",
+                "quantidade": "120 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.chá"
+              }
+            ],
+            "kcal": 400,
+            "nome": "Jantar",
+            "proteina_g": 28
+          }
+        ]
+      },
+      {
+        "dia": "domingo",
+        "refeicoes": [
+          {
+            "fibra_g": 4,
+            "hora": "08:00",
+            "itens": [
+              {
+                "alimento": "ovos mexidos",
+                "quantidade": "2 unid."
+              },
+              {
+                "alimento": "pão integral",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "tomate",
+                "quantidade": "80 g"
+              }
+            ],
+            "kcal": 310,
+            "nome": "Pequeno-almoço",
+            "proteina_g": 20
+          },
+          {
+            "fibra_g": 2,
+            "hora": "10:30",
+            "itens": [
+              {
+                "alimento": "iogurte grego natural",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "morangos",
+                "quantidade": "100 g"
+              }
+            ],
+            "kcal": 170,
+            "nome": "Lanche da manhã",
+            "proteina_g": 15
+          },
+          {
+            "fibra_g": 6,
+            "hora": "12:30",
+            "itens": [
+              {
+                "alimento": "dourada assada",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "batata cozida",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "salada mista",
+                "quantidade": "150 g"
+              },
+              {
+                "alimento": "azeite",
+                "quantidade": "1 c.sopa"
+              }
+            ],
+            "kcal": 440,
+            "nome": "Almoço",
+            "proteina_g": 32
+          },
+          {
+            "fibra_g": 4,
+            "hora": "16:00",
+            "itens": [
+              {
+                "alimento": "húmus",
+                "quantidade": "40 g"
+              },
+              {
+                "alimento": "cenoura",
+                "quantidade": "80 g"
+              },
+              {
+                "alimento": "tosta integral",
+                "quantidade": "20 g"
+              }
+            ],
+            "kcal": 160,
+            "nome": "Lanche da tarde",
+            "proteina_g": 6
+          },
+          {
+            "fibra_g": 6,
+            "hora": "19:30",
+            "itens": [
+              {
+                "alimento": "sopa de legumes com feijão",
+                "quantidade": "300 ml"
+              },
+              {
+                "alimento": "frango desfiado",
+                "quantidade": "60 g"
+              },
+              {
+                "alimento": "pão de centeio",
+                "quantidade": "20 g"
+              }
+            ],
+            "kcal": 350,
+            "nome": "Jantar",
+            "proteina_g": 24
+          }
+        ]
+      }
+    ],
+    "hidratacao": [
+      {
+        "hora": "07:00",
+        "nota": "ao acordar, em goles pequenos",
+        "quantidade_ml": 350
+      },
+      {
+        "hora": "09:15",
+        "nota": "após pequeno-almoço",
+        "quantidade_ml": 350
+      },
+      {
+        "hora": "11:00",
+        "nota": "entre refeições",
+        "quantidade_ml": 350
+      },
+      {
+        "hora": "13:15",
+        "nota": "após almoço",
+        "quantidade_ml": 350
+      },
+      {
+        "hora": "15:00",
+        "nota": "a meio da tarde",
+        "quantidade_ml": 350
+      },
+      {
+        "hora": "17:15",
+        "nota": "após lanche",
+        "quantidade_ml": 350
+      },
+      {
+        "hora": "18:45",
+        "nota": "antes do jantar, evitar excesso perto da refeição",
+        "quantidade_ml": 300
+      },
+      {
+        "hora": "21:00",
+        "nota": "após jantar",
+        "quantidade_ml": 300
+      },
+      {
+        "hora": "22:00",
+        "nota": "final do dia; em dias de obstipação, aumentar goles e fibra",
+        "quantidade_ml": 250
+      }
+    ],
+    "metas_diarias": {
+      "agua_ml": 2950,
+      "fibra_g": 27,
+      "kcal": 1500,
+      "proteina_g": 110
+    },
+    "racional": "Défice moderado (~1500 kcal) para progressão de 78kg para 65kg, com proteína a 1,4g/kg distribuída em 5 refeições pequenas e pouco gordas, adequadas ao efeito do GLP-1 (menos volume, sem fritos). Padrão tipo DASH com sal reduzido e mais potássio de vegetais/fruta pela tensão arterial elevada (MAPA confirma hipertensão); mais fibra solúvel, peixe azul e menos gordura saturada pelo LDL alto/HDL baixo; inclui fontes de vitamina D (peixe gordo, ovos) pela insuficiência detetada. Proteína mantida no limite inferior da faixa por ligeira elevação da ureia, com função renal normal (eGFR 80), evitando excesso de sal e proteína animal muito concentrada."
+  },
+  "previous": null,
+  "profile": "mae",
+  "version": 1,
+  "week_start": "2026-09-14"
+}

@@ -1232,6 +1232,139 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("genMsg").textContent = "Plano gerado ✓"; setTimeout(() => $("genMsg").textContent = "", 4000);
   }
 
+  // ============================================================
+  // Alimentos e macros calculados na página
+  // ============================================================
+  const FOODS = (window.NG_FOODS || []).map(([nome, kcal, prot, hc, gord, fibra, o = {}]) => ({
+    nome, kcal, prot, hc, gord, fibra, aliases: o.aliases || [], un: o.un || null, cs: o.cs ?? 12, cc: o.cc ?? 4, estado: o.estado || "",
+  }));
+  /** Índice: nome normalizado → alimento, com os nomes mais longos primeiro (para a busca por contenção). */
+  const FOOD_KEYS = (() => {
+    const list = [];
+    FOODS.forEach((f) => { [f.nome, ...f.aliases].forEach((a) => list.push({ k: norm(a), f })); });
+    list.sort((a, b) => b.k.length - a.k.length);
+    return list;
+  })();
+  const FOOD_EXACT = new Map(FOOD_KEYS.map((x) => [x.k, x.f]));
+
+  /** Reconhece um alimento pelo nome como vem no plano ("peito de frango grelhado (sem pele)"). */
+  function findFood(name) {
+    let n = norm(name).replace(/\([^)]*\)/g, " ").replace(/[,;:]/g, " ").replace(/\s+/g, " ").trim();
+    if (!n) return null;
+    if (FOOD_EXACT.has(n)) return FOOD_EXACT.get(n);
+    const padded = " " + n + " ";
+    for (const { k, f } of FOOD_KEYS) if (k.length >= 3 && padded.includes(" " + k + " ")) return f;
+    // singular/plural simples
+    const sing = n.replace(/s\b/g, "");
+    if (FOOD_EXACT.has(sing)) return FOOD_EXACT.get(sing);
+    return null;
+  }
+
+  /** Converte "130 g", "1,5 kg", "2 unidades", "4 c. sopa", "1 chávena", "q.b." em gramas. */
+  function gramsOf(qty, food) {
+    let q = norm(qty).replace(",", ".").replace(/½/g, "0.5").replace(/¼/g, "0.25").replace(/¾/g, "0.75").trim();
+    if (!q || /^(q\.?b\.?|a gosto|quanto baste)$/.test(q)) return 0;
+    const m = q.match(/^(\d+(?:\.\d+)?|\d+\/\d+)\s*(kg|g|gr|gramas?|ml|l|cl|dl|un|und|unid\.?|unidades?|pecas?|pecinhas?|fatias?|ovos?|c\.?\s?sopa|cs|colher(?:es)? de sopa|c\.?\s?cha|cc|colher(?:es)? de cha|colher(?:es)? de sobremesa|c\.?\s?sobremesa|chavenas?|copos?|conchas?|pratos?|scoops?|doses?|pitadas?|dentes?|latas?|iogurtes?)?\b/);
+    if (!m) return null;
+    let n = m[1].includes("/") ? (Number(m[1].split("/")[0]) / Number(m[1].split("/")[1])) : Number(m[1]);
+    if (!Number.isFinite(n)) return null;
+    const u = (m[2] || "").replace(/\s+/g, "").replace(/\./g, "");
+    const un = food?.un || 100;
+    if (["kg"].includes(u)) return n * 1000;
+    if (["g", "gr", "grama", "gramas", ""].includes(u)) return n;
+    if (u === "ml") return n;
+    if (u === "l") return n * 1000;
+    if (u === "cl") return n * 10;
+    if (u === "dl") return n * 100;
+    if (/^(un|und|unid|unidade|unidades|peca|pecas|pecinha|pecinhas|ovo|ovos|iogurte|iogurtes)$/.test(u)) return n * un;
+    if (/^(fatia|fatias)$/.test(u)) return n * (food?.un || 20);
+    if (/^(csopa|cs|colherdesopa|colheresdesopa)$/.test(u)) return n * (food?.cs ?? 12);
+    if (/^(ccha|cc|colherdecha|colheresdecha)$/.test(u)) return n * (food?.cc ?? 4);
+    if (/^(csobremesa|colherdesobremesa|colheresdesobremesa)$/.test(u)) return n * ((food?.cs ?? 12) * 0.66);
+    if (/^(chavena|chavenas)$/.test(u)) return n * 240;
+    if (/^(copo|copos)$/.test(u)) return n * 200;
+    if (/^(concha|conchas)$/.test(u)) return n * 150;
+    if (/^(prato|pratos)$/.test(u)) return n * 250;
+    if (/^(scoop|scoops|dose|doses)$/.test(u)) return n * (food?.un || 30);
+    if (/^(pitada|pitadas)$/.test(u)) return n * 0.5;
+    if (/^(dente|dentes)$/.test(u)) return n * 3;
+    if (/^(lata|latas)$/.test(u)) return n * (food?.un || 100);
+    return n;
+  }
+
+  /** Macros de uma refeição calculados pela tabela; cai nos valores do modelo quando a cobertura é baixa. */
+  function mealMacros(m) {
+    const rows = []; let tot = { kcal: 0, prot: 0, hc: 0, gord: 0, fibra: 0 }, gAll = 0, gHit = 0;
+    for (const it of m.itens || []) {
+      const f = findFood(it.alimento); const g = gramsOf(it.quantidade, f);
+      const ok = f && g !== null;
+      if (g) gAll += g;
+      if (ok) { gHit += g; ["kcal", "prot", "hc", "gord", "fibra"].forEach((k) => { tot[k] += f[k] * g / 100; }); }
+      rows.push({ ...it, food: f, g, ok });
+    }
+    const coverage = gAll ? gHit / gAll : 0;
+    const computed = rows.length > 0 && coverage >= 0.7;
+    const r = (v) => Math.round(v);
+    return computed
+      ? { kcal: r(tot.kcal), proteina_g: r(tot.prot), hidratos_g: r(tot.hc), gordura_g: r(tot.gord), fibra_g: Math.round(tot.fibra * 10) / 10, computed: true, coverage, rows }
+      : { kcal: r(m.kcal || 0), proteina_g: r(m.proteina_g || 0), hidratos_g: r(m.hidratos_g || 0), gordura_g: r(m.gordura_g || 0), fibra_g: Math.round((m.fibra_g || 0) * 10) / 10, computed: false, coverage, rows };
+  }
+  function dayMacros(day) {
+    return (day?.refeicoes || []).reduce((a, m) => { const x = mealMacros(m); return { kcal: a.kcal + x.kcal, proteina_g: a.proteina_g + x.proteina_g, hidratos_g: a.hidratos_g + x.hidratos_g, gordura_g: a.gordura_g + x.gordura_g, fibra_g: a.fibra_g + x.fibra_g }; }, { kcal: 0, proteina_g: 0, hidratos_g: 0, gordura_g: 0, fibra_g: 0 });
+  }
+
+  // ---------- editor de refeição à mão ----------
+  function openMealEditor(dayName, idx) {
+    const day = S.plan?.plan?.dias?.find((d) => d.dia === dayName); const meal = day?.refeicoes?.[idx];
+    if (!meal) return;
+    const wrap = document.createElement("div"); wrap.className = "modal";
+    const rowsHtml = (itens) => itens.map((it, i) => `<div class="edrow" data-i="${i}">
+        <input class="input" list="foodlist" value="${esc(it.alimento)}" placeholder="alimento" data-f="alimento">
+        <input class="input num" value="${esc(it.quantidade)}" placeholder="130 g" data-f="quantidade">
+        <button type="button" class="btn ghost sm" data-rm="${i}" aria-label="Remover">×</button>
+      </div>`).join("");
+    wrap.innerHTML = `<div class="box editor" role="dialog" aria-modal="true">
+      <div class="row between"><h2>${esc(meal.nome)} · ${esc(dayName)}</h2><button type="button" class="btn ghost sm" data-no>Fechar</button></div>
+      <div class="field"><label>Hora</label><input class="input num" id="ed_hora" value="${esc(meal.hora || "")}" style="width:110px"></div>
+      <div id="edrows">${rowsHtml(meal.itens || [])}</div>
+      <div class="row"><button type="button" class="btn sm" data-add>+ Item</button><span class="small muted" id="edtot"></span></div>
+      <p class="hint">Escreve a quantidade em gramas, ml, unidades ou colheres. Os macros são calculados pela tabela de alimentos; itens não reconhecidos ficam a cinzento.</p>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-no>Cancelar</button><button type="button" class="btn primary" data-save>Guardar refeição</button></div>
+    </div>`;
+    const readRows = () => [...wrap.querySelectorAll(".edrow")].map((r) => ({ alimento: r.querySelector('[data-f="alimento"]').value.trim(), quantidade: r.querySelector('[data-f="quantidade"]').value.trim() })).filter((x) => x.alimento);
+    const refresh = () => {
+      const mm = mealMacros({ itens: readRows() });
+      wrap.querySelectorAll(".edrow").forEach((r, i) => { r.classList.toggle("unknown", !mm.rows[i]?.ok); });
+      $("edtot").textContent = mm.rows.length ? `${mm.kcal} kcal · ${mm.proteina_g} g proteína · ${mm.hidratos_g} g hidratos · ${mm.gordura_g} g gordura · ${mm.fibra_g} g fibra${mm.computed ? "" : " (cobertura insuficiente: ficam os valores anteriores)"}` : "";
+    };
+    wrap.addEventListener("input", refresh);
+    wrap.addEventListener("click", async (e) => {
+      if (e.target === wrap || e.target.closest("[data-no]")) { wrap.remove(); return; }
+      const rm = e.target.closest("[data-rm]"); if (rm) { rm.closest(".edrow").remove(); refresh(); return; }
+      if (e.target.closest("[data-add]")) { $("edrows").insertAdjacentHTML("beforeend", rowsHtml([{ alimento: "", quantidade: "" }])); $("edrows").lastElementChild.querySelector("input").focus(); return; }
+      if (e.target.closest("[data-save]")) {
+        const itens = readRows(); if (itens.length === 0) return;
+        const novo = normMeal({ ...meal, hora: $("ed_hora").value.trim(), itens: itens.map((it) => { const old = (meal.itens || []).find((o) => norm(o.alimento) === norm(it.alimento)); const f = findFood(it.alimento); return { alimento: it.alimento, quantidade: it.quantidade, estado: old?.estado || f?.estado || "", medida_caseira: old?.medida_caseira || "", grupo: old?.grupo || guessGroup(f) }; }) });
+        const mm = mealMacros(novo);
+        if (mm.computed) Object.assign(novo, { kcal: mm.kcal, proteina_g: mm.proteina_g, hidratos_g: mm.hidratos_g, gordura_g: mm.gordura_g, fibra_g: mm.fibra_g });
+        const plan = JSON.parse(JSON.stringify(S.plan.plan));
+        plan.dias.find((d) => d.dia === dayName).refeicoes[idx] = novo;
+        S.plan = { ...S.plan, plan, previous: S.plan.plan, version: (S.plan.version || 1) + 1, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: `${meal.nome} de ${dayName} editada à mão` }].slice(-20) };
+        wrap.remove(); await savePlan();
+      }
+    });
+    document.body.appendChild(wrap); refresh();
+  }
+  function guessGroup(f) {
+    if (!f) return "";
+    if (f.prot >= 10 && f.hc < 15 && !/iogurte|queijo|leite|skyr|requeij|kefir/.test(f.nome)) return "proteina";
+    if (/iogurte|queijo|leite|skyr|requeij|kefir|bebida/.test(f.nome)) return "lacticinio";
+    if (f.gord >= 30) return "gordura";
+    if (/fruta|maçã|pera|banana|laranja|kiwi|morango|mirtilo|uva|pêssego|ameixa|melancia|melão|figo|manga|abacate|tangerina|framboesa/.test(f.nome)) return "fruta";
+    if (f.hc >= 15) return "hidratos";
+    return "legumes";
+  }
+
   function normMeal(m) {
     return {
       nome: String(m.nome || "Refeição"), hora: String(m.hora || ""),
@@ -1258,9 +1391,10 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const today = todayDayName();
     $("planDays").innerHTML = DAYS.map((d) => `<button type="button" data-day="${d}" aria-pressed="${d === S.planDay}" class="${d === today ? "today" : ""}">${d.charAt(0).toUpperCase() + d.slice(1, 3)}${d === today ? " · hoje" : ""}</button>`).join("");
     const day = pl.dias.find((x) => x.dia === S.planDay) || { refeicoes: [] };
-    $("planMealsList").innerHTML = day.refeicoes.length === 0 ? `<p class="muted small">Sem refeições neste dia.</p>` : day.refeicoes.map((m) => mealHtml(m)).join("");
-    const tot = day.refeicoes.reduce((a, m) => ({ k: a.k + (m.kcal || 0), p: a.p + (m.proteina_g || 0), f: a.f + (m.fibra_g || 0) }), { k: 0, p: 0, f: 0 });
-    $("dayTotals").textContent = `Total do dia: ~${Math.round(tot.k)} kcal · ${Math.round(tot.p)} g proteína · ${Math.round(tot.f)} g fibra`;
+    $("planMealsList").innerHTML = day.refeicoes.length === 0 ? `<p class="muted small">Sem refeições neste dia.</p>` : day.refeicoes.map((m, i) => mealHtml({ ...m, _day: S.planDay, _idx: i })).join("");
+    const tot = dayMacros(day); const t0 = pl.metas_diarias || {};
+    const vs = (v, goal) => goal ? ` <span class="muted">/ ${Math.round(goal)}</span>` : "";
+    $("dayTotals").innerHTML = `Total do dia: <strong class="num">${Math.round(tot.kcal)}</strong> kcal${vs(tot.kcal, t0.kcal)} · <strong class="num">${Math.round(tot.proteina_g)}</strong> g proteína${vs(tot.proteina_g, t0.proteina_g)} · <strong class="num">${Math.round(tot.fibra_g)}</strong> g fibra${vs(tot.fibra_g, t0.fibra_g)}`;
     $("undoPlan").hidden = !S.plan.previous;
     // água ao longo do dia
     const h = pl.hidratacao || [];
@@ -1390,8 +1524,10 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const why = !compact && m.porque ? `<div class="prep">💡 ${esc(m.porque)}</div>` : "";
     const alts = !compact && (m.alternativas || []).length
       ? `<div class="alts">Trocas: ${m.alternativas.map((a) => `<b>${esc(a.em_vez_de)}</b> → ${esc(a.trocar_por)}`).join(" · ")}</div>` : "";
-    const macros = `${m.kcal ? `${Math.round(m.kcal)} kcal · ` : ""}${Math.round(m.proteina_g || 0)} g prot · ${Math.round(m.fibra_g || 0)} g fibra${m.hidratos_g ? ` · ${Math.round(m.hidratos_g)} g HC` : ""}`;
-    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${prep}${why}${alts}</div>`;
+    const mm = mealMacros(m);
+    const macros = `${mm.kcal ? `${mm.kcal} kcal · ` : ""}${mm.proteina_g} g prot · ${mm.fibra_g} g fibra${mm.hidratos_g ? ` · ${mm.hidratos_g} g HC` : ""}${mm.computed ? "" : ' <span title="Valores estimados pelo assistente; itens sem correspondência na tabela">~</span>'}`;
+    const tools = !compact && m._day !== undefined ? `<div class="row" style="gap:4px"><button type="button" class="btn ghost sm" data-editmeal="${esc(m._day)}|${m._idx}">✎ Editar</button></div>` : "";
+    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${prep}${why}${alts}${tools}</div>`;
   }
   function renderTodayMeals() {
     const el = $("todayMeals"); if (!el) return;
@@ -1502,7 +1638,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       calculos_de_referencia: planTargets(p),
       tensao_arterial: bpSummary(),
       documentos_de_saude: S.docs.slice(-6).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
-      plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, hidratacao: S.plan.plan.hidratacao || [], dias: S.plan.plan.dias } : null,
+      plano_alimentar: S.plan?.plan ? { versao: S.plan.version, semana: S.plan.week_start, metas_diarias: S.plan.plan.metas_diarias, hidratacao: S.plan.plan.hidratacao || [], dias: S.plan.plan.dias.map((d) => ({ dia: d.dia, totais_calculados: dayMacros(d), refeicoes: d.refeicoes.map((m) => ({ nome: m.nome, hora: m.hora, ordem: m.ordem, itens: m.itens.map((i) => `${i.alimento} ${i.quantidade}`), ...(({ kcal, proteina_g, hidratos_g, fibra_g }) => ({ kcal, proteina_g, hidratos_g, fibra_g }))(mealMacros(m)) })) })) } : null,
       fora_do_plano_hoje: (S.plan?.extras || []).filter((x) => x.date === localDate()).map(({ descricao, kcal, proteina_g }) => ({ descricao, kcal, proteina_g })),
       dia_da_semana_hoje: todayDayName(),
     };
@@ -1684,11 +1820,12 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach],[data-editmeal]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
     if (t.dataset.sub) { setSub(t.dataset.sub); return; }
+    if (t.dataset.editmeal) { const [d, i] = t.dataset.editmeal.split("|"); openMealEditor(d, +i); return; }
     if (t.dataset.attach !== undefined) { setView("chat"); $("fileInput").click(); return; }
     if (t.dataset.goto) { ev.preventDefault(); setView(t.dataset.goto); return; }
     if (t.dataset.ml) { t.disabled = true; try { await addWater(t.dataset.ml); } finally { t.disabled = false; } return; }
@@ -1841,6 +1978,9 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Arranque
   // ============================================================
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
+  { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
+  // gancho para os testes automáticos (não usado pela app)
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

@@ -24,6 +24,7 @@
     adherence: {},         // adesão por dia: { "YYYY-MM-DD": { "<refeição>": { status, texto, at } } }
     symptoms: {},          // sintomas por dia: { "YYYY-MM-DD": { nauseas, vomitos, transito, energia, apetite, dor_intensa, sem_liquidos, at } }
     reviews: [],           // revisões semanais [{week_start, texto, propostas, at}]
+    prefs: [],             // gostei/não gostei por refeição [{id, at, dia, refeicao, itens, voto}]
     otherFor: null,        // refeição para a qual se está a escrever "comi outra coisa"
     body: [],              // composição corporal [{id, date, weight_kg, fat_pct, muscle_kg, water_pct, visceral, bone_kg, notes}]
     bodyPick: "weight_kg",
@@ -105,7 +106,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {}, adherence: {}, symptoms: {}, reviews: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {}, adherence: {}, symptoms: {}, reviews: {}, prefs: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -175,6 +176,11 @@
     await write(`docs/${S.pid}`, { profile: S.pid, entries: S.docs }, mem.docs, S.pid);
     renderDocs();
   }
+  async function savePrefs() {
+    S.prefs = S.prefs.slice(-80);
+    await write(`prefs/${S.pid}`, { profile: S.pid, entries: S.prefs }, mem.prefs, S.pid);
+    renderPlan();
+  }
   async function savePlan() {
     S.plans = { ...S.plans, [S.pid]: { ...S.plan, profile: S.pid } };
     await write(`plans/${S.pid}`, { ...S.plan, profile: S.pid }, mem.plans, S.pid);
@@ -189,13 +195,13 @@
 
   function subscribeProfile() {
     unsubscribeAll();
-    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = []; S.edit = { body: null, lab: null, bp: null }; S.adherence = {}; S.symptoms = {}; S.reviews = []; S.otherFor = null;
+    S.water = new Map(); S.chat = []; S.weights = []; S.labs = []; S.plan = null; S.planDay = null; S.labPick = null; S.vitals = []; S.docs = []; S.rules = []; S.body = []; S.attachments = []; S.edit = { body: null, lab: null, bp: null }; S.adherence = {}; S.symptoms = {}; S.reviews = []; S.prefs = []; S.otherFor = null;
     const from = addDays(localDate(), -29);
     if (!S.db) {
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
       S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
-      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || [];
+      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || [];
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -227,6 +233,9 @@
     S.unsub.push(S.db.doc(`reviews/${S.pid}`).onSnapshot((snap) => {
       S.reviews = snap.exists ? (thaw(snap.data().entries) || []) : []; renderHome();
     }, (e) => console.warn("reviews", e)));
+    S.unsub.push(S.db.doc(`prefs/${S.pid}`).onSnapshot((snap) => {
+      S.prefs = snap.exists ? (thaw(snap.data().entries) || []) : []; renderPlan();
+    }, (e) => console.warn("prefs", e)));
     S.unsub.push(S.db.doc(`body/${S.pid}`).onSnapshot((snap) => {
       S.body = snap.exists ? (thaw(snap.data().entries) || []) : [];
       if (document.activeElement?.form?.id !== "bodyForm" && !S.edit.body) renderBody();
@@ -1103,6 +1112,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       adesao_ultimos_14_dias: adherenceSummary(14),
       sintomas_ultimos_14_dias: symptomsSummary(14),
       ultima_revisao_semanal: S.reviews.length ? S.reviews[S.reviews.length - 1] : null,
+      preferencias_registadas: prefsSummary(),
     });
   }
   /** Resumo da composição corporal para o assistente e para o plano. */
@@ -1318,11 +1328,8 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("genPlan").disabled = true; $("regenPlan").disabled = true; $("genProgress").hidden = false;
     const bar = $("genProgress").firstElementChild;
     const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
-    const ctx = planPromptContext();
-    const rules = S.rules.length
-      ? `REGRAS OBRIGATÓRIAS DESTA PESSOA — tens de as cumprir em todos os dias e refeições, e depois declarar em "regras_aplicadas" onde cada uma foi aplicada:\n${S.rules.map((r, i) => `${i + 1}. ${r.texto}`).join("\n")}\n\nSe alguma regra entrar em conflito com a base clínica, cumpre a regra e explica o ajuste no racional.`
-      : `A pessoa ainda não definiu regras próprias.`;
-    const head = `És nutricionista e estás a preparar um plano alimentar para uma app familiar privada, em português de Portugal.\n\n${rules}\n\n${PLAN_KNOWLEDGE}\n\nDADOS DA PESSOA (JSON):\n${ctx}`;
+    const align = alignDinnersWanted() ? otherProfileId() : null;
+    const head = planHead(align);
     const ask = (prompt, msg, pct, tier) => { step(pct, msg); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
 
     let err = null, plan = null;
@@ -1369,6 +1376,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
         lista_compras: compras.map((c) => ({ categoria: String(c.categoria || ""), itens: (c.itens || []).map((x) => typeof x === "string" ? x : { alimento: String(x.alimento || ""), quantidade: String(x.quantidade || "") }) })).filter((c) => c.categoria),
         hidratacao: hidr,
         dias,
+        ...(align ? { jantares_alinhados_com: align } : {}),
       };
     } catch (e) { err = e; }
 
@@ -1386,6 +1394,108 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     S.planDay = todayDayName();
     await savePlan();
     $("genMsg").textContent = "Plano gerado ✓"; setTimeout(() => $("genMsg").textContent = "", 4000);
+  }
+
+  // ---------- cabeçalho comum dos pedidos de plano, dia e refeição ----------
+  function planHead(alignWith) {
+    const ctx = planPromptContext();
+    const rules = S.rules.length
+      ? `REGRAS OBRIGATÓRIAS DESTA PESSOA — tens de as cumprir em todos os dias e refeições, e depois declarar em "regras_aplicadas" onde cada uma foi aplicada:\n${S.rules.map((r, i) => `${i + 1}. ${r.texto}`).join("\n")}\n\nSe alguma regra entrar em conflito com a base clínica, cumpre a regra e explica o ajuste no racional.`
+      : `A pessoa ainda não definiu regras próprias.`;
+    const prefs = prefsSummary();
+    const prefTxt = prefs ? `\n\nPREFERÊNCIAS REGISTADAS NA APP (gostei / não gostei em refeições anteriores):\n${JSON.stringify(prefs)}\nRepete o estilo do que gostou e não voltes a propor o que não gostou.` : "";
+    const dinners = alignWith ? otherDinners(alignWith) : [];
+    const alignTxt = dinners.length
+      ? `\n\nJANTARES ALINHADOS COM ${nameOf(alignWith).toUpperCase()} (vivem e cozinham juntas): o jantar de cada dia deve ter a mesma base (mesma proteína, mesmos legumes, mesma confeção) que o jantar de ${nameOf(alignWith)} nesse dia, ajustando apenas as quantidades e o que as regras, alergias e metas desta pessoa exigirem. Jantares de ${nameOf(alignWith)} por dia:\n${JSON.stringify(dinners)}`
+      : "";
+    return `És nutricionista e estás a preparar um plano alimentar para uma app familiar privada, em português de Portugal.\n\n${rules}${prefTxt}${alignTxt}\n\n${PLAN_KNOWLEDGE}\n\nDADOS DA PESSOA (JSON):\n${ctx}`;
+  }
+  /** A estrutura de um plano já existente, no formato que os pedidos por dia e por refeição esperam. */
+  function frameOf(pl) {
+    return JSON.stringify({ metas_diarias: pl.metas_diarias || {}, estrutura_do_dia: (pl.dias?.[0]?.refeicoes || []).map((m) => ({ nome: m.nome, hora: m.hora })), principios: pl.principios || [], regras_aplicadas: pl.regras_aplicadas || [] });
+  }
+  const nameOf = (id) => S.profiles[id]?.name || DEFAULT_NAMES[id];
+  const otherProfileId = () => PROFILE_IDS.find((id) => id !== S.pid) || null;
+  /** Jantares do plano do outro perfil, dia a dia, para alinhar as refeições em comum. */
+  function otherDinners(pid) {
+    const dias = S.plans?.[pid]?.plan?.dias || [];
+    return dias.map((d) => {
+      const m = (d.refeicoes || []).find((x) => /jantar/.test(norm(x.nome)));
+      if (!m) return null;
+      return { dia: d.dia, refeicao: m.nome, itens: (m.itens || []).map((i) => typeof i === "string" ? i : `${i.alimento} ${i.quantidade || ""}`.trim()) };
+    }).filter(Boolean);
+  }
+  const alignDinnersWanted = () => !!(($("alignDinners")?.checked) || ($("alignDinners2")?.checked));
+  function renderAlignOption() {
+    const other = otherProfileId(); const has = other && otherDinners(other).length > 0;
+    ["alignWrap", "alignWrap2"].forEach((id) => { const el = $(id); if (el) el.hidden = !has; });
+    ["alignName", "alignName2"].forEach((id) => { const el = $(id); if (el && other) el.textContent = nameOf(other); });
+  }
+
+  // ---------- preferências (gostei / não gostei) ----------
+  const mealKey = (m) => `${norm(m.nome)}|${(m.itens || []).map((i) => norm(i.alimento)).join(",")}`;
+  function prefOf(m) { const k = mealKey(m); return [...S.prefs].reverse().find((p) => p.key === k) || null; }
+  async function votePref(dayName, idx, voto) {
+    const meal = S.plan?.plan?.dias?.find((d) => d.dia === dayName)?.refeicoes?.[idx]; if (!meal) return;
+    const key = mealKey(meal); const cur = prefOf(meal);
+    S.prefs = S.prefs.filter((p) => p.key !== key);
+    if (!(cur && cur.voto === voto)) S.prefs = [...S.prefs, { id: uid(), at: new Date().toISOString(), key, dia: dayName, refeicao: meal.nome, itens: (meal.itens || []).map((i) => `${i.alimento} ${i.quantidade}`.trim()).join(", "), voto }];
+    await savePrefs();
+  }
+  /** Resumo das preferências para os prompts: o que gostou e o que não gostou, sem repetições. */
+  function prefsSummary() {
+    if (!S.prefs.length) return null;
+    const pick = (v) => [...new Map(S.prefs.filter((p) => p.voto === v).map((p) => [p.key, `${p.refeicao}: ${p.itens}`])).values()].slice(-15);
+    return { gostei: pick(1), nao_gostei: pick(-1) };
+  }
+
+  // ---------- regenerar só um dia / trocar só uma refeição ----------
+  async function partialAsk(prompt, msg, tier) {
+    if (!S.sample) { $("planNote").hidden = false; $("planNote").textContent = "Esta operação só funciona com a página aberta no claude.ai."; return null; }
+    const ctl = new AbortController(); S.generating = ctl;
+    $("regenPlan").disabled = true; $("genMsg").textContent = msg;
+    document.querySelectorAll("[data-swapmeal],[data-regenday]").forEach((b) => { b.disabled = true; });
+    try { return await S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); }
+    catch (e) {
+      if (e?.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = ERR_COPY[e?.code] || "Não foi possível pedir ao assistente. Tenta outra vez."; S.diag.lastErr = `plano parcial: ${e?.code || e?.message}`; renderDiag(); }
+      return null;
+    } finally { S.generating = null; $("regenPlan").disabled = false; $("genMsg").textContent = ""; document.querySelectorAll("[data-swapmeal],[data-regenday]").forEach((b) => { b.disabled = false; }); }
+  }
+  function commitPlan(plan, what) {
+    S.plan = { ...S.plan, plan, previous: S.plan.plan, version: (S.plan.version || 1) + 1, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: what }].slice(-20) };
+    return savePlan();
+  }
+  async function regenerateDay(dayName) {
+    const pl = S.plan?.plan; if (!pl) return;
+    const outros = pl.dias.filter((d) => d.dia !== dayName).map((d) => ({ dia: d.dia, refeicoes: (d.refeicoes || []).map((m) => (m.itens || []).map((x) => x.alimento).join(", ")) }));
+    const atual = pl.dias.find((d) => d.dia === dayName);
+    const dislikes = (prefsSummary()?.nao_gostei || []);
+    const prompt = `${planHead(pl.jantares_alinhados_com || null)}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameOf(pl)}\n\nOs outros dias mantêm-se, não repitas as mesmas refeições:\n${JSON.stringify(outros)}\n\nO dia atual era este e a pessoa pediu para o refazer (propõe refeições diferentes, respeitando as regras, as preferências e a adesão registada${dislikes.length ? "; evita sobretudo o que não gostou" : ""}):\n${JSON.stringify(atual)}\n\nEscreve as refeições completas destes dias: ${dayName}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação e pelo menos uma alternativa. Os totais do dia têm de bater certo com as metas.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`;
+    const res = await partialAsk(prompt, `A refazer ${dayName}…`);
+    if (!res) return;
+    const got = Array.isArray(res?.dias) ? res.dias : [];
+    const f = got.find((x) => norm(x.dia) === norm(dayName)) || got[0];
+    const refeicoes = ((f && f.refeicoes) || []).map(normMeal);
+    if (refeicoes.length === 0) { $("planNote").hidden = false; $("planNote").textContent = "O dia veio incompleto. Tenta outra vez."; return; }
+    const plan = JSON.parse(JSON.stringify(pl));
+    const di = plan.dias.findIndex((d) => d.dia === dayName);
+    if (di >= 0) plan.dias[di] = { dia: dayName, refeicoes }; else plan.dias.push({ dia: dayName, refeicoes });
+    await commitPlan(plan, `${dayName} refeita`);
+  }
+  async function swapMeal(dayName, idx) {
+    const pl = S.plan?.plan; const day = pl?.dias?.find((d) => d.dia === dayName); const meal = day?.refeicoes?.[idx]; if (!meal) return;
+    const resto = day.refeicoes.filter((_, i) => i !== idx).map((m) => ({ nome: m.nome, hora: m.hora, itens: (m.itens || []).map((x) => `${x.alimento} ${x.quantidade}`) }));
+    const semana = pl.dias.filter((d) => d.dia !== dayName).map((d) => { const m = (d.refeicoes || []).find((x) => norm(x.nome) === norm(meal.nome)); return m ? `${d.dia}: ${(m.itens || []).map((x) => x.alimento).join(", ")}` : null; }).filter(Boolean);
+    const align = pl.jantares_alinhados_com && /jantar/.test(norm(meal.nome)) ? pl.jantares_alinhados_com : null;
+    const prompt = `${planHead(align)}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameOf(pl)}\n\nAs outras refeições de ${dayName} mantêm-se:\n${JSON.stringify(resto)}\n\nA mesma refeição nos outros dias da semana (não repitas):\n${JSON.stringify(semana)}\n\nSUBSTITUI apenas esta refeição por outra diferente, com a mesma hora, o mesmo papel no dia e macros equivalentes (±10 %), respeitando as regras e preferências:\n${JSON.stringify(meal)}\n\nResponde APENAS com JSON válido nesta forma: {"refeicao": ${DAY_SCHEMA.split('"refeicoes":[')[1].split("]}]}")[0]}}`;
+    const res = await partialAsk(prompt, `A trocar ${meal.nome} de ${dayName}…`, "quick");
+    if (!res) return;
+    const raw = res?.refeicao || (Array.isArray(res?.dias) ? res.dias[0]?.refeicoes?.[0] : null) || (res?.itens ? res : null);
+    if (!raw || !(raw.itens || []).length) { $("planNote").hidden = false; $("planNote").textContent = "A refeição veio incompleta. Tenta outra vez."; return; }
+    const novo = normMeal({ ...raw, nome: raw.nome || meal.nome, hora: raw.hora || meal.hora });
+    const plan = JSON.parse(JSON.stringify(pl));
+    plan.dias.find((d) => d.dia === dayName).refeicoes[idx] = novo;
+    await commitPlan(plan, `${meal.nome} de ${dayName} trocada`);
   }
 
   // ============================================================
@@ -1537,6 +1647,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     renderShopping();
     $("planEmpty").hidden = has; $("planBody").hidden = !has;
     $("planBody").style.display = has ? "flex" : "none";
+    renderAlignOption();
     if (!has) { $("planMeta").textContent = "Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo de peso."; return; }
     const pl = S.plan.plan; const t = pl.metas_diarias || {};
     $("planMeta").textContent = `Versão ${S.plan.version} · semana de ${S.plan.week_start}${S.plan.changelog?.length > 1 ? ` · último ajuste: ${S.plan.changelog[S.plan.changelog.length - 1].o_que}` : ""}`;
@@ -1550,6 +1661,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("planMealsList").innerHTML = day.refeicoes.length === 0 ? `<p class="muted small">Sem refeições neste dia.</p>` : day.refeicoes.map((m, i) => mealHtml({ ...m, _day: S.planDay, _idx: i })).join("");
     const tot = dayMacros(day); const t0 = pl.metas_diarias || {};
     const vs = (v, goal) => goal ? ` <span class="muted">/ ${Math.round(goal)}</span>` : "";
+    { const b = $("regenDay"); if (b) { b.dataset.regenday = S.planDay; b.textContent = `⟳ Refazer ${S.planDay}`; } }
     $("dayTotals").innerHTML = `Total do dia: <strong class="num">${Math.round(tot.kcal)}</strong> kcal${vs(tot.kcal, t0.kcal)} · <strong class="num">${Math.round(tot.proteina_g)}</strong> g proteína${vs(tot.proteina_g, t0.proteina_g)} · <strong class="num">${Math.round(tot.fibra_g)}</strong> g fibra${vs(tot.fibra_g, t0.fibra_g)}`;
     $("undoPlan").hidden = !S.plan.previous;
     // água ao longo do dia
@@ -1642,7 +1754,6 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     card.hidden = withList.length === 0 && prep0.length === 0;
     if (card.hidden) return;
 
-    const nameOf = (id) => S.profiles[id]?.name || DEFAULT_NAMES[id];
     if (!S.shopWho || (S.shopWho !== "todos" && !withList.includes(S.shopWho))) S.shopWho = withList.includes(S.pid) ? S.pid : (withList[0] || S.pid);
     $("shopWho").innerHTML = withList.length > 1
       ? [...withList.map((id) => ({ v: id, t: nameOf(id) })), { v: "todos", t: "As duas" }]
@@ -1702,7 +1813,8 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       ? `<div class="alts">Trocas: ${m.alternativas.map((a) => `<b>${esc(a.em_vez_de)}</b> → ${esc(a.trocar_por)}`).join(" · ")}</div>` : "";
     const mm = mealMacros(m);
     const macros = `${mm.kcal ? `${mm.kcal} kcal · ` : ""}${mm.proteina_g} g prot · ${mm.fibra_g} g fibra${mm.hidratos_g ? ` · ${mm.hidratos_g} g HC` : ""}${mm.computed ? "" : ' <span title="Valores estimados pelo assistente; itens sem correspondência na tabela">~</span>'}`;
-    const tools = !compact && m._day !== undefined ? `<div class="row" style="gap:4px"><button type="button" class="btn ghost sm" data-editmeal="${esc(m._day)}|${m._idx}">✎ Editar</button></div>` : "";
+    const pref = !compact && m._day !== undefined ? prefOf(m) : null;
+    const tools = !compact && m._day !== undefined ? `<div class="row tools" style="gap:4px"><button type="button" class="btn ghost sm" data-editmeal="${esc(m._day)}|${m._idx}">✎ Editar</button><button type="button" class="btn ghost sm" data-swapmeal="${esc(m._day)}|${m._idx}" title="Pedir outra refeição para este momento">⟳ Trocar</button><span class="likes"><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|1" aria-pressed="${pref?.voto === 1}" title="Gostei">👍</button><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|-1" aria-pressed="${pref?.voto === -1}" title="Não gostei">👎</button></span></div>` : "";
     return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${prep}${why}${alts}${tools}</div>`;
   }
   function renderTodayMeals() {
@@ -1819,6 +1931,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       fora_do_plano_hoje: (S.plan?.extras || []).filter((x) => x.date === localDate()).map(({ descricao, kcal, proteina_g }) => ({ descricao, kcal, proteina_g })),
       adesao_ultimos_7_dias: adherenceSummary(7),
       sintomas_ultimos_7_dias: symptomsSummary(7),
+      preferencias_registadas: prefsSummary(),
       ciclo_da_injecao: cycleInfo(p) ? { dia: cycleInfo(p).d, fase: cycleInfo(p).light ? "dias 0-2, versão leve" : "dias 3-6, melhor tolerância" } : null,
       dia_da_semana_hoje: todayDayName(),
     };
@@ -2000,7 +2113,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-shopwho],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday]");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -2014,6 +2127,9 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       return;
     }
     if (t.dataset.editmeal) { const [d, i] = t.dataset.editmeal.split("|"); openMealEditor(d, +i); return; }
+    if (t.dataset.like) { const [d, i, v] = t.dataset.like.split("|"); await votePref(d, +i, +v); return; }
+    if (t.dataset.swapmeal) { if (S.generating) return; const [d, i] = t.dataset.swapmeal.split("|"); await swapMeal(d, +i); return; }
+    if (t.dataset.regenday) { if (S.generating) return; await regenerateDay(t.dataset.regenday); return; }
     if (t.dataset.attach !== undefined) { setView("chat"); $("fileInput").click(); return; }
     if (t.dataset.goto) { ev.preventDefault(); setView(t.dataset.goto); return; }
     if (t.dataset.ml) { t.disabled = true; try { await addWater(t.dataset.ml); } finally { t.disabled = false; } return; }
@@ -2174,7 +2290,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

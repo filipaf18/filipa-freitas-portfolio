@@ -270,6 +270,7 @@
     <div id="planEmpty" class="card lift">
       <h2>Ainda não há plano</h2>
       <p class="muted small">Preenche o perfil (peso, altura, GLP-1, regras alimentares) e as análises que tiveres. Depois gera o plano: são quatro pedidos ao Claude, entre 2 e 5 minutos. O resultado traz metas, princípios, horário de água, refeições com ordem de ingestão e medidas caseiras, trocas, dias difíceis e lista de compras.</p>
+      <label class="check small" id="alignWrap" hidden><input type="checkbox" id="alignDinners"> Alinhar os jantares com o plano de <strong id="alignName"></strong> (cozinham juntas)</label>
       <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button></div>
       <div class="progress" id="genProgress" hidden><div></div></div>
     </div>
@@ -311,15 +312,17 @@
       </div>
       <div class="card lift">
         <div class="days" id="planDays"></div>
+        <div class="row between" style="margin:6px 0 2px"><span class="small muted">Não gostas deste dia? Refaz só este, o resto da semana fica igual.</span><button class="btn ghost sm" id="regenDay">⟳ Refazer dia</button></div>
         <div id="planMealsList"></div>
         <p class="small muted num" id="dayTotals"></p>
       </div>
+      <label class="check small" id="alignWrap2" hidden><input type="checkbox" id="alignDinners2"> Ao gerar de novo, alinhar os jantares com o plano de <strong id="alignName2"></strong></label>
       <div class="row">
         <button class="btn" id="regenPlan">Gerar novo plano</button>
         <button class="btn ghost sm" id="undoPlan" hidden>Repor versão anterior</button>
         <span class="small muted" id="genMsg"></span>
       </div>
-      <p class="small muted">Para ajustar refeições concretas, usa o <a href="#" data-goto="chat">chat</a>: "troca o jantar de terça", "hoje tive náuseas, aligeira amanhã", "comi um pastel de nata ao lanche". O plano atualiza-se aqui.</p>
+      <p class="small muted">Em cada refeição podes <strong>editar</strong> à mão, <strong>trocar</strong> por outra ou marcar 👍/👎: o que gostas e não gostas fica guardado e entra nos próximos planos. Para pedidos livres, usa o <a href="#" data-goto="chat">chat</a>: "troca o jantar de terça", "hoje tive náuseas, aligeira amanhã", "comi um pastel de nata ao lanche". O plano atualiza-se aqui.</p>
     </div>
   </section>
 

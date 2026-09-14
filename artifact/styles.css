@@ -371,3 +371,10 @@
   .kv dt { color: var(--muted); }
   .kv dd { margin: 0; font-weight: 600; }
   footer { max-width: 760px; margin: 0 auto; padding: 0 16px 32px; }
+
+  /* preferências e ferramentas por refeição */
+  .meal .tools { align-items: center; }
+  .meal .likes { display: inline-flex; gap: 2px; margin-left: auto; }
+  .meal .likes [aria-pressed="true"] { background: var(--accent-soft, rgba(37, 99, 235, 0.12)); border-color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+  .check input { margin-top: 3px; }

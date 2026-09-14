@@ -23,6 +23,7 @@ export const PLAN_JSON = `
     hidratacao: [{ hora: "07:30", quantidade_ml: 250, nota: "ao acordar" }, { hora: "10:00", quantidade_ml: 250, nota: "entre refeições" }, { hora: "15:00", quantidade_ml: 300, nota: "meio da tarde" }],
     dias_dificeis: { nauseas: ["caldo morno"], obstipacao: ["+300 ml água"], fora_de_casa: ["método do prato"] },
     preparacao_antecipada: ["Domingo: cozer 600 g de frango"] }; }
+  if (t.includes("SUBSTITUI apenas esta refeição")) { window.__swapCount = (window.__swapCount || 0) + 1; const m = ${JSON.stringify(MEAL("Jantar", "19:30", 400, 35))}; m.itens[1].alimento = "pescada cozida"; m.itens[1].quantidade = "160 g"; return { refeicao: m }; }
   if (t.includes("lista de compras")) return { lista_compras: [{ categoria: "Proteína", itens: [{ alimento: "peito de frango", quantidade: "900 g" }] }] };
   const m = t.match(/destes dias: ([^\\n.]+)/);
   if (m) return { dias: m[1].split(", ").map(day) };

@@ -74,7 +74,8 @@
     edit: { body: null, lab: null, bp: null },
     attachments: [],       // ficheiros escolhidos no chat (File)
     imageLimits: null,
-    diag: { sample: null, images: null, tools: null, db: null, saveErr: "", lastErr: "", step: "arranque" },
+    diag: { sample: null, images: null, tools: null, db: null, saveErr: "", lastErr: "", lastTools: "", step: "arranque" },
+    estimating: false,     // a estimar macros de "comi outra coisa"
     plan: null,            // {week_start, version, plan:{...}, previous, changelog}
     planDay: null,
     labPick: null,
@@ -268,6 +269,7 @@
     }, (e) => console.warn("vitals", e)));
     S.unsub.push(S.db.doc(`adherence/${S.pid}`).onSnapshot((snap) => {
       S.adherence = snap.exists ? (thaw(snap.data().days) || {}) : {}; renderHome();
+      if (S.sample) estimateOthers().catch((e) => console.warn("estimar", e));
     }, (e) => console.warn("adherence", e)));
     S.unsub.push(S.db.doc(`symptoms/${S.pid}`).onSnapshot((snap) => {
       S.symptoms = snap.exists ? (thaw(snap.data().days) || {}) : {}; renderHome();
@@ -471,6 +473,32 @@
     if (status === null) delete day[mealName]; else day[mealName] = { status, ...(texto ? { texto } : {}), ...(Array.isArray(itens) ? { itens } : {}), at: new Date().toISOString() };
     S.adherence = { ...S.adherence, [localDate()]: day };
     await saveAdherence();
+    if (status === "outro" && texto) estimateOthers().catch((e) => console.warn("estimar", e));
+  }
+  /**
+   * "Comi outra coisa" com texto: um pedido rápido estima os macros do que a pessoa escreveu, para
+   * Hoje contar com isso. Fica gravado na adesão (kcal, proteína…, estimado: true); uma só tentativa por registo.
+   */
+  async function estimateOthers() {
+    if (!S.sample || S.estimating) return false;
+    const date = localDate(); const day = todayAdherence();
+    const pend = Object.entries(day).filter(([, a]) => a.status === "outro" && a.texto && a.kcal == null && !a.est_at);
+    if (!pend.length) return false;
+    S.estimating = true;
+    try {
+      for (const [nome, a] of pend) {
+        let est = null;
+        try {
+          est = await S.sample.json(`Estima os macros do que esta pessoa comeu numa refeição (${nome}), a partir do que escreveu, em português de Portugal. Usa porções médias portuguesas quando não houver quantidade; num intervalo ("100-120 g") usa o meio. Ignora frases que não sejam comida.\nTEXTO: ${JSON.stringify(a.texto)}\nResponde APENAS com JSON: {"itens":[{"alimento":"…","quantidade":"60 g"}],"kcal":480,"proteina_g":48,"hidratos_g":50,"gordura_g":14,"fibra_g":4}`, { cache: false, modelTier: "quick" });
+        } catch (e) { if (e?.code === "cancelled" || e?.code === "not_granted" || e?.code === "rate_limited") throw e; S.diag.lastErr = `estimar "${nome}": ${e?.code || e?.message}`; renderDiag(); }
+        const cur = (S.adherence[date] || {})[nome]; if (!cur || cur.status !== "outro" || cur.texto !== a.texto) continue;
+        const upd = { ...cur, est_at: new Date().toISOString() };
+        if (est && Number.isFinite(Number(est.kcal))) Object.assign(upd, { kcal: Math.round(Number(est.kcal)), proteina_g: Math.round(Number(est.proteina_g) || 0), hidratos_g: Math.round(Number(est.hidratos_g) || 0), gordura_g: Math.round(Number(est.gordura_g) || 0), fibra_g: Math.round((Number(est.fibra_g) || 0) * 10) / 10, itens_estimados: (Array.isArray(est.itens) ? est.itens : []).map((i) => `${i.alimento || ""} ${i.quantidade || ""}`.trim()).filter(Boolean).slice(0, 12), estimado: true });
+        S.adherence = { ...S.adherence, [date]: { ...(S.adherence[date] || {}), [nome]: upd } };
+      }
+      await saveAdherence();
+    } finally { S.estimating = false; }
+    return true;
   }
   /** Refeições de hoje segundo o plano, ordenadas pela hora. */
   const todayMeals = () => ((S.plan?.plan?.dias || []).find((x) => x.dia === todayDayName())?.refeicoes || []).slice().sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
@@ -495,6 +523,15 @@
     return `<div class="partial" data-partial="${esc(m.nome)}"><p class="small muted">O que comeste desta refeição?</p>${(m.itens || []).map((i, k) => `<label><input type="checkbox" data-pitem="${k}" ${chosen.size === 0 || chosen.has(norm(i.alimento)) ? "checked" : ""}> ${esc(i.alimento)} <span class="muted">${esc(i.quantidade)}</span></label>`).join("")}<div class="row" style="justify-content:flex-end; gap:6px"><button type="button" class="btn ghost sm" data-pcancel>Cancelar</button><button type="button" class="btn sm primary" data-psave="${esc(m.nome)}">Guardar</button></div></div>`;
   }
   /** Macros do que já entrou hoje: refeições comidas, comidas em parte e extras. */
+  /** O que entrou de facto numa refeição com adesão registada (comi, parte, outra coisa estimada, saltei); null sem registo ou sem estimativa. */
+  function consumedMacros(m, a) {
+    if (!a) return null;
+    if (a.status === "comi") return mealMacros(m);
+    if (a.status === "parcial") { const set = new Set((a.itens || []).map(norm)); return mealMacros({ ...m, itens: (m.itens || []).filter((i) => set.has(norm(i.alimento))) }); }
+    if (a.status === "outro") return a.kcal != null ? { kcal: Number(a.kcal) || 0, proteina_g: Number(a.proteina_g) || 0, hidratos_g: Number(a.hidratos_g) || 0, gordura_g: Number(a.gordura_g) || 0, fibra_g: Number(a.fibra_g) || 0 } : null;
+    if (a.status === "saltei") return { kcal: 0, proteina_g: 0, hidratos_g: 0, gordura_g: 0, fibra_g: 0 };
+    return null;
+  }
   function eatenToday() {
     const adh = todayAdherence(); const tot = { kcal: 0, proteina_g: 0, hidratos_g: 0, gordura_g: 0, fibra_g: 0 }; const planned = { ...tot };
     const add = (t, mm) => { t.kcal += mm.kcal; t.proteina_g += mm.proteina_g; t.hidratos_g += mm.hidratos_g; t.gordura_g += mm.gordura_g; t.fibra_g += mm.fibra_g; };
@@ -502,9 +539,8 @@
     for (const m of todayMeals()) {
       const a = adh[m.nome]; const full = mealMacros(m);
       if (!a) { add(planned, full); continue; }
-      if (a.status === "comi") add(tot, full);
-      else if (a.status === "parcial") { const set = new Set((a.itens || []).map(norm)); add(tot, mealMacros({ ...m, itens: (m.itens || []).filter((i) => set.has(norm(i.alimento))) })); }
-      else if (a.status === "outro") desconhecidas++;
+      const c = consumedMacros(m, a);
+      if (c) add(tot, c); else if (a.status === "outro") desconhecidas++;
     }
     for (const x of (S.plan?.extras || []).filter((x) => x.date === localDate())) { tot.kcal += x.kcal || 0; tot.proteina_g += x.proteina_g || 0; }
     return { comido: tot, por_vir: planned, desconhecidas };
@@ -518,7 +554,23 @@
     const rows = [["kcal", "Energia", "kcal"], ["proteina_g", "Proteína", "g"], ["hidratos_g", "Hidratos", "g"], ["gordura_g", "Gordura", "g"], ["fibra_g", "Fibra", "g"]].filter(([k]) => alvo[k]);
     el.innerHTML = `<div class="row between"><span class="eyebrow">Já comeste hoje</span><span class="small muted">${desconhecidas ? `${desconhecidas} refeição${desconhecidas > 1 ? "ões" : ""} "outra coisa" sem conta` : "contado pela tabela de alimentos"}</span></div>
       <div class="meters">${rows.map(([k, label, un]) => { const v = Math.round(comido[k]), a = Math.round(alvo[k]), pv = Math.round(comido[k] + por_vir[k]); const pct = Math.min(100, Math.round(v / a * 100)); const pp = Math.min(100, Math.round(pv / a * 100)); return `<div class="meter" title="${esc(label)}: ${v} de ${a} ${un}; com o resto do plano ${pv}"><div class="row between"><span class="k">${esc(label)}</span><span class="num v"><strong>${v}</strong> <span class="muted">/ ${a} ${un}</span></span></div><div class="track"><div class="fill" style="width:${pct}%"></div><div class="tick" style="left:${pp}%"></div></div></div>`; }).join("")}</div>
-      <p class="hint">A barra é o que já entrou; o traço é onde ficas se seguires o resto do plano de hoje.</p>`;
+      ${(() => { const falta = Math.round(alvo.kcal - comido.kcal), fp = Math.round(alvo.proteina_g - comido.proteina_g), resto = Math.round(por_vir.kcal); if (!alvo.kcal) return ""; return `<p class="small" id="eatenLeft">${falta > 0 ? `Faltam <strong class="num">${falta} kcal</strong>${fp > 0 ? ` e <strong class="num">${fp} g</strong> de proteína` : ""} para a meta de hoje` : `Já passaste a meta de hoje em <strong class="num">${-falta} kcal</strong>`}${resto ? ` · o resto do plano de hoje traz ${resto} kcal` : ""}.</p>`; })()}
+      <p class="hint">A barra é o que já entrou; o traço é onde ficas se seguires o resto do plano de hoje.</p>
+      ${(() => { const adh = todayAdherence(); const desvio = Object.values(adh).some((a) => ["outro", "parcial", "saltei"].includes(a.status)) || (S.plan.extras || []).some((x) => x.date === localDate()); const porComer = todayMeals().some((m) => !adh[m.nome]); return desvio && porComer && S.sample ? `<div class="row"><button type="button" class="btn sm" id="rebalanceToday">🔁 Ajustar o resto do dia ao que já comi</button></div><p class="small muted" id="eatenNote"></p>` : ""; })()}`;
+  }
+  /** Botão em Hoje: as refeições por comer ajustam-se ao que já entrou (outra coisa, parte, saltei, extras). */
+  async function rebalanceTodayFromHome() {
+    const b = $("rebalanceToday"); const note = $("eatenNote"); if (!b || b.disabled) return;
+    b.disabled = true; if (note) note.textContent = "A ajustar o resto do dia…";
+    try {
+      const r = await rebalanceRestOfDay({ dia: todayDayName(), fixas: [] });
+      renderHome();
+      const n2 = $("eatenNote"); if (n2) n2.textContent = r?.mudadas?.length ? `Ajustado: ${r.mudadas.join("; ")}. Dia: ${r.totais.kcal} kcal, ${r.totais.proteina_g} g de proteína.` : "Nada por ajustar.";
+    } catch (e) {
+      const n2 = $("eatenNote"); if (n2) n2.textContent = ERR_COPY[e?.code] || "Não foi possível ajustar agora. Tenta outra vez.";
+      S.diag.lastErr = `ajustar hoje: ${e?.code || e?.message}`; renderDiag();
+      const b2 = $("rebalanceToday"); if (b2) b2.disabled = false;
+    }
   }
 
   function renderHome() {
@@ -3152,7 +3204,7 @@ Responde APENAS com JSON: {"lista":[{"corredor":"Talho","itens":[{"alimento":"pe
     if (!S.plan?.plan) { el.innerHTML = `<p class="muted small">Ainda não há plano. <a href="#" data-goto="plano">Gerar plano semanal</a>.</p>`; renderTodaySchedule(); return; }
     const meals = todayMeals(); const adh = todayAdherence();
     const extras = (S.plan.extras || []).filter((x) => x.date === localDate());
-    const one = (m, i) => { const st = adh[m.nome]?.status; const cls = st === "comi" ? "done" : st === "parcial" ? "partial" : st === "saltei" ? "skipped" : ""; const html = mealHtml(m, true).replace('<div class="meal">', `<div class="meal ${cls}">`); const extra = st === "outro" && adh[m.nome].texto ? `<div class="prep">↪ ${esc(adh[m.nome].texto)}</div>` : st === "parcial" ? `<div class="prep">↪ comeu: ${esc((adh[m.nome].itens || []).join(", "))}</div>` : ""; const part = S.partialFor === m.nome ? partialHtml(m) : ""; const idx = (S.plan.plan.dias.find((x) => x.dia === todayDayName())?.refeicoes || []).indexOf(m); return html.replace(/<\/div>$/, `${extra}<div class="adhrow">${adherenceButtons(m, true)}<button type="button" class="btn sm" data-recipe="${esc(todayDayName())}|${idx}">🍳 Receita</button></div>${part}</div>`); };
+    const one = (m, i) => { const st = adh[m.nome]?.status; const cls = st === "comi" ? "done" : st === "parcial" ? "partial" : st === "saltei" ? "skipped" : ""; const html = mealHtml(m, true).replace('<div class="meal">', `<div class="meal ${cls}">`); const extra = st === "outro" && adh[m.nome].texto ? `<div class="prep">↪ ${esc(adh[m.nome].texto)}${adh[m.nome].kcal != null ? ` <span class="muted small num">(≈ ${Math.round(adh[m.nome].kcal)} kcal · ${Math.round(adh[m.nome].proteina_g || 0)} g proteína, estimado)</span>` : S.sample ? ` <span class="muted small">(a estimar…)</span>` : ""}</div>` : st === "parcial" ? `<div class="prep">↪ comeu: ${esc((adh[m.nome].itens || []).join(", "))}</div>` : ""; const part = S.partialFor === m.nome ? partialHtml(m) : ""; const idx = (S.plan.plan.dias.find((x) => x.dia === todayDayName())?.refeicoes || []).indexOf(m); return html.replace(/<\/div>$/, `${extra}<div class="adhrow">${adherenceButtons(m, true)}<button type="button" class="btn sm" data-recipe="${esc(todayDayName())}|${idx}">🍳 Receita</button></div>${part}</div>`); };
     el.innerHTML = (meals.length ? meals.map(one).join("") : `<p class="muted small">Sem refeições para hoje.</p>`) +
       (extras.length ? `<div class="meal"><div class="head"><h3>Fora do plano</h3></div>${extras.map((x) => `<div class="extra"><span>${esc(x.descricao)}</span><span class="muted small num">${x.kcal ? `~${Math.round(x.kcal)} kcal` : ""}</span></div>`).join("")}</div>` : "");
     renderTodaySchedule();
@@ -3251,17 +3303,17 @@ Responde APENAS com JSON: {"lista":[{"corredor":"Talho","itens":[{"alimento":"pe
   async function rebalanceRestOfDay(pend) {
     const pl = S.plan?.plan; const day = pl?.dias?.find((d) => norm(d.dia) === norm(pend.dia)); if (!day || !S.sample) return null;
     const eaten = pend.dia === todayDayName() ? todayAdherence() : {};
-    const isFixed = (m) => pend.fixas.some((n) => norm(n) === norm(m.nome)) || ["comi", "parcial", "outro"].includes(eaten[m.nome]?.status);
+    const isFixed = (m) => pend.fixas.some((n) => norm(n) === norm(m.nome)) || ["comi", "parcial", "outro", "saltei"].includes(eaten[m.nome]?.status);
     const fixas = day.refeicoes.filter(isFixed); const livres = day.refeicoes.filter((m) => !isFixed(m));
     if (!livres.length) return { mudadas: [], totais: dayMacros(day) };
     const metas = pl.metas_diarias || {}; const t = planTargets(profile(), S.pid) || {};
     const alvo = { kcal: metas.kcal || t.energia_alvo_kcal || null, proteina_g: metas.proteina_g || t.proteina_alvo_g_dia || null, fibra_g: metas.fibra_g || 25 };
     const extras = (S.plan.extras || []).filter((e) => e.date === dateOfPlanDay(pend.dia));
-    const soma = (ms) => ms.reduce((a, m) => { const x = mealMacros(m); return { kcal: a.kcal + x.kcal, proteina_g: a.proteina_g + x.proteina_g, fibra_g: a.fibra_g + x.fibra_g }; }, { kcal: 0, proteina_g: 0, fibra_g: 0 });
+    const soma = (ms) => ms.reduce((a, m) => { const x = consumedMacros(m, eaten[m.nome]) || mealMacros(m); return { kcal: a.kcal + x.kcal, proteina_g: a.proteina_g + x.proteina_g, fibra_g: a.fibra_g + x.fibra_g }; }, { kcal: 0, proteina_g: 0, fibra_g: 0 });
     const jaConta = soma(fixas); extras.forEach((e) => { jaConta.kcal += e.kcal || 0; jaConta.proteina_g += e.proteina_g || 0; });
     const falta = { kcal: alvo.kcal ? Math.round(alvo.kcal - jaConta.kcal) : null, proteina_g: alvo.proteina_g ? Math.round(alvo.proteina_g - jaConta.proteina_g) : null, fibra_g: Math.round((alvo.fibra_g - jaConta.fibra_g) * 10) / 10 };
     const p = profile(); const q = { nao_come: p.dislikes || [], alergias: p.allergies || [], intolerancias: p.intolerances || [], usa_glp1: !!p.uses_glp1 };
-    const detalhe = (m) => ({ nome: m.nome, hora: m.hora, familia: !!m.familia, itens: (m.itens || []).map((i) => `${i.alimento} ${i.quantidade}`), ...(({ kcal, proteina_g, fibra_g }) => ({ kcal, proteina_g, fibra_g }))(mealMacros(m)) });
+    const detalhe = (m) => { const a = eaten[m.nome]; const c = consumedMacros(m, a) || mealMacros(m); return { nome: m.nome, hora: m.hora, familia: !!m.familia, ...(a?.status === "outro" ? { comeu_em_vez: a.texto || "outra coisa", itens: a.itens_estimados || [] } : a?.status === "saltei" ? { saltou: true, itens: [] } : a?.status === "parcial" ? { comeu_so: a.itens || [] } : { itens: (m.itens || []).map((i) => `${i.alimento} ${i.quantidade}`) }), kcal: c.kcal, proteina_g: c.proteina_g, fibra_g: c.fibra_g }; };
     const mealSchema = DAY_SCHEMA.split('"refeicoes":[')[1].split("]}]}")[0];
     const prompt = `És nutricionista numa app familiar privada, em português de Portugal. A pessoa decidiu o que come em ${fixas.map((m) => m.nome).join(" e ")} de ${pend.dia}${extras.length ? ", e comeu extras fora do plano" : ""}. Reequilibra as refeições que ainda faltam nesse dia (${livres.map((m) => `${m.nome} às ${m.hora}`).join(", ")}) para os totais do dia baterem com as metas.
 
@@ -3302,6 +3354,49 @@ Responde APENAS com JSON válido nesta forma: {"refeicoes":[${mealSchema}]}`;
     S.plan = { ...S.plan, plan, version: (S.plan.version || 1) + 1, previous: S.plan.plan, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: `Resto de ${day.dia} ajustado a ${pend.fixas.join(", ")}` }].slice(-20) };
     await savePlan();
     return { mudadas, totais: dayMacros(d2), alvo };
+  }
+
+  /**
+   * Rede de segurança: quando a assistente responde só em texto (sem chamar ferramentas), um pedido
+   * curto extrai o que ela afirmou ter decidido — refeição com quantidades, regra guardada, extra,
+   * tensão — e a app aplica-o com as mesmas funções das ferramentas. Sugestões não contam.
+   */
+  async function applyFromAnswer(userText, answer) {
+    const hoje = todayDayName(); const amanha = DAYS[(DAYS.indexOf(hoje) + 1) % 7];
+    const prompt = `Lê a mensagem da pessoa e a resposta da assistente nutricional de uma app privada (português de Portugal). A app precisa de guardar o que a assistente DECIDIU ou AFIRMOU ter feito; nada do que é só sugestão, opção, hipótese ou pergunta.
+Devolve JSON com "acoes" (lista, pode ser vazia), cada uma de um destes tipos:
+- {"tipo":"refeicao","dia":"hoje|amanhã|segunda|…|domingo","refeicao":"Pequeno-almoço|Almoço|Lanche|Jantar|Ceia","itens":[{"alimento":"…","quantidade":"60 g","estado":"seco|cru|cozinhado|…"}],"preparacao":"…","kcal":490,"proteina_g":49,"fibra_g":4,"ja_comi":false} — só quando a assistente deu quantidades concretas para UMA refeição de um dia concreto que a pessoa vai fazer ou fez (ex.: "hoje ao almoço fica: macarrão 60 g, frango 130 g"). Num intervalo ("100-120 g") usa o meio ("110 g"). "ja_comi": true se a pessoa disse que já comeu.
+- {"tipo":"regra","texto":"…"} — só quando a assistente disse que ficou guardada/registada uma regra duradoura (alimento ou grupo que não come, ordem por que come, horário fixo).
+- {"tipo":"extra","descricao":"…","kcal_estimado":300,"proteina_g":5} — só quando a pessoa disse que comeu algo fora do plano e a assistente o registou/contou.
+- {"tipo":"tensao","sistolica":135,"diastolica":85} — só quando a pessoa deu uma medição de tensão e a assistente a registou.
+Hoje é ${hoje}; amanhã é ${amanha}. Se nada disto aconteceu, devolve {"acoes":[]}.
+
+MENSAGEM DA PESSOA:
+${String(userText || "").slice(0, 2000)}
+
+RESPOSTA DA ASSISTENTE:
+${String(answer || "").slice(0, 4000)}
+
+Responde APENAS com JSON válido: {"acoes":[…]}`;
+    const res = await S.sample.json(prompt, { cache: false, modelTier: "default" });
+    const acoes = Array.isArray(res?.acoes) ? res.acoes.slice(0, 4) : [];
+    const feito = [];
+    for (const a of acoes) {
+      try {
+        if (a?.tipo === "refeicao" && S.plan?.plan) {
+          const d = norm(a.dia || ""); const dia = !d || d === "hoje" ? hoje : /amanh/.test(d) ? amanha : (DAYS.find((x) => norm(x) === d) || hoje);
+          const r = await fixMealForDay({ ...a, dia });
+          feito.push(`${r.refeicao.nome} de ${dia === hoje ? "hoje" : dia} no plano (${r.refeicao.kcal} kcal, ${r.refeicao.proteina_g} g de proteína)`);
+        } else if (a?.tipo === "regra" && a.texto) {
+          const r = await addRule(a.texto, "chat"); if (r && !r.duplicada) feito.push(`regra: ${r.texto}`);
+        } else if (a?.tipo === "extra" && a.descricao && S.plan) {
+          const r = await registerExtra(a); feito.push(`fora do plano: ${r.registado.descricao}`);
+        } else if (a?.tipo === "tensao") {
+          const r = await registerBP(a); feito.push(`tensão ${r.registado.sys}/${r.registado.dia}`);
+        }
+      } catch (e) { console.warn("aplicar", a, e); }
+    }
+    return feito;
   }
 
   async function registerExtra(input) {
@@ -3439,6 +3534,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       `anexos em espera: ${S.attachments.length}`,
       `passo: ${d.step}`,
       d.saveErr ? `falha a guardar: ${d.saveErr}` : "",
+      d.lastTools ? `última resposta do chat: ferramentas ${d.lastTools}` : "",
       d.lastErr ? `último erro: ${d.lastErr}` : "",
     ].filter(Boolean).join("\n");
     if (d.saveErr) {
@@ -3626,6 +3722,8 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       }, required: ["alteracoes"] },
       execute: async (input) => { bubble.innerHTML = `<span class="thinking">a atualizar o plano…</span>`; return applyMealUpdates(input); },
     }] : [])] : null;
+    const usedTools = [];
+    (toolList || []).forEach((t) => { const ex = t.execute; t.execute = async (...a) => { usedTools.push(t.name); return ex(...a); }; });
     const tools = toolList && toolList.length ? toolList.slice(0, S.toolMax || 8) : undefined;
     const callOnce = (t, withTools) => S.sample(t, {
       cache: false, signal: ctl.signal, ...(withTools && tools ? { tools } : {}),
@@ -3648,7 +3746,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
           res = await callOnce(turns, true);
         } else if (tools && (e1?.code === "tools_unavailable" || e1?.code === "invalid_request" || e1?.code === "empty_completion")) {
           // sem ferramentas a pessoa fica pelo menos com a resposta escrita
-          S.diag.lastErr = `chat: ${e1.code} — repetido sem ferramentas`; renderDiag();
+          S.diag.lastErr = `chat: ${e1.code} ${String(e1.message || "").slice(0, 160)} — repetido sem ferramentas`.replace(/\s+/g, " "); renderDiag();
           bubble.innerHTML = `<span class="thinking">a escrever a resposta…</span>`;
           const semFerramentas = turns.map((t, i) => i === turns.length - 1
             ? { ...t, content: `${t.content}\n\n(Responde agora só em texto, sem ferramentas: diz o que ficou decidido e o que a pessoa deve fazer a seguir na app.)` }
@@ -3672,6 +3770,16 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     }
     renderChat();
     if (!err || err.code === "cancelled") await saveChat();
+    S.diag.lastTools = usedTools.length ? usedTools.join(", ") : "nenhuma"; renderDiag();
+    // a assistente respondeu só em texto: a app guarda o que ela decidiu (refeição, regra, extra, tensão)
+    if (!err && finalText && usedTools.length === 0 && S.sample && /\d+\s*(g|ml|kcal)|regist|guard|plano|regra|tens[ãa]o/i.test(finalText)) {
+      const b1 = document.createElement("div"); b1.className = "msg assistant"; b1.innerHTML = `<span class="thinking">a guardar na app…</span>`; log.appendChild(b1); log.scrollTop = log.scrollHeight;
+      try {
+        const feito = await applyFromAnswer(text, finalText);
+        if (feito.length) { pushChat({ role: "assistant", content: `✅ Guardei na app: ${feito.join("; ")}.`, at: new Date().toISOString() }); renderChat(); await saveChat(); }
+      } catch (e) { if (e?.code !== "cancelled") { S.diag.lastErr = `aplicar resposta: ${e?.code || e?.message}`; renderDiag(); } }
+      b1.remove();
+    }
     if (S.pendingRebalance && S.plan?.plan && !err) {
       const pend = S.pendingRebalance; S.pendingRebalance = null;
       const b2 = document.createElement("div"); b2.className = "msg assistant"; b2.innerHTML = `<span class="thinking">a ajustar o resto do dia…</span>`; log.appendChild(b2); log.scrollTop = log.scrollHeight;
@@ -3729,7 +3837,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday],[data-delpref],[data-recipe],[data-note],[data-psave],[data-pcancel],#retimeBtn");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday],[data-delpref],[data-recipe],[data-note],[data-psave],[data-pcancel],#retimeBtn,#rebalanceToday");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -3756,6 +3864,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
     if (t.dataset.swapmeal) { if (S.generating) return; const [d, i] = t.dataset.swapmeal.split("|"); await swapMeal(d, +i); return; }
     if (t.dataset.regenday) { if (S.generating) return; await regenerateDay(t.dataset.regenday); return; }
     if (t.id === "retimeBtn") { await retimeCurrentPlan(mealSlots(profile())); return; }
+    if (t.id === "rebalanceToday") { await rebalanceTodayFromHome(); return; }
     if (t.dataset.attach !== undefined) { setView("chat"); $("fileInput").click(); return; }
     if (t.dataset.goto) { ev.preventDefault(); setView(t.dataset.goto); return; }
     if (t.dataset.ml) { t.disabled = true; try { await addWater(t.dataset.ml); } finally { t.disabled = false; } return; }
@@ -3927,7 +4036,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, portionFor, avoidsFood, fixMealForDay, rebalanceRestOfDay, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, portionFor, avoidsFood, fixMealForDay, rebalanceRestOfDay, applyFromAnswer, estimateOthers, consumedMacros, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();
@@ -3978,6 +4087,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
       S.toolsOK = !!lim?.tools; S.imageLimits = lim?.images || null;
       S.promptMax = Number(lim?.maxPromptBytes) || 65536; S.toolMax = Number(lim?.tools?.maxCount) || 8;
       S.diag.tools = !!lim?.tools; S.diag.images = !!lim?.images;
+      estimateOthers().catch((e) => console.warn("estimar", e));
       $("fileInput").accept = ["application/pdf", ".pdf", "text/plain", ...(S.imageLimits ? S.imageLimits.mediaTypes : [])].join(",");
       $("attachHint").textContent = S.imageLimits ? "PDF, foto ou imagem de análises, tensão, ECG ou outros documentos." : "PDF de análises, tensão, ECG ou outros documentos (esta conta não permite enviar fotos).";
     }

@@ -68,6 +68,16 @@ um pedido curto que reequilibra as refeições ainda por comer desse dia (as já
 não mudam; numa refeição em família muda só a porção desta pessoa). O chat conta o que mudou e a refeição
 fica em Hoje para marcar "Comi".
 
+**Hoje conta o que entrou de facto.** "Comi outra coisa" com texto é estimado por um pedido rápido
+(itens e macros ficam na adesão, marcados `estimado`) e conta nos medidores; por baixo diz o que falta
+para a meta do dia e, quando o dia se desviou do plano (outra coisa, parte, saltei, extras), há o botão
+"Ajustar o resto do dia ao que já comi", que refaz só as refeições por comer com o que realmente entrou.
+
+**Rede de segurança do chat.** Se a assistente responder só em texto sem usar as ferramentas, a app faz um
+pedido curto que extrai o que ela afirmou ter decidido (refeição com quantidades, regra, extra, tensão) e
+aplica-o com as mesmas funções; o chat mostra "✅ Guardei na app: …". O diagnóstico indica que ferramentas
+foram usadas na última resposta.
+
 **Refeições em família.** Não há um plano de família à parte: ao gerar o plano de uma pessoa, os
 jantares e almoços (em marmita) saem primeiro, iguais para toda a gente que come em família, e
 entram no plano individual de cada um com as suas quantidades e sem o que cada pessoa não come.

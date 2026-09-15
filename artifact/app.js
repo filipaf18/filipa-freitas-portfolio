@@ -2122,7 +2122,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("genPlan").disabled = true; $("regenPlan").disabled = true; $("genProgress").hidden = false;
     const bar = $("genProgress").firstElementChild;
     const total = (famNow ? familyRequestCount(household) : 0) + 3 + 1; let feito = 0;
-    const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
+    const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; S.diag.step = msg; };
     const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), msg.replace(/\(\d+ de \d+\)/, `(${feito} de ${Math.max(feito, total)})`)); return askRetry(() => S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" })); };
 
     let err = null, plan = null;
@@ -2144,7 +2144,8 @@ LIMITES DE ATUAÇÃO (obrigatórios)
         $("planNote").hidden = false;
         const resume = Object.keys(S.drafts).length ? " O que já estava feito ficou guardado: carrega outra vez em Gerar e a app continua de onde ficou." : "";
         $("planNote").textContent = (err.code === "sem_dados" ? err.message : err.code === "invalid_json" ? "O plano veio incompleto. Tenta gerar outra vez." : (ERR_COPY[err.code] || "Não foi possível gerar o plano. Tenta outra vez.")) + (err.code === "sem_dados" ? "" : resume);
-        S.diag.lastErr = `plano: ${err.code || err.message}`; renderDiag();
+        $("planNote").textContent += ` (passo: ${S.diag.step})`;
+        S.diag.lastErr = `plano: ${err.code || err.message} ${String(err.message || "").slice(0, 120)} — passo: ${S.diag.step}`; renderDiag();
       }
       $("genMsg").textContent = ""; return;
     }
@@ -2183,7 +2184,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     ["genPlan", "regenPlan", "genAll", "genAll2"].forEach((id) => { const b = $(id); if (b) b.disabled = true; });
     $("genProgress").hidden = false; const bar = $("genProgress").firstElementChild;
     let feito = 0; let quem = "";
-    const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
+    const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; S.diag.step = msg; };
     const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), `${quem}${msg.replace(/\s*\(\d+ de \d+\)/, "")} (${feito} de ${Math.max(feito, total)})`); return askRetry(() => S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" })); };
     const falhas = [];
     try {
@@ -2211,7 +2212,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       step(96, "A fazer a lista de compras da casa…");
       try { await generateShopping(ctl.signal); } catch (e) { console.warn("compras", e); }
     } catch (e) {
-      if (e?.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = (ERR_COPY[e?.code] || "Não foi possível refazer os planos. Tenta outra vez.") + (Object.keys(S.drafts).length ? " O que já estava feito ficou guardado: carrega outra vez e a app continua de onde ficou." : ""); S.diag.lastErr = `todos: ${e?.code || e?.message}`; renderDiag(); }
+      if (e?.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = (ERR_COPY[e?.code] || "Não foi possível refazer os planos. Tenta outra vez.") + (Object.keys(S.drafts).length ? " O que já estava feito ficou guardado: carrega outra vez e a app continua de onde ficou." : ""); $("planNote").textContent += ` (passo: ${S.diag.step})`; S.diag.lastErr = `todos: ${e?.code || e?.message} ${String(e?.message || "").slice(0, 120)} — passo: ${S.diag.step}`; renderDiag(); }
     }
     S.generating = null;
     ["genPlan", "regenPlan", "genAll", "genAll2"].forEach((id) => { const b = $(id); if (b) b.disabled = false; });
@@ -2531,7 +2532,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
    */
   async function askInHalves(list, fn) {
     try { const r = await fn(list); if ((r && r.length) || list.length <= 1) return r || []; }
-    catch (e) { if (e?.code !== "invalid_json" || list.length <= 1) throw e; }
+    catch (e) { if ((e?.code !== "invalid_json" && e?.code !== "upstream_error") || list.length <= 1) throw e; S.diag.lastErr = `${e.code} num bloco de ${list.length} dias — pedido em metades`; renderDiag(); }
     const mid = Math.ceil(list.length / 2);
     const a = await askInHalves(list.slice(0, mid), fn);
     const b = await askInHalves(list.slice(mid), fn);
@@ -2540,7 +2541,8 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   /** Quantos dias cabem num pedido de quantidades: com mais pessoas à mesa, menos dias por pedido. */
   const familyDaysPerAsk = (n) => Math.max(1, Math.min(4, Math.floor(8 / Math.max(1, n))));
   /** Pedidos previstos para as refeições em família (ementa + blocos de quantidades). */
-  const familyRequestCount = (ids, dayList = DAYS) => 1 + Math.ceil(dayList.length / familyDaysPerAsk(ids.length));
+  const menuBlocks = (dayList) => dayList.length > 4 ? [dayList.slice(0, 4), dayList.slice(4)] : [dayList];
+  const familyRequestCount = (ids, dayList = DAYS) => menuBlocks(dayList).length + Math.ceil(dayList.length / familyDaysPerAsk(ids.length));
   async function familyPipeline(ids, comAlmoco, ask, dayList = DAYS, avoidBases = []) {
     const pessoas = ids.map((id) => {
       const q = S.profiles[id]; const t = planTargets(q, id);
@@ -2568,18 +2570,32 @@ ${JSON.stringify(tableConstraints(ids))}
 ${PLAN_KNOWLEDGE}`;
 
     const draftKey = `familia:${ids.join(",")}:${dayList.join(",")}`; const draft = draftFor(draftKey, head + avoidBases.join("|"));
-    const menu = draft?.menu || await ask(`${head}
+    if (!draft) S.drafts[draftKey] = { at: Date.now(), head: head + avoidBases.join("|"), menuDias: [], prep: [], porDia: {} };
+    const dias0 = (draft?.menuDias || []).slice(); const prepAntecipada = (draft?.prep || []).slice();
+    const mBlocks = menuBlocks(dayList);
+    for (let i = 0; i < mBlocks.length; i++) {
+      if (mBlocks[i].every((d) => dias0.some((x) => norm(x.dia) === norm(d)))) continue; // já feito num rascunho anterior
+      const got = await askInHalves(mBlocks[i], async (lista) => {
+        const jaHa = [...avoidBases, ...dias0.map((d) => d.jantar?.base).filter(Boolean)];
+        const menu = await ask(`${head}
 
-Passo 1 de 3: escreve a EMENTA para ${dayList.join(", ")}.
+Passo 1 de ${mBlocks.length + Math.ceil(dayList.length / familyDaysPerAsk(ids.length))}: escreve a EMENTA para ${lista.join(", ")}.
 - O jantar de cada dia é uma refeição completa e prática de fazer para ${ids.length} pessoas, com proteína, legumes e hidratos.
-${comAlmoco ? "- O almoço de cada dia é uma MARMITA, preparada no dia anterior ou ao início da semana (cozinhados em lote ao domingo e à quarta, por exemplo). Diz em que dia se prepara, quanto tempo dura no frigorífico e como se monta e reaquece.\n" : "- Não escrevas almoços: só jantares.\n"}- Varia as proteínas ao longo da semana e usa comida portuguesa acessível.${avoidBases.length ? `\n- Já há estes pratos noutros dias, não os repitas: ${avoidBases.join("; ")}.` : ""}
+${comAlmoco ? "- O almoço de cada dia é uma MARMITA, preparada no dia anterior ou ao início da semana (cozinhados em lote ao domingo e à quarta, por exemplo). Diz em que dia se prepara, quanto tempo dura no frigorífico e como se monta e reaquece.\n" : "- Não escrevas almoços: só jantares.\n"}- Varia as proteínas ao longo da semana e usa comida portuguesa acessível.${jaHa.length ? `\n- Já há estes pratos noutros dias, não os repitas: ${jaHa.join("; ")}.` : ""}
 - Em cada componente diz quem o leva: "todos" ou a lista de perfis (usa os identificadores ${JSON.stringify(ids)}).
 - O jantar é às ${sharedMealTime(ids, "jantar")} para todos; o almoço (marmita) cada um come à sua hora.
+- Sê conciso: preparação em 1 a 2 frases, sem texto fora do JSON.
 Responde APENAS com JSON válido nesta forma:
-${FAMILY_MENU_SCHEMA}`, "A montar a ementa da família… (1 de 3)", 10, "complex");
-    const dias0 = Array.isArray(menu?.dias) ? menu.dias : [];
+${FAMILY_MENU_SCHEMA}`, `A montar a ementa da família… (${i + 1} de ${mBlocks.length})`, 10 + i * 10);
+        (Array.isArray(menu?.preparacao_antecipada) ? menu.preparacao_antecipada : []).forEach((x) => prepAntecipada.push(String(x)));
+        const arr = Array.isArray(menu?.dias) ? menu.dias.filter((d) => lista.some((x) => norm(x) === norm(d.dia))) : [];
+        return arr.length ? arr : null;
+      });
+      (got || []).forEach((d) => { if (!dias0.some((x) => norm(x.dia) === norm(d.dia))) dias0.push(d); });
+      if (S.drafts[draftKey]) { S.drafts[draftKey].menuDias = dias0.slice(); S.drafts[draftKey].prep = prepAntecipada.slice(); S.drafts[draftKey].at = Date.now(); }
+    }
     if (dias0.length === 0) throw { code: "invalid_json", message: "ementa vazia" };
-    if (!draft) S.drafts[draftKey] = { at: Date.now(), head: head + avoidBases.join("|"), menu, porDia: {} };
+    const menu = { preparacao_antecipada: [...new Set(prepAntecipada)] };
 
     const porBloco = familyDaysPerAsk(ids.length);
     const blocos = []; for (let i = 0; i < dayList.length; i += porBloco) blocos.push(dayList.slice(i, i + porBloco));

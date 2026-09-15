@@ -63,7 +63,9 @@ nos próximos planos, nas trocas e no chat.
 
 **Falhas a meio da geração.** Cada pedido que falhe com `upstream_error` (o serviço caiu) é repetido uma
 vez passados 4 s. A geração guarda rascunhos em memória (estrutura, blocos de dias, ementa e quantidades em
-família) e, se falhar mesmo assim, o próximo "Gerar" continua de onde ficou, sem repetir os pedidos já feitos.
+família) e, se falhar mesmo assim, o próximo "Gerar" continua de onde ficou, sem repetir os pedidos já feitos. A ementa em família sai em dois blocos de dias (nível "default") e um bloco de dias que
+falhe mesmo depois da repetição, na ementa, nas quantidades ou no plano individual, é pedido em duas metades,
+porque uma resposta longa pode esgotar o tempo do pedido. A mensagem de erro indica o passo em que falhou.
 
 **"Hoje ao almoço vou fazer X."** No chat, dizer o que se vai comer (ou pedir quantidades para um prato
 escolhido) chama a ferramenta `fixar_refeicao`: a refeição entra no plano desse dia com as quantidades

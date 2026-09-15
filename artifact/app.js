@@ -9,6 +9,31 @@
   /** Objetivo de cada perfil: muda a energia, não a proteína nem a fibra. */
   const GOALS = { perder: "perder peso", manter: "manter o peso e comer equilibrado", ganhar: "ganhar massa muscular" };
   const ACTIVITY = { sedentaria: 1.3, pouco_ativa: 1.45, ativa: 1.6, muito_ativa: 1.75 };
+  /** Condições que mudam o plano. Escolhem-se no perfil; as notas em texto livre também as detetam. */
+  const CONDITIONS = [
+    // kw: nas notas escritas pela pessoa; docs: expressão que conta quando aparece num relatório (as análises já cobrem o resto)
+    { id: "hipertensao", label: "Hipertensão", kw: /hipertens|tensao alta/, docs: /hipertensao arterial|hipertensao confirmada|\bhta\b/ },
+    { id: "prediabetes", label: "Glicemia alta / pré-diabetes", kw: /pre-diabetes|prediabetes|diabetes|resistencia a insulina/ },
+    { id: "sopc", label: "SOPC / androgénios altos", kw: /sopc|\bsop\b|ovario poliquistico|hiperandrogen/, docs: /diagnostico de sopc|sindrome do ovario poliquistico/ },
+    { id: "tiroide", label: "Tiroide (hipo ou autoimune)", kw: /hipotiroid|tiroidite|hashimoto/ },
+    { id: "renal", label: "Função renal reduzida", kw: /doenca renal|insuficiencia renal|\bdrc\b/ },
+    { id: "tce", label: "Recuperação de traumatismo craniano", kw: /traumatismo|\btce\b|cranio|cognitiv/, docs: /traumatismo cranio|\btce\b/ },
+    { id: "reds", label: "Amenorreia / baixa disponibilidade energética", kw: /amenorreia|red-s|\breds\b|disponibilidade energetica|baixo peso/, docs: /amenorreia|baixa disponibilidade energetica/ },
+    { id: "refluxo", label: "Refluxo / azia", kw: /refluxo|azia/, docs: /refluxo gastroesofagico/ },
+    { id: "vesicula", label: "Vesícula / cálculos biliares", kw: /vesicula|biliar|calculos/, docs: /colelitiase|calculos biliares|litiase biliar/ },
+    { id: "gravidez", label: "Gravidez ou amamentação", kw: /gravid|amament/, docs: /gravidez|gestacao/ },
+  ];
+  /** Condições da pessoa: as escolhidas no perfil mais as detetadas nas notas. */
+  const docsFor = (pid) => pid === S.pid ? S.docs : (S.docsAll?.[pid]?.entries || []);
+  function conditionsOf(p, pid) {
+    const set = new Set(Array.isArray(p.conditions) ? p.conditions : []);
+    const id = pid || PROFILE_IDS.find((x) => S.profiles[x] === p) || S.pid;
+    const docsTxt = norm(docsFor(id).map((d) => `${d.titulo || ""} ${d.resumo || ""} ${(d.pontos || []).join(" ")}`).join(" "));
+    const txt = norm(`${p.notes || ""} ${p.preferences || ""}`);
+    CONDITIONS.forEach((c) => { if (c.kw.test(txt) || (c.docs && c.docs.test(docsTxt))) set.add(c.id); });
+    if (p.uses_glp1 === true && !set.has("glp1")) set.add("glp1");
+    return [...set];
+  }
   const PRESETS = [150, 250, 330, 500];
   const CHAT_KEEP = 200;
 
@@ -32,6 +57,8 @@
     family: null,          // refeições em família (documento partilhado family/plan)
     shopping: null,        // lista de compras da semana (documento partilhado shopping/<semana>)
     labsAll: {},           // análises de todos os perfis (para o cálculo de energia de cada um)
+    vitalsAll: {},         // tensão de todos os perfis
+    docsAll: {},           // documentos de todos os perfis (as condições também se leem deles)
     bodyAll: {},           // composição corporal de todos os perfis
     promptMax: 65536,      // limites lidos em sample.limits()
     toolMax: 8,
@@ -212,7 +239,7 @@
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.memUpto = mem.chat[S.pid]?.memory_upto || null; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
       S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
-      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || []; S.family = thaw(mem.family.plan) || null; S.shopping = thaw(mem.shopping[mondayOf()]) || null; S.labsAll = thaw(mem.labs) || {}; S.bodyAll = thaw(mem.body) || {};
+      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || []; S.family = thaw(mem.family.plan) || null; S.shopping = thaw(mem.shopping[mondayOf()]) || null; S.labsAll = thaw(mem.labs) || {}; S.bodyAll = thaw(mem.body) || {}; S.vitalsAll = thaw(mem.vitals) || {}; S.docsAll = thaw(mem.docs) || {};
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -382,9 +409,20 @@
     const inj = DAYS.indexOf(p.glp1_inj_day); if (inj < 0) return null;
     return (DAYS.indexOf(todayDayName()) - inj + 7) % 7;
   }
+  /** Em que semana da titulação está (a dose sobe de 4 em 4 semanas) e se está nas duas primeiras semanas de uma dose nova. */
+  function titrationInfo(p) {
+    if (!p.uses_glp1 || !p.glp1_start) return null;
+    const days = Math.floor((new Date(localDate()) - new Date(p.glp1_start)) / 86400000);
+    if (days < 0) return { antes: true, comeca_em_dias: -days };
+    const semana = Math.floor(days / 7) + 1; const naDose = ((semana - 1) % 4) + 1;
+    return { semana, semana_da_dose: naDose, escalada: naDose <= 2, proxima_subida_em_semanas: 4 - naDose + 1 };
+  }
   function cycleInfo(p) {
     const d = injectionDay(p); if (d === null) return null;
-    if (d === 0) return { d, label: "Dia da injeção", light: true, tip: "Refeições pequenas, pouca gordura, líquidos entre refeições." };
+    const t = titrationInfo(p);
+    const esc = t && !t.antes && t.escalada ? ` Semana ${t.semana_da_dose} desta dose: os dias 2 a 5 depois da injeção costumam ser os piores nas duas primeiras semanas de cada subida.` : "";
+    if (d >= 1 && d <= 4 && t && !t.antes && t.escalada) return { d, label: `Dia ${d} depois da injeção · semana ${t.semana_da_dose} da dose`, light: true, tip: `Janela de mais náuseas: refeições pequenas, menos de 15 g de gordura por refeição, líquidos entre refeições, parar à primeira sensação de cheio.${esc}` };
+    if (d === 0) return { d, label: "Dia da injeção", light: true, tip: `Refeições pequenas, pouca gordura, líquidos entre refeições; injeção ao fim do dia ajuda a dormir durante o pico de náusea.${esc}` };
     if (d <= 2) return { d, label: `Dia ${d} depois da injeção`, light: true, tip: "Ainda na janela de mais sintomas: versão leve, proteína em cada refeição, goles pequenos." };
     return { d, label: `Dia ${d} depois da injeção`, light: false, tip: "Janela de melhor tolerância: bom dia para recuperar proteína e para treino de força." };
   }
@@ -604,6 +642,8 @@ Responde APENAS com JSON válido nesta forma:
     f("height_cm").value = p.height_cm ?? ""; f("weight_kg").value = p.weight_kg ?? ""; f("target_kg").value = p.target_kg ?? ""; f("water_goal_ml").value = p.water_goal_ml ?? "";
     f("objetivo").value = p.objetivo || goalOf(p); f("activity").value = p.activity || "";
     f("dislikes").value = (p.dislikes || []).join(", "); f("family").checked = p.family !== false;
+    { const wrap = $("condWrap"); if (wrap) { const chosen = new Set(p.conditions || []); const auto = new Set(conditionsOf(p).filter((c) => !chosen.has(c) && c !== "glp1"));
+      wrap.innerHTML = CONDITIONS.map((c) => `<label><input type="checkbox" data-cond="${c.id}" ${chosen.has(c.id) ? "checked" : ""}> ${esc(c.label)}${auto.has(c.id) ? ' <span class="muted">(detetado nas notas)</span>' : ""}</label>`).join(""); } }
     f("uses_glp1").checked = !!p.uses_glp1; $("glp1Fields").hidden = !p.uses_glp1;
     f("glp1_substance").value = p.glp1_substance || ""; f("glp1_dose").value = p.glp1_dose || ""; f("glp1_start").value = p.glp1_start || "";
     f("glp1_inj_day").value = p.glp1_inj_day || ""; f("satiety").value = p.satiety || "";
@@ -635,6 +675,7 @@ Responde APENAS com JSON válido nesta forma:
       height_cm: num(f.height_cm.value), weight_kg: num(f.weight_kg.value), target_kg: num(f.target_kg.value), water_goal_ml: num(f.water_goal_ml.value),
       objetivo: f.objetivo.value || null, activity: f.activity.value || null,
       dislikes: list(f.dislikes.value), family: f.family.checked,
+      conditions: [...$("profileForm").querySelectorAll("[data-cond]:checked")].map((x) => x.dataset.cond),
       uses_glp1: uses,
       glp1_substance: uses ? f.glp1_substance.value.trim() || null : null,
       glp1_dose: uses ? f.glp1_dose.value.trim() || null : null,
@@ -670,7 +711,7 @@ Responde APENAS com JSON válido nesta forma:
     { id: "albumina", label: "Albumina", unit: "g/dL", lo: 3.5, hi: 5.2 },
     { id: "lipase", label: "Lipase", unit: "U/L", lo: null, hi: 60 },
     { id: "amilase", label: "Amilase", unit: "U/L", lo: null, hi: 100 },
-    { id: "hemoglobina", label: "Hemoglobina", unit: "g/dL", lo: 12, hi: 16 },
+    { id: "hemoglobina", label: "Hemoglobina", unit: "g/dL", lo: 12, hi: 16, loM: 13.5, hiM: 17.5 },
     { id: "ferro", label: "Ferro sérico", unit: "µg/dL", lo: 50, hi: 170 },
     { id: "ferritina", label: "Ferritina", unit: "ng/mL", lo: 15, hi: 150 },
     { id: "transferrina_sat", label: "Saturação da transferrina", unit: "%", lo: 20, hi: 45 },
@@ -684,8 +725,36 @@ Responde APENAS com JSON válido nesta forma:
     { id: "magnesio", label: "Magnésio", unit: "mg/dL", lo: 1.7, hi: 2.4 },
     { id: "calcio", label: "Cálcio", unit: "mg/dL", lo: 8.6, hi: 10.2 },
     { id: "pcr", label: "PCR (proteína C reativa)", unit: "mg/L", lo: null, hi: 5 },
+    // hemograma e coagulação
+    { id: "eritrocitos", label: "Eritrócitos", unit: "x10^12/L", lo: 3.8, hi: 5.2, loM: 4.3, hiM: 5.7 },
+    { id: "hematocrito", label: "Hematócrito", unit: "%", lo: 36, hi: 46, loM: 41, hiM: 53 },
+    { id: "leucocitos", label: "Leucócitos", unit: "x10^9/L", lo: 4, hi: 11 },
+    { id: "plaquetas", label: "Plaquetas", unit: "x10^9/L", lo: 150, hi: 400 },
+    { id: "fibrinogenio", label: "Fibrinogénio", unit: "mg/dL", lo: 200, hi: 400 },
+    { id: "homocisteina", label: "Homocisteína", unit: "µmol/L", lo: null, hi: 12 },
+    { id: "lpa", label: "Lipoproteína (a)", unit: "mg/dL", lo: null, hi: 30 },
+    // minerais
+    { id: "zinco", label: "Zinco", unit: "µg/dL", lo: 70, hi: 120 },
+    { id: "selenio", label: "Selénio", unit: "µg/L", lo: 70, hi: 150 },
+    // hormonas com relevância nutricional
+    { id: "cortisol", label: "Cortisol (manhã)", unit: "µg/dL", lo: 6, hi: 23 },
+    { id: "testosterona", label: "Testosterona total", unit: "ng/dL", lo: 15, hi: 70, loM: 300, hiM: 1000 },
+    { id: "dhea_s", label: "DHEA-S", unit: "µg/dL", lo: 35, hi: 430, loM: 80, hiM: 560 },
+    { id: "androstenediona", label: "Androstenediona", unit: "ng/mL", lo: 0.3, hi: 3.3 },
+    { id: "shbg", label: "SHBG", unit: "nmol/L", lo: 18, hi: 144, loM: 10, hiM: 57 },
+    { id: "amh", label: "Hormona anti-Mülleriana (AMH)", unit: "ng/mL", lo: 1, hi: 4 },
+    { id: "anti_tpo", label: "Anticorpos anti-TPO", unit: "UI/mL", lo: null, hi: 34 },
+    { id: "anti_tg", label: "Anticorpos anti-tiroglobulina", unit: "UI/mL", lo: null, hi: 40 },
     { id: "outro", label: "Outra análise…", unit: "", lo: null, hi: null },
   ];
+  /** Referência clínica do marcador para o sexo da pessoa (as faixas de homem só quando existem). */
+  function clinicalRange(marker, sex) {
+    const m = markerOf(marker); if (!m || m.id === "outro") return null;
+    const male = sex === "masculino";
+    return { lo: male && m.loM !== undefined ? m.loM : m.lo, hi: male && m.hiM !== undefined ? m.hiM : m.hi };
+  }
+  /** Unidades que nunca são de uma análise ao sangue: vêm de avaliações físicas e vão para outro sítio. */
+  const BODY_UNITS = ["cm", "kg", "kg/m2", "kg/m²", "bpm", "kcal", "anos", "nivel", "nível", "ml/kg/min"];
   const ALIASES = {
     hba1c: ["hba1c", "a1c", "glicada", "glicosilada"], glicemia_jejum: ["glicemia", "glucose", "glicose"], insulina: ["insulina"],
     colesterol_total: ["colesterol total", "colesterol"], ldl: ["ldl"], hdl: ["hdl"], trigliceridos: ["triglic"],
@@ -694,22 +763,76 @@ Responde APENAS com JSON válido nesta forma:
     lipase: ["lipase"], amilase: ["amilase"], hemoglobina: ["hemoglobina"], ferro: ["ferro serico", "ferro"], ferritina: ["ferritina"], transferrina_sat: ["saturacao"],
     b12: ["b12", "cobalamina"], folato: ["folico", "folato"], vit_d: ["vitamina d", "25-oh", "25 oh", "25(oh)", "calcidiol", "hidroxivitamina"],
     tsh: ["tsh", "tirotropina"], t4_livre: ["t4 livre", "ft4", "t4l", "tiroxina livre"], sodio: ["sodio", "na+"], potassio: ["potassio", "k+"], magnesio: ["magnesio"], calcio: ["calcio"], pcr: ["pcr", "proteina c"],
+    eritrocitos: ["eritrocitos", "eritrócitos", "hemacias", "globulos vermelhos", "rbc"], hematocrito: ["hematocrito", "hct"], leucocitos: ["leucocitos", "globulos brancos", "wbc"], plaquetas: ["plaquetas", "plt"], fibrinogenio: ["fibrinogenio"], homocisteina: ["homocisteina"], lpa: ["lipoproteina (a)", "lipoproteina a", "lp(a)", "lpa"],
+    zinco: ["zinco"], selenio: ["selenio"], cortisol: ["cortisol"], testosterona: ["testosterona total", "testosterona"], dhea_s: ["dhea"], androstenediona: ["androstenediona", "delta-4", "delta 4"], shbg: ["shbg"], amh: ["amh", "anti-mulleriana", "antimulleriana", "anti mulleriana"], anti_tpo: ["anti-peroxidase", "anti peroxidase", "anti-tpo", "tpo"], anti_tg: ["anti-tiroglobulina", "anti tiroglobulina", "anti-tg"],
   };
-  const NOT = { hemoglobina: ["glic", "a1c", "corpuscular", "hcm", "chcm"], colesterol_total: ["ldl", "hdl", "nao"], ferro: ["ferritina", "transferrina", "saturacao", "capacidade"], calcio: ["ionizado"], glicemia_jejum: ["pos", "2h", "120", "urina"] };
-  const specificFirst = ["hba1c", "ldl", "hdl", "trigliceridos", "colesterol_total", "transferrina_sat", "ferritina", "ferro", "t4_livre", "tsh", "bilirrubina_total", "vit_d", "folato", "b12", "egfr", "creatinina", "ureia", "acido_urico", "alt", "ast", "ggt", "albumina", "lipase", "amilase", "insulina", "glicemia_jejum", "hemoglobina", "sodio", "potassio", "magnesio", "calcio", "pcr"];
+  const NOT = { hemoglobina: ["glic", "a1c", "corpuscular", "hcm", "chcm"], colesterol_total: ["ldl", "hdl", "nao"], ferro: ["ferritina", "transferrina", "saturacao", "capacidade"], calcio: ["ionizado"], glicemia_jejum: ["pos", "2h", "120", "urina"], leucocitos: ["urina", "sedimento", "%"], eritrocitos: ["urina", "sedimento", "%"], testosterona: ["livre", "dihidro", "dht"], cortisol: ["urina", "noite", "salivar"], magnesio: ["eritrocit"] };
+  const specificFirst = ["hba1c", "ldl", "hdl", "trigliceridos", "colesterol_total", "lpa", "transferrina_sat", "ferritina", "ferro", "t4_livre", "anti_tpo", "anti_tg", "tsh", "bilirrubina_total", "vit_d", "folato", "b12", "egfr", "creatinina", "ureia", "acido_urico", "alt", "ast", "ggt", "albumina", "lipase", "amilase", "insulina", "glicemia_jejum", "hemoglobina", "hematocrito", "eritrocitos", "leucocitos", "plaquetas", "fibrinogenio", "homocisteina", "zinco", "selenio", "cortisol", "dhea_s", "androstenediona", "shbg", "amh", "testosterona", "sodio", "potassio", "magnesio", "calcio", "pcr"];
   /** Liga o nome de uma análise (como vem no documento) a um marcador conhecido. */
-  function matchMarker(name) {
-    const n = norm(name);
+  const wordHit = (n, a) => new RegExp(`(^|[^a-z0-9])${norm(a).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`).test(n);
+  /**
+   * Nome da análise → marcador. Só por palavra inteira: "altura" não é "ALT" e
+   * "diastólica" não é "AST" (aconteceu). Uma unidade de avaliação física (cm, kg,
+   * mmHg, bpm) nunca é uma análise ao sangue.
+   */
+  function matchMarker(name, unit) {
+    const n = norm(name); const u = norm(unit || "");
+    if (u === "mmhg" || BODY_UNITS.includes(u)) return "outro";
     for (const id of specificFirst) {
       if ((NOT[id] || []).some((x) => n.includes(x))) continue;
-      if ((ALIASES[id] || []).some((a) => n.includes(a))) return id;
+      if ((ALIASES[id] || []).some((a) => wordHit(n, a))) return id;
     }
     return "outro";
   }
+  /** Valores de avaliação física que aparecem em relatórios: vão para a composição corporal. */
+  function bodyFieldOf(name, unit) {
+    const n = norm(name); const u = norm(unit || "");
+    if (/massa gorda|gordura corporal|% gordura|fat/.test(n) && u === "%") return "fat_pct";
+    if (/agua corporal|% agua|water/.test(n) && u === "%") return "water_pct";
+    if (/massa muscular|musculo|muscle/.test(n)) return u === "%" ? "muscle_pct" : "muscle_kg";
+    if (/gordura visceral|visceral/.test(n)) return "visceral";
+    if (/^(massa corporal|peso|peso corporal|weight)$/.test(n) && u === "kg") return "weight_kg";
+    return null;
+  }
   const markerOf = (id) => MARKERS.find((m) => m.id === id);
-  const labLabel = (e) => e.marker === "outro" ? (e.label || "Outra") : (markerOf(e.marker)?.label || e.label || e.marker);
-  const labKey = (e) => e.marker === "outro" ? "outro:" + (e.label || "").toLowerCase() : e.marker;
-  const outOfRange = (e) => (e.lo !== null && e.lo !== undefined && e.value < e.lo) ? "baixo" : (e.hi !== null && e.hi !== undefined && e.value > e.hi) ? "alto" : null;
+  /** Marcador a usar: o guardado, ou o que o nome permite reconhecer hoje (registos antigos ficaram como "outro"). */
+  const effMarker = (e) => e.marker && e.marker !== "outro" ? e.marker : matchMarker(e.label || "", e.unit || "");
+  const labLabel = (e) => effMarker(e) === "outro" ? (e.label || "Outra") : (markerOf(effMarker(e))?.label || e.label || e.marker);
+  const labKey = (e) => effMarker(e) === "outro" ? "outro:" + (e.label || "").toLowerCase() : effMarker(e);
+  const cmpRange = (v, lo, hi) => (lo !== null && lo !== undefined && v < lo) ? "baixo" : (hi !== null && hi !== undefined && v > hi) ? "alto" : null;
+  /** Estado face ao intervalo que veio no relatório. */
+  const outOfRangeLab = (e) => cmpRange(e.value, e.lo, e.hi);
+  /** Valor na unidade do marcador, quando a conversão é conhecida. */
+  /** Unidade comparável: μ grego e µ micro, ug e mcg são a mesma coisa; sem espaços. */
+  const normUnit = (u) => norm(u || "").replace(/\u03bc|\u00b5|mcg|\bug\b/g, (x) => x === "mcg" || x === "ug" ? "µg" : "µ").replace(/µ/g, "u").replace(/\s+/g, "");
+  function valueInMarkerUnit(e) {
+    const m = markerOf(effMarker(e)); if (!m || m.id === "outro") return null;
+    const u = normUnit(e.unit), mu = normUnit(m.unit);
+    if (!u || u === mu) return e.value;
+    if (m.id === "selenio" && /dl$/.test(u)) return e.value * 10;
+    if (m.id === "magnesio" && u === "mg/l") return null; // provavelmente magnésio eritrocitário: não comparar
+    if (m.id === "zinco" && u === "ug/ml") return e.value * 100;
+    if (m.id === "selenio" && u === "ng/ml") return e.value;
+    if ((m.id === "hemoglobina") && u === "g/l") return e.value / 10;
+    if (m.id === "vit_d" && /nmol/.test(u)) return e.value / 2.5;
+    if (m.id === "b12" && /pmol/.test(u)) return e.value * 1.355;
+    if (m.id === "folato" && /nmol/.test(u)) return e.value / 2.266;
+    return null;
+  }
+  /**
+   * Estado face à referência CLÍNICA do marcador (ajustada ao sexo). Muitos relatórios
+   * trazem faixas estreitas, "funcionais", que marcam alto o que é normal; as decisões
+   * de alimentação seguem a referência clínica, e a do laboratório fica visível ao lado.
+   */
+  function outOfRangeClinical(e, sex) {
+    const r = clinicalRange(effMarker(e), sex); const v = valueInMarkerUnit(e);
+    if (!r || v === null || (r.lo === null && r.hi === null)) return outOfRangeLab(e);
+    return cmpRange(v, r.lo, r.hi);
+  }
+  /** Estado usado nas decisões: clínico quando existe, senão o do laboratório. */
+  const outOfRange = (e, sex) => outOfRangeClinical(e, sex ?? (S.profiles[S.pid]?.sex));
+  /** "limite": o laboratório marca fora, mas na referência clínica está dentro. */
+  const labDisagrees = (e, sex) => !!outOfRangeLab(e) && !outOfRangeClinical(e, sex ?? (S.profiles[S.pid]?.sex));
   const fmtNum = (v) => Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100).replace(".", ",");
   const fmtRange = (e) => { const lo = e.lo ?? null, hi = e.hi ?? null; if (lo === null && hi === null) return ""; if (lo !== null && hi !== null) return `${fmtNum(lo)}–${fmtNum(hi)}`; return lo !== null ? `≥ ${fmtNum(lo)}` : `≤ ${fmtNum(hi)}`; };
 
@@ -730,8 +853,10 @@ Responde APENAS com JSON válido nesta forma:
     [...S.labs].sort((a, b) => b.date.localeCompare(a.date) || labLabel(a).localeCompare(labLabel(b))).forEach((e) => { if (!byDate.has(e.date)) byDate.set(e.date, []); byDate.get(e.date).push(e); });
     $("labList").innerHTML = byDate.size === 0 ? `<p class="muted small">Sem análises registadas.</p>` :
       [...byDate.entries()].map(([date, rows]) => `<div class="date-group"><h3>${date}</h3><ul class="list">${rows.map((e) => {
-        const o = outOfRange(e);
-        return `<li><span>${esc(labLabel(e))}: <strong class="num">${fmtNum(e.value)} ${esc(e.unit)}</strong> ${fmtRange(e) ? `<span class="meta num">ref. ${esc(fmtRange(e))}</span>` : ""} ${o ? `<span class="flag out">${o === "alto" ? "↑ alto" : "↓ baixo"}</span>` : (e.lo ?? e.hi) != null ? `<span class="flag ok">✓</span>` : ""}${e.notes ? `<br><span class="meta">${esc(e.notes)}</span>` : ""}</span><span class="row" style="gap:2px"><button type="button" class="btn ghost sm" data-editlab="${e.id}">editar</button><button type="button" class="btn ghost sm" data-dellab="${e.id}">remover</button></span></li>`;
+        const o = outOfRange(e); const lim = labDisagrees(e); const r = clinicalRange(effMarker(e), profile().sex);
+        const refTxt = fmtRange(e) ? `ref. lab. ${esc(fmtRange(e))}` : "";
+        const clinTxt = r && (r.lo !== null || r.hi !== null) && fmtRange({ lo: r.lo, hi: r.hi }) !== fmtRange(e) ? ` · clínica ${esc(fmtRange({ lo: r.lo, hi: r.hi }))}` : "";
+        return `<li><span>${esc(labLabel(e))}: <strong class="num">${fmtNum(e.value)} ${esc(e.unit)}</strong> ${refTxt || clinTxt ? `<span class="meta num">${refTxt}${clinTxt}</span>` : ""} ${o ? `<span class="flag out">${o === "alto" ? "↑ alto" : "↓ baixo"}</span>` : lim ? `<span class="flag ok" title="Fora da faixa do laboratório, dentro da referência clínica">≈ limite</span>` : (e.lo ?? e.hi) != null || r ? `<span class="flag ok">✓</span>` : ""}${e.notes ? `<br><span class="meta">${esc(e.notes)}</span>` : ""}</span><span class="row" style="gap:2px"><button type="button" class="btn ghost sm" data-editlab="${e.id}">editar</button><button type="button" class="btn ghost sm" data-dellab="${e.id}">remover</button></span></li>`;
       }).join("")}</ul></div>`).join("");
 
     // seletor + gráfico
@@ -805,9 +930,12 @@ Responde APENAS com JSON válido nesta forma:
   const labsFor = (pid) => pid === S.pid ? S.labs : (S.labsAll[pid]?.entries || []);
   const bodyFor = (pid) => pid === S.pid ? S.body : (S.bodyAll[pid]?.entries || []);
   function latestLabsFor(pid) {
-    const m = new Map();
+    const m = new Map(); const sex = S.profiles[pid]?.sex;
     [...labsFor(pid)].sort((a, b) => b.date.localeCompare(a.date)).forEach((e) => { const k = labKey(e); if (!m.has(k)) m.set(k, e); });
-    return [...m.values()].map((e) => ({ marker: e.marker, analise: labLabel(e), valor: e.value, unidade: e.unit, referencia: fmtRange(e) || null, estado: outOfRange(e) || "normal", data: e.date }));
+    return [...m.values()].map((e) => {
+      const r = clinicalRange(effMarker(e), sex); const cl = outOfRangeClinical(e, sex); const lab = outOfRangeLab(e);
+      return { marker: effMarker(e), analise: labLabel(e), valor: e.value, unidade: e.unit, referencia: fmtRange(e) || null, estado: cl || "normal", ...(r && (r.lo !== null || r.hi !== null) ? { referencia_clinica: fmtRange({ lo: r.lo, hi: r.hi }) } : {}), ...(lab && !cl ? { nota: "o laboratório marca fora da sua faixa, mas está dentro da referência clínica" } : {}), data: e.date };
+    });
   }
   const latestLabs = () => latestLabsFor(S.pid);
 
@@ -1112,9 +1240,12 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     for (const d of docsArr) {
       const date = /^\d{4}-\d{2}-\d{2}$/.test(String(d.data || "")) ? d.data : localDate();
       let added = 0, skipped = 0, flagged = [];
+      let corpo = null;
       for (const a of (d.analises || [])) {
         const value = Number(String(a.valor).replace(",", ".")); if (!Number.isFinite(value) || !a.analise) continue;
-        const mk = matchMarker(a.analise); const def = markerOf(mk);
+        const bf = bodyFieldOf(a.analise, a.unidade);
+        if (bf) { corpo = corpo || { id: uid(), date, notes: `de "${d.titulo || sourceLabel}"` }; corpo[bf] = value; continue; }
+        const mk = matchMarker(a.analise, a.unidade); const def = markerOf(mk);
         const unit = String(a.unidade || (mk !== "outro" ? def.unit : "")).trim();
         const sameUnit = mk !== "outro" && norm(unit) === norm(def.unit);
         const num = (v) => { if (v === null || v === undefined || v === "") return null; const n = Number(String(v).replace(",", ".")); return Number.isFinite(n) ? n : null; };
@@ -1122,6 +1253,9 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
         const e = { id: uid(), date, marker: mk, label: mk === "outro" ? String(a.analise).trim() : def.label, value, unit, lo, hi, notes: `de "${d.titulo || sourceLabel}"` };
         if (newLabs.some((x) => x.date === date && labKey(x) === labKey(e))) { skipped++; continue; }
         newLabs.push(e); added++; const o = outOfRange(e); if (o) flagged.push(`${labLabel(e)} ${fmtNum(value)} ${unit} (${o})`);
+      }
+      if (corpo && (corpo.weight_kg || corpo.fat_pct || corpo.muscle_kg || corpo.muscle_pct)) {
+        if (!S.body.some((b) => b.date === corpo.date)) { S.body = [...S.body, corpo].sort((a, b) => a.date.localeCompare(b.date)); await saveBody(); lines.push(`  Composição corporal de ${date} registada em Corpo`); }
       }
       let bp = 0;
       for (const t of (d.tensao || [])) {
@@ -1271,6 +1405,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
    * Proteína = max(1,4 × ajustado; 1,5 × ideal), com piso de 80 g (mulher) / 100 g (homem).
    */
   /** Objetivo efetivo: o que está escolhido no perfil, ou deduzido do peso objetivo. */
+  const bmiOf = (p) => { const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm; return w && h ? Math.round(w / Math.pow(h / 100, 2) * 10) / 10 : null; };
   function goalOf(p) {
     if (p.objetivo && GOALS[p.objetivo]) return p.objetivo;
     const w = p.current_weight_kg ?? p.weight_kg;
@@ -1298,6 +1433,14 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
   const labOf = (pid, marker) => latestLabsFor(pid).find((x) => x.marker === marker) || null;
   const labIs = (pid, marker, estado) => labOf(pid, marker)?.estado === estado;
 
+  /** Uma leitura de bioimpedância que não bate certo com o sexo e o peso: não alimenta cálculos. */
+  function biaPlausible(r, female) {
+    if (!r) return false;
+    const fat = r.fat_pct, water = r.water_pct;
+    if (fat === null || fat === undefined) return false;
+    if (female) return fat >= 8 && fat <= 55 && (water === null || water === undefined || water >= 38);
+    return fat >= 3 && fat <= 35 && (water === null || water === undefined || water >= 45);
+  }
   /**
    * Energia calculada pessoa a pessoa. Cada passo fica escrito com a razão, para
    * aparecer em "Porquê estes números?" e para o assistente não recalcular.
@@ -1315,7 +1458,8 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     const rows = bodyFor(pid).map(bodyRow).filter((r) => r.lean_kg && r.weight_kg).sort((a, b) => a.date.localeCompare(b.date));
     const last = rows[rows.length - 1];
     let bmr, metodo;
-    if (last && Math.abs(last.weight_kg - w) <= 5) {
+    if (last && !biaPlausible(last, female)) avisos.push(`A medição de composição corporal de ${last.date} (${fmtNum(last.fat_pct)} % de gordura, ${fmtNum(last.water_pct ?? 0)} % de água) não é plausível e não entra no cálculo: repete em jejum, hidratado, depois de urinar.`);
+    if (last && Math.abs(last.weight_kg - w) <= 5 && biaPlausible(last, female)) {
       bmr = 370 + 21.6 * last.lean_kg; metodo = "Katch-McArdle";
       passos.push({ passo: "Metabolismo basal", valor: `${Math.round(bmr)} kcal`, porque: `Katch-McArdle sobre ${fmtNum(last.lean_kg)} kg de massa magra (${fmtNum(last.fat_pct)} % de gordura, medição de ${last.date})` });
     } else if (h && age !== null) {
@@ -1333,7 +1477,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     // 3. ajustes por análises e história
     let pct = 0;
     const tshAlto = labIs(pid, "tsh", "alto"), t4Baixo = labIs(pid, "t4_livre", "baixo");
-    if (tshAlto || t4Baixo) { const d = tshAlto && t4Baixo ? 8 : 5; pct -= d; passos.push({ passo: "Tiroide", valor: `−${d} %`, porque: `${tshAlto ? "TSH acima da referência" : ""}${tshAlto && t4Baixo ? " e " : ""}${t4Baixo ? "T4 livre abaixo" : ""}: metabolismo mais lento até estar corrigido; validar com o médico` }); }
+    if (tshAlto || t4Baixo) { const d = t4Baixo ? 8 : 3; pct -= d; passos.push({ passo: "Tiroide", valor: `−${d} %`, porque: t4Baixo ? "T4 livre abaixo da referência: hipotiroidismo, gasto mais baixo até estar corrigido; validar com o médico" : "TSH acima da referência com T4 livre normal: hipotiroidismo subclínico baixa o gasto só uns 2 a 3 %, não justifica cortar mais (Samuels 2018); repetir TSH em 2 a 3 meses" }); }
     if (labIs(pid, "tsh", "baixo") && labIs(pid, "t4_livre", "alto")) { pct += 5; passos.push({ passo: "Tiroide", valor: "+5 %", porque: "TSH baixo com T4 livre alto: metabolismo acelerado; validar com o médico" }); }
     const first = rows[0]; const ws = (pid === S.pid ? S.weights : []).filter((x) => x.kg).sort((a, b) => a.date.localeCompare(b.date));
     const w0 = first?.weight_kg ?? ws[0]?.kg ?? null;
@@ -1342,14 +1486,20 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     manut = r10(manut * (1 + pct / 100));
     if (pct) passos.push({ passo: "Gasto de manutenção", valor: `${manut} kcal`, porque: "depois dos ajustes" });
     // 4. défice ou excedente
-    const goal = goalOf(p); const ideal = h ? 25 * Math.pow(h / 100, 2) : w;
+    const cond = conditionsOf(p, pid); const bmi = bmiOf(p);
+    let goal = goalOf(p); const ideal = h ? 25 * Math.pow(h / 100, 2) : w;
     const piso = female ? 1200 : 1500;
     let defice = 0, alvo = manut, ritmo = null;
+    if ((cond.includes("reds") || cond.includes("gravidez") || (bmi && bmi < 18.5)) && goal === "perder") { goal = "manter"; avisos.push("Perder peso não é seguro neste quadro: o objetivo passa a manter ou ganhar."); }
+    if (cond.includes("reds") && goal !== "ganhar") { goal = "ganhar"; passos.push({ passo: "Objetivo", valor: "ganhar", porque: "amenorreia ou baixa disponibilidade energética: a energia tem de subir" }); }
     if (goal === "perder") {
       const excess = p.target_kg ? w - p.target_kg : Math.max(0, w - ideal);
       defice = excess < 3 ? 250 : excess < 8 ? 400 : excess < 15 ? 500 : 650;
       const razoes = [`${fmtNum(Math.round(excess * 10) / 10)} kg para perder${p.target_kg ? "" : " até ao peso de referência"}`];
       if (age !== null && age >= 60 && defice > 400) { defice = 400; razoes.push("a partir dos 60 anos o défice fica em 400 kcal para poupar massa muscular"); }
+      if (cond.includes("tce") && defice > 300) { defice = 300; razoes.push("em recuperação de traumatismo craniano o cérebro precisa de energia: défice pequeno"); }
+      if (labIs(pid, "cortisol", "alto") && defice > 400) { defice = 400; razoes.push("cortisol alto: défices grandes sobem-no mais"); }
+      if (bmi && bmi < 23 && defice > 300) { defice = 300; razoes.push(`IMC ${fmtNum(bmi)}: pouco para perder, défice pequeno`); }
       if (p.uses_glp1 && defice > 600) { defice = 600; razoes.push("com GLP-1 o apetite já cai: défice maior perde massa magra e sobe o risco biliar"); }
       const fat = last?.fat_pct ?? null;
       if (fat !== null && ((female && fat < 25) || (!female && fat < 15)) && defice > 300) { defice = 300; razoes.push(`massa gorda já baixa (${fmtNum(fat)} %): défice pequeno para não perder músculo`); }
@@ -1361,36 +1511,139 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       passos.push({ passo: "Défice", valor: `−${defice} kcal`, porque: razoes.join("; ") });
       if (ritmo > 1) avisos.push("Ritmo acima de 1 kg por semana: sobe o risco de cálculos na vesícula e de queda de cabelo.");
     } else if (goal === "ganhar") {
-      alvo = manut + 300;
-      passos.push({ passo: "Excedente", valor: "+300 kcal", porque: "ganho de massa muscular lento, para não acumular gordura" });
+      const extra = cond.includes("reds") || (bmi && bmi < 18.5) ? 450 : 300;
+      alvo = manut + extra;
+      passos.push({ passo: "Excedente", valor: `+${extra} kcal`, porque: extra === 450 ? "repor a disponibilidade energética (cerca de 45 kcal por kg de massa magra) e recuperar peso e ciclo" : "ganho de massa muscular lento, para não acumular gordura" });
     } else {
       passos.push({ passo: "Sem défice", valor: `${manut} kcal`, porque: "o objetivo é comer equilibrado e manter o peso" });
     }
     return { metodo_basal: metodo, metabolismo_basal_kcal: Math.round(bmr), fator_atividade: fator, gasto_manutencao_kcal: manut, ajustes_pct: pct, defice_kcal: defice, energia_alvo_kcal: alvo, ritmo_esperado_kg_semana: ritmo, piso_kcal: piso, passos, avisos };
   }
 
-  /** O que as análises mudam no prato desta pessoa, em texto: entra no plano e no chat. */
+  /** Média da tensão nos últimos registos desta pessoa (qualquer perfil). */
+  function bpFor(pid) {
+    const list = (pid === S.pid ? S.vitals : (S.vitalsAll?.[pid]?.entries || [])).slice(-30);
+    if (!list.length) return null;
+    return { n: list.length, sis: Math.round(list.reduce((a, e) => a + e.sys, 0) / list.length), dia: Math.round(list.reduce((a, e) => a + e.dia, 0) / list.length) };
+  }
+  /**
+   * O que as análises, as condições, a tensão e a composição corporal mudam no prato desta
+   * pessoa. Cada item diz se vale para a mesa toda (`mesa`), porque não faz mal a ninguém e
+   * ajuda a quem precisa, ou só para o prato dela.
+   */
   function labFlags(pid = S.pid) {
     const out = []; const is = (m, e) => labIs(pid, m, e);
     const v = (m) => labOf(pid, m)?.valor;
-    if (is("hba1c", "alto") || is("glicemia_jejum", "alto") || is("insulina", "alto")) out.push({ analise: "Glicemia, HbA1c ou insulina acima da referência", no_prato: "hidratos de baixo índice glicémico e sempre acompanhados de proteína e gordura; legumes antes dos hidratos; sem açúcar livre; caminhada de 10 a 15 minutos depois das refeições principais" });
-    if (is("ldl", "alto") || is("colesterol_total", "alto")) out.push({ analise: "Colesterol LDL ou total acima da referência", no_prato: "gordura saturada baixa (enchidos, natas, manteiga, queijos gordos raros), azeite como gordura principal, fibra solúvel todos os dias (aveia, leguminosas, maçã), peixe gordo 2 vezes por semana" });
-    if (is("trigliceridos", "alto")) out.push({ analise: "Triglicéridos acima da referência", no_prato: "sem açúcar livre nem sumos, álcool zero, hidratos integrais em porções controladas, peixe gordo 2 a 3 vezes por semana" });
-    if (is("hdl", "baixo")) out.push({ analise: "HDL abaixo da referência", no_prato: "azeite, frutos secos, peixe gordo; atividade física regular ajuda mais do que qualquer alimento" });
-    if (is("ferritina", "baixo") || is("hemoglobina", "baixo") || is("ferro", "baixo") || is("transferrina_sat", "baixo")) out.push({ analise: "Ferro, ferritina ou hemoglobina abaixo da referência", no_prato: "carne vermelha magra ou sardinha 2 vezes por semana, leguminosas com fonte de vitamina C na mesma refeição; café, chá e lacticínios afastados 1 hora dessas refeições" });
-    if (is("ferritina", "alto")) out.push({ analise: `Ferritina acima da referência (${fmtNum(v("ferritina"))})`, no_prato: "sem reforço de ferro nem suplementos com ferro; carne vermelha no máximo 1 vez por semana; validar causa com o médico" });
-    if (is("vit_d", "baixo")) out.push({ analise: "Vitamina D abaixo da referência", no_prato: "peixe gordo (sardinha, cavala, salmão) 2 a 3 vezes por semana, gema de ovo, lacticínios enriquecidos; suplemento só com o médico" });
-    if (is("b12", "baixo") || is("folato", "baixo")) out.push({ analise: "B12 ou folato abaixo da referência", no_prato: "ovos, peixe, carne e lacticínios em todas as refeições principais; folhas verdes e leguminosas para o folato" });
-    if (is("egfr", "baixo") || is("creatinina", "alto")) out.push({ analise: "Função renal reduzida (eGFR baixo ou creatinina alta)", no_prato: "proteína limitada a 1,0 a 1,2 g por kg, distribuída; sem suplementos de proteína; validar obrigatoriamente com o médico", limite_proteina_g_kg: 1.2 });
-    if (is("acido_urico", "alto")) out.push({ analise: "Ácido úrico acima da referência", no_prato: "menos vísceras, marisco, caldos de carne e cerveja; mais água e lacticínios magros; perda de peso gradual, não brusca" });
-    if (is("alt", "alto") || is("ast", "alto") || is("ggt", "alto")) out.push({ analise: "Enzimas hepáticas acima da referência", no_prato: "álcool zero, menos açúcar e fritos, café sem açúcar pode ajudar; perda de peso gradual reduz a gordura no fígado" });
-    if (is("tsh", "alto") || is("t4_livre", "baixo")) out.push({ analise: "Tiroide lenta (TSH alto ou T4 livre baixo)", no_prato: "já descontado no gasto de energia; iodo e selénio pela alimentação (peixe, ovos, castanha-do-brasil 1 por dia); soja e couves cruas em excesso afastadas da medicação" });
-    if (is("potassio", "alto")) out.push({ analise: "Potássio acima da referência", no_prato: "moderar banana, batata, tomate e leguminosas até novo controlo; validar com o médico" });
-    if (is("sodio", "baixo")) out.push({ analise: "Sódio abaixo da referência", no_prato: "não restringir sal sem indicação médica; hidratação com sais" });
-    if (is("albumina", "baixo")) out.push({ analise: "Albumina abaixo da referência", no_prato: "proteína de alta qualidade em todas as refeições, sem falhar aportes" });
-    if (is("pcr", "alto")) out.push({ analise: "PCR acima da referência", no_prato: "padrão mediterrânico: azeite, peixe gordo, frutos secos, legumes; menos ultraprocessados" });
-    if (is("magnesio", "baixo")) out.push({ analise: "Magnésio abaixo da referência", no_prato: "frutos secos, sementes, leguminosas, cereais integrais, chocolate negro" });
+    const p = S.profiles[pid] || {}; const cond = conditionsOf(p, pid); const has = (c) => cond.includes(c);
+    const bp = bpFor(pid); const bmi = bmiOf(p); const age = ageFrom(p.birth_date);
+    const rows = bodyFor(pid).map(bodyRow).filter((r) => r.weight_kg).sort((a, b) => a.date.localeCompare(b.date)); const last = rows[rows.length - 1];
+    const female = (p.sex || "feminino") !== "masculino";
+    // --- tensão arterial e sódio ---
+    if (has("hipertensao") || (bp && (bp.sis >= 135 || bp.dia >= 85))) out.push({ id: "sodio", mesa: true, analise: has("hipertensao") ? `Hipertensão${bp ? ` (média ${bp.sis}/${bp.dia})` : ""}` : `Tensão média ${bp.sis}/${bp.dia}`, no_prato: "padrão DASH: sal abaixo de 5 g por dia (sódio 2 g), sem enchidos, caldos, molhos e queijos salgados; ervas, alho, limão e especiarias no lugar do sal; potássio pela comida (fruta, batata, legumes, lacticínios); álcool zero; cada kg perdido baixa cerca de 1 mmHg" });
+    const ANTI_HTA = /losartan|valsartan|olmesartan|candesartan|irbesartan|telmisartan|ramipril|enalapril|lisinopril|perindopril|captopril|amlodipin|nifedipin|lercanidipin|bisoprolol|nebivolol|carvedilol|atenolol|metoprolol|indapamida|hidroclorotiazida|clorotalidona|espironolactona|anti-hipert|antihipert|tens[aã]o/;
+    if (has("hipertensao") && !(p.meds || []).some((m) => m.active !== false && ANTI_HTA.test(norm(`${m.name} ${m.notes || ""}`)))) out.push({ id: "bp_med", mesa: false, analise: "Hipertensão confirmada sem medicação registada", no_prato: "a alimentação ajuda mas não substitui a avaliação médica; ao perder peso a tensão desce cerca de 1 mmHg por kg, e se vier a tomar medicação o médico deve saber do plano e rever a dose a cada 5 kg", medico: true });
+    // --- glicemia ---
+    if (is("hba1c", "alto") || is("glicemia_jejum", "alto") || is("insulina", "alto") || has("prediabetes")) out.push({ id: "glicemia", mesa: true, analise: is("glicemia_jejum", "alto") ? `Glicemia em jejum ${fmtNum(v("glicemia_jejum"))} mg/dL` : "Glicemia, HbA1c ou insulina acima da referência", no_prato: "hidratos de baixo índice glicémico, integrais, e sempre acompanhados de proteína e gordura; legumes ou proteína antes dos hidratos; sem açúcar livre nem sumos; caminhada de 10 a 15 minutos depois das refeições principais" });
+    // --- lípidos ---
+    if (is("ldl", "alto") || is("colesterol_total", "alto") || (labOf(pid, "ldl") && v("ldl") >= 115)) out.push({ id: "ldl", mesa: true, analise: `Colesterol LDL ${fmtNum(v("ldl") ?? v("colesterol_total"))} mg/dL`, no_prato: "gordura saturada baixa (enchidos, natas, manteiga, queijos gordos raros), azeite como gordura principal, fibra solúvel todos os dias (aveia, maçã, pera, leguminosas em quem as come), frutos secos 30 g por dia, peixe gordo 2 a 3 vezes por semana" });
+    if (is("trigliceridos", "alto")) out.push({ id: "tg", mesa: true, analise: "Triglicéridos acima da referência", no_prato: "sem açúcar livre nem sumos, álcool zero, hidratos integrais em porções controladas, peixe gordo 2 a 3 vezes por semana" });
+    if (is("hdl", "baixo")) out.push({ id: "hdl", mesa: false, analise: "HDL abaixo da referência", no_prato: "azeite, frutos secos e peixe gordo; a atividade física regular sobe o HDL mais do que qualquer alimento" });
+    if (is("lpa", "alto")) out.push({ id: "lpa", mesa: false, analise: "Lipoproteína (a) alta", no_prato: "não muda com a alimentação; reforça o resto do perfil lipídico e fala com o médico" });
+    // --- ferro e hemograma ---
+    if (is("ferritina", "baixo") || is("hemoglobina", "baixo") || is("ferro", "baixo") || is("transferrina_sat", "baixo")) out.push({ id: "ferro_baixo", mesa: false, analise: "Ferro, ferritina ou hemoglobina abaixo da referência", no_prato: "carne vermelha magra ou sardinha 2 vezes por semana, leguminosas com fonte de vitamina C na mesma refeição; café, chá e lacticínios afastados 1 hora dessas refeições" });
+    if (is("ferritina", "alto")) out.push({ id: "ferritina_alta", mesa: false, analise: `Ferritina ${fmtNum(v("ferritina"))} ng/mL, acima da referência`, no_prato: "sem suplementos com ferro nem cereais fortificados; carne vermelha no máximo 1 vez por semana; vitamina C afastada das refeições com carne (dificulta a absorção de ferro); chá ou café a seguir às refeições principais ajuda; álcool zero; a ferritina também sobe com inflamação, o médico deve ver a saturação da transferrina" });
+    const hemoAlto = is("hemoglobina", "alto") || is("hematocrito", "alto") || is("eritrocitos", "alto");
+    const hemoLimite = ["hemoglobina", "hematocrito", "eritrocitos"].some((m) => { const e = labsFor(pid).filter((x) => effMarker(x) === m).sort((a, b) => b.date.localeCompare(a.date))[0]; return e && labDisagrees(e, p.sex); });
+    if (hemoAlto || (hemoLimite && (is("ureia", "alto") || labOf(pid, "ureia")?.valor >= 35))) out.push({ id: "hidratacao", mesa: true, analise: hemoAlto ? "Hemoglobina, hematócrito ou eritrócitos acima da referência" : "Hemoglobina e hematócrito no limite superior, com ureia também no limite", no_prato: "sinal frequente de pouca água no dia da colheita: água ao longo do dia até à meta, mais 500 ml em dias de calor ou exercício; urina clara como sinal; repetir as análises bem hidratada; se continuar alto, o médico avalia (apneia do sono, tabaco, policitemia)" });
+    if (is("plaquetas", "alto") || is("fibrinogenio", "alto")) out.push({ id: "inflamacao", mesa: true, analise: `Plaquetas ${is("plaquetas", "alto") ? fmtNum(v("plaquetas")) : "normais"} e fibrinogénio ${is("fibrinogenio", "alto") ? fmtNum(v("fibrinogenio")) : "normal"}: sinais de inflamação ou coagulação ativa`, no_prato: "padrão mediterrânico anti-inflamatório: azeite, peixe gordo 2 a 3 vezes por semana, frutos secos, fruta inteira, cereais integrais, sem ultraprocessados nem açúcar livre; álcool zero; este padrão pede avaliação médica, não é só alimentar" });
+    if (is("leucocitos", "alto")) out.push({ id: "leucocitos", mesa: false, analise: "Leucócitos acima da referência", no_prato: "sem medida alimentar específica; repetir e falar com o médico se se mantiver" });
+    // --- vitaminas e minerais ---
+    if (is("vit_d", "baixo")) out.push({ id: "vitd", mesa: true, analise: `Vitamina D ${fmtNum(v("vit_d"))} ng/mL`, no_prato: "peixe gordo (sardinha, cavala, salmão) 2 a 3 vezes por semana, gema de ovo, lacticínios enriquecidos; sol nos braços 15 minutos por dia fora do verão; a comida sozinha raramente chega a 30, o suplemento é do médico" });
+    if (is("b12", "baixo") || is("folato", "baixo")) out.push({ id: "b12", mesa: false, analise: "B12 ou folato abaixo da referência", no_prato: "ovos, peixe, carne e lacticínios em todas as refeições principais; folhas verdes e leguminosas para o folato" });
+    if (is("homocisteina", "alto")) out.push({ id: "homocisteina", mesa: false, analise: `Homocisteína ${fmtNum(v("homocisteina"))} µmol/L${(is("b12", "alto") || labOf(pid, "b12")?.valor > 600) ? " apesar de B12 e folato altos" : ""}`, no_prato: "vitamina B6 (frango, peixe, batata, banana, pistácio), riboflavina (ovos, lacticínios), betaína e colina (ovos, beterraba, espinafre, peixe); café no máximo 2 por dia e álcool zero; com fibrinogénio e plaquetas altos é assunto para o médico, não só para o prato" });
+    if (is("zinco", "alto") || is("selenio", "alto")) out.push({ id: "minerais_altos", mesa: false, analise: `${is("zinco", "alto") ? "Zinco" : ""}${is("zinco", "alto") && is("selenio", "alto") ? " e " : ""}${is("selenio", "alto") ? "selénio" : ""} acima da referência`, no_prato: "parar suplementos com zinco ou selénio e castanhas-do-brasil; a comida normal chega; o excesso de zinco baixa o cobre e o de selénio faz cair o cabelo" });
+    if (is("magnesio", "baixo")) out.push({ id: "mg", mesa: false, analise: "Magnésio abaixo da referência", no_prato: "frutos secos, sementes, leguminosas, cereais integrais, chocolate negro" });
+    // --- rins ---
+    const egfr = v("egfr");
+    if (is("egfr", "baixo") || is("creatinina", "alto") || has("renal")) out.push({ id: "renal", mesa: false, analise: "Função renal reduzida (eGFR abaixo de 60 ou creatinina alta)", no_prato: "proteína limitada a 1,0 a 1,2 g por kg, distribuída; sem suplementos de proteína; sal moderado; validar obrigatoriamente com o médico", limite_proteina_g_kg: 1.2 });
+    else if (egfr !== undefined && egfr !== null && egfr < 75) out.push({ id: "egfr_limite", mesa: false, analise: `TFG estimada ${fmtNum(egfr)}, no limite inferior do normal`, no_prato: "proteína até 1,3 g por kg chega e é segura; água até à meta todos os dias; sal moderado; repetir a análise para ver a tendência", limite_proteina_g_kg: 1.3 });
+    if (is("ureia", "alto") && !hemoAlto && !hemoLimite) out.push({ id: "ureia", mesa: false, analise: `Ureia ${fmtNum(v("ureia"))} mg/dL com creatinina normal`, no_prato: "quase sempre pouca água ou muita proteína de uma vez: água até à meta e proteína repartida por 3 a 4 refeições" });
+    if (is("acido_urico", "alto")) out.push({ id: "urico", mesa: false, analise: "Ácido úrico acima da referência", no_prato: "menos vísceras, marisco, caldos de carne e cerveja; mais água e lacticínios magros; perda de peso gradual, não brusca" });
+    if (is("alt", "alto") || is("ast", "alto") || is("ggt", "alto")) out.push({ id: "figado", mesa: false, analise: "Enzimas hepáticas acima da referência", no_prato: "álcool zero, menos açúcar e fritos; café sem açúcar pode ajudar; perda de peso gradual reduz a gordura no fígado" });
+    // --- tiroide ---
+    if (is("tsh", "alto") || is("t4_livre", "baixo") || has("tiroide")) out.push({ id: "tiroide", mesa: false, analise: is("tsh", "alto") ? `TSH ${fmtNum(v("tsh"))} mUI/L, acima da referência` : "Tiroide lenta ou autoimune", no_prato: "já descontado no gasto de energia; iodo pela comida (peixe 2 a 3 vezes por semana, ovos, lacticínios, sal iodado se usar sal); selénio pela comida e não por suplemento; soja e couves cruas em grande quantidade afastadas da medicação se a houver; repetir TSH em jejum de manhã, e dizer ao médico se toma biotina (falseia o resultado)" });
+    if (is("anti_tpo", "alto") || is("anti_tg", "alto")) out.push({ id: "autoimune", mesa: false, analise: "Anticorpos da tiroide acima da referência", no_prato: "selénio pela comida (peixe, ovos, 1 castanha-do-brasil por dia no máximo, e nenhuma se o selénio já estiver alto); vitamina D em dia; sem restrições de glúten ou lacticínios a não ser por indicação médica" });
+    // --- hormonas: SOPC e cortisol ---
+    if (has("sopc") || is("amh", "alto") || is("testosterona", "alto") || is("androstenediona", "alto") || is("dhea_s", "alto")) {
+      const ir = is("hba1c", "alto") || is("glicemia_jejum", "alto") || is("insulina", "alto");
+      out.push({ id: "sopc", mesa: false, analise: `Padrão de androgénios ou AMH altos${ir ? " com glicemia alta" : " sem resistência à insulina"}`, no_prato: `hidratos de baixo índice glicémico repartidos pelo dia, proteína em todas as refeições, peixe gordo 2 a 3 vezes por semana, vitamina D em dia; ${female && bmi && bmi >= 25 ? "perder 5 a 10 % do peso devagar melhora os ciclos" : "sem restrição de energia: em peso normal ou baixo a restrição piora o quadro"}; inositol e outros suplementos só com o médico` });
+    }
+    if (is("cortisol", "alto")) out.push({ id: "cortisol", mesa: false, analise: `Cortisol da manhã ${fmtNum(v("cortisol"))} µg/dL, acima da referência`, no_prato: "não saltar refeições, pequeno-almoço com proteína, cafeína só até ao início da tarde e no máximo 2 cafés, hidratos integrais ao jantar ajudam a dormir; dormir 7 a 9 horas; défices grandes sobem o cortisol, por isso o défice fica moderado" });
+    // --- condições sem análise ---
+    if (has("tce")) out.push({ id: "tce", mesa: true, analise: "Recuperação de traumatismo craniano", no_prato: "energia quase de manutenção (o cérebro em recuperação não tolera défices grandes), proteína 1,2 a 1,5 g por kg, peixe gordo 2 a 3 vezes por semana pelo DHA, ovos pela colina, frutos vermelhos, azeite, frutos secos, folhas verdes e cereais integrais (padrão MIND); álcool zero; horários regulares e sono; creatina e outros suplementos só com o médico" });
+    if (has("reds") || (female && bmi && bmi < 18.5)) out.push({ id: "reds", mesa: false, analise: has("reds") ? "Amenorreia ou baixa disponibilidade energética" : `IMC ${fmtNum(bmi)}`, no_prato: "sem qualquer restrição: energia acima da manutenção (mais 300 a 600 kcal por dia), hidratos suficientes (não menos de 4 a 5 g por kg), proteína 1,6 a 1,8 g por kg, cálcio 1200 a 1500 mg e vitamina D em dia; refeições de 3 em 3 horas, pequenas e densas (azeite, frutos secos, ovos, arroz, massa, pão, fruta seca); reduzir o exercício de alto impacto até a menstruação voltar; acompanhamento médico e de nutrição" });
+    if (has("refluxo")) out.push({ id: "refluxo", mesa: false, analise: "Refluxo ou azia", no_prato: "refeições pequenas, última refeição 3 horas antes de deitar, menos gordura, fritos, chocolate, café e citrinos; ficar de pé depois de comer" });
+    if (has("vesicula")) out.push({ id: "vesicula", mesa: false, analise: "Vesícula ou cálculos biliares", no_prato: "gordura repartida e nunca zero: 7 a 10 g de azeite em duas refeições por dia para a vesícula contrair; sem fritos nem refeições muito gordas; perda de peso nunca acima de 1 kg por semana" });
+    if (has("gravidez")) out.push({ id: "gravidez", mesa: false, analise: "Gravidez ou amamentação", no_prato: "sem défice de energia; ferro, folato, iodo, cálcio e DHA em dia; sem peixe de grande porte nem álcool; tudo validado com o médico" });
+    if (p.uses_glp1) out.push({ id: "glp1", mesa: false, analise: `Em tratamento com ${p.glp1_substance || "GLP-1"}`, no_prato: "proteína em todas as refeições, porções pequenas, pouca gordura nos dias 0 a 2 depois da injeção, líquidos entre refeições, fibra a subir devagar; treino de força 2 a 3 vezes por semana para não perder músculo; cálcio e vitamina D em dia" });
+    // --- suplementos cruzados com análises ---
+    const supps = (p.meds || []).filter((m) => m.active !== false);
+    const supp = (re) => supps.find((m) => re.test(norm(`${m.name} ${m.dose || ""}`)));
+    if (supp(/ashwagandha|withania/)) out.push({ id: "ashwagandha", mesa: false, analise: "Toma ashwagandha", no_prato: `sobe a T4 e há casos de lesão do fígado${is("ast", "alto") || is("alt", "alto") ? " (e as enzimas do fígado já estão acima)" : ""}; parar 1 a 2 semanas antes de análises à tiroide e dizer ao médico que a toma`, medico: true });
+    { const mg = supp(/magnes/); const dose = mg ? Number((String(mg.dose || "").match(/(\d+)\s*mg/i) || [])[1]) : 0; if (mg && dose > 350) out.push({ id: "magnesio_dose", mesa: false, analise: `Magnésio em suplemento ${dose} mg`, no_prato: `acima do limite de 350 mg por dia em suplemento: risco de diarreia${p.uses_glp1 ? ", que se soma à da tirzepatida" : ""}; tomar com comida, à noite, 2 horas afastado de cálcio, ferro e zinco; confirmar a dose com o médico`, medico: true }); }
+    if (supp(/\bferro\b|iron/) && is("ferritina", "alto")) out.push({ id: "ferro_supl", mesa: false, analise: "Toma ferro com a ferritina alta", no_prato: "parar o suplemento de ferro até o médico ver a saturação da transferrina", medico: true });
+    if (supp(/biotina|biotin|complexo b|b complex|b-complex/)) out.push({ id: "biotina", mesa: false, analise: "Toma complexo B (pode ter biotina)", no_prato: "a biotina falseia as análises à tiroide (TSH mais baixo, T4 mais alto): parar 2 dias antes de colher sangue e dizer ao laboratório", medico: true });
+    if (supp(/creatina/)) out.push({ id: "creatina", mesa: false, analise: "Toma creatina", no_prato: "sobe a creatinina e baixa falsamente a TFG estimada: o médico deve saber, e pode pedir cistatina C", medico: true });
+    if (supp(/zinco|zinc|selenio|selenium/) && (is("zinco", "alto") || is("selenio", "alto"))) out.push({ id: "zn_se_supl", mesa: false, analise: "Suplemento de zinco ou selénio com os níveis já altos", no_prato: "parar o suplemento; limites máximos 25 mg de zinco e 255 µg de selénio por dia, tudo incluído", medico: true });
+    // --- para o médico: o que estas análises pedem e não é do prato ---
+    if (is("ferritina", "alto")) out.push({ id: "m_tsat", mesa: false, analise: "Ferritina alta", no_prato: "pedir saturação da transferrina e PCR: com saturação abaixo de 45 % a sobrecarga de ferro fica afastada e a causa é inflamação ou metabólica", medico: true });
+    if (is("plaquetas", "alto") || is("fibrinogenio", "alto") || (is("hemoglobina", "alto") && female)) out.push({ id: "m_hemograma", mesa: false, analise: "Plaquetas, fibrinogénio ou hemoglobina acima da referência", no_prato: "repetir o hemograma bem hidratada; plaquetas acima de 450 ou hemoglobina acima de 16 repetidas justificam estudo; perguntar se toma pílula (sobe fibrinogénio, SHBG e cortisol)", medico: true });
+    if (is("glicemia_jejum", "alto") && !is("hba1c", "alto")) out.push({ id: "m_glicemia", mesa: false, analise: "Glicemia em jejum alta com HbA1c normal", no_prato: "é a categoria de menor risco de pré-diabetes; repetir a glicemia em jejum (sono, stress e cafeína alteram-na) e falar de vitamina D com o médico, que em pré-diabetes tem evidência", medico: true });
+    if (is("tsh", "alto")) out.push({ id: "m_tsh", mesa: false, analise: `TSH ${fmtNum(v("tsh"))}`, no_prato: "repetir TSH e T4 livre com anticorpos anti-TPO em 2 a 3 meses, de manhã, em jejum, sem biotina; metade normaliza; abaixo de 10 sem sintomas normalmente não se trata", medico: true });
+    if (is("amh", "alto") || is("testosterona", "alto") || is("androstenediona", "alto") || is("dhea_s", "alto")) out.push({ id: "m_androg", mesa: false, analise: "Androgénios ou AMH acima da referência", no_prato: "as hormonas não se interpretam com pílula (parar 3 meses antes); pedir testosterona total e livre, SHBG, 17-OH-progesterona; a AMH sozinha não diagnostica SOPC (guia internacional 2023)", medico: true });
+    if (is("homocisteina", "alto")) out.push({ id: "m_hcy", mesa: false, analise: "Homocisteína alta com B12 e folato altos", no_prato: "pedir B6 e riboflavina, repetir depois da tiroide estar avaliada; com fibrinogénio e plaquetas altos é um padrão pró-trombótico a discutir", medico: true });
+    if (has("hipertensao") && (p.sex !== "masculino") && bmi && bmi >= 27 && (is("hemoglobina", "alto") || hemoLimite)) out.push({ id: "m_apneia", mesa: false, analise: "Hipertensão com hemoglobina no limite superior", no_prato: "perguntar por ressonar, pausas na respiração e sono não reparador: a apneia do sono sobe a tensão e a hemoglobina", medico: true });
+    if (has("tce")) out.push({ id: "m_hipofise", mesa: false, analise: "Depois de traumatismo craniano grave", no_prato: "um terço tem défices hipofisários (GH, gonadal, cortisol) mais de um ano depois; cansaço, humor em baixo ou perda de massa magra justificam painel hormonal; pedir também perfil lipídico, Lp(a) uma vez, HbA1c e albumina na urina", medico: true });
+    if (has("reds")) out.push({ id: "m_reds", mesa: false, analise: "Amenorreia com mais de 6 meses", no_prato: "densitometria óssea (DXA) está indicada; se o Z-score for baixo, a evidência favorece estradiol transdérmico e não a pílula; pedir 25-OH vitamina D; a taquicardia em repouso não se explica pela baixa energia e precisa de avaliação cardíaca", medico: true });
+    if (labOf(pid, "egfr") && v("egfr") < 75) out.push({ id: "m_rim", mesa: false, analise: `TFG estimada ${fmtNum(v("egfr"))}`, no_prato: "60 a 89 não é doença renal; pedir albumina/creatinina na urina e, se quiser confirmar, TFG por cistatina C", medico: true });
+    // --- urina com células: não é do prato ---
+    { const uri = labsFor(pid).filter((e) => /sediment|urina/.test(norm(e.label || "")) && /leucocit|eritrocit|hemacia|sangue/.test(norm(e.label || "")) && outOfRangeLab(e) === "alto");
+      if (uri.length) out.push({ id: "m_urina", mesa: false, analise: "Leucócitos ou eritrócitos na urina acima da referência", no_prato: "repetir urina tipo II e urocultura com colheita limpa; até lá, água até à meta", medico: true }); }
+    // --- cálcio quando não come lacticínios ---
+    if ((p.dislikes || []).some((d) => /queijo|lactic|leite|iogurte|bebidas vegetais/.test(norm(d))) && (has("reds") || (female && (age === null || age < 25 || age >= 50)) || p.uses_glp1)) out.push({ id: "calcio", mesa: false, analise: `Cálcio difícil sem ${(p.dislikes || []).filter((d) => /queijo|lactic|leite|iogurte|bebidas vegetais/.test(norm(d))).join(", ")}`, no_prato: "alvo 1000 a 1500 mg por dia: leite gordo 250 ml (280 mg) e iogurte natural 125 g (150 mg) se os aceitar, sardinha com espinha 90 g (300 mg), amêndoa 30 g (80 mg), tahini 1 colher (65 mg), figos secos, água das Pedras 1 l (100 mg); se não chegar a 1000 mg com comida, o suplemento de 500 mg com a refeição é assunto para o médico" });
+    // --- fibra sem legumes nem leguminosas ---
+    if ((p.dislikes || []).some((d) => /legum|vegeta|hortic/.test(norm(d)))) out.push({ id: "fibra_sem_legumes", mesa: false, analise: "Não come legumes" + ((p.dislikes || []).some((d) => /legumin/.test(norm(d))) ? " nem leguminosas" : ""), no_prato: "fibra chega aos 25 a 29 g por dia sem eles: aveia 40 g (4 g), pão ou massa integral (4 a 5 g por refeição), batata com pele 150 g (3 g), 2 a 3 peças de fruta inteira (6 a 8 g), 30 g de frutos secos (3 g), 15 g de chia ou linhaça (5 g), pipocas caseiras 20 g (3 g); legumes escondidos em sopa passada e molhos passam (ensaio de Blatt 2011: mais 200 g de legumes por dia sem dar por isso); sem sumos; potássio e magnésio vêm de batata, banana, lacticínios e frutos secos" });
+    // --- osso: mulheres a partir dos 50 ou em perimenopausa, e quem perde peso depressa ---
+    if (female && ((age !== null && age >= 50) || (labOf(pid, "fsh") && v("fsh") > 25))) out.push({ id: "osso", mesa: false, analise: age !== null && age >= 50 ? `Mulher, ${age} anos` : "FSH acima de 25 (transição para a menopausa)", no_prato: `cálcio 1200 mg por dia pela comida (3 a 4 porções de lacticínios, sardinha com espinha, amêndoa) com vitamina D em dia, proteína 1,2 g por kg e treino de força 2 a 3 vezes por semana: são os anos em que o osso perde mais depressa${p.uses_glp1 ? ", e a perda de peso com GLP-1 baixa a densidade óssea se não houver exercício" : ""}` });
+    // --- cafeína com taquicardia ---
+    { const pulses = (pid === S.pid ? S.vitals : (S.vitalsAll?.[pid]?.entries || [])).slice(-5).map((e) => e.pulse).filter(Boolean); const fc = pulses.length ? Math.round(pulses.reduce((a, b) => a + b, 0) / pulses.length) : null;
+      if ((fc && fc >= 100) || /palpita|taquicard/.test(norm(p.notes || ""))) out.push({ id: "cafeina", mesa: false, analise: fc ? `Frequência cardíaca em repouso ${fc}` : "Palpitações", no_prato: "cafeína ao mínimo (bem abaixo de 200 mg de uma vez) e nenhuma antes de treinar até a avaliação cardíaca estar feita; água até à meta; sem bebidas energéticas" }); }
+    // --- composição corporal ---
+    if (last && !biaPlausible(last, female) && last.fat_pct !== null && last.fat_pct !== undefined) out.push({ id: "bia", mesa: false, analise: `Composição corporal pouco plausível (${fmtNum(last.fat_pct)} % de gordura${last.water_pct ? `, ${fmtNum(last.water_pct)} % de água` : ""})`, no_prato: "as balanças de bioimpedância erram até 10 pontos em valor absoluto mas repetem bem: com pouca água no corpo dão gordura a mais; repetir de manhã, em jejum, depois de urinar, sem exercício nas 12 horas antes, sempre no mesmo aparelho; até lá o cálculo de energia usa a fórmula por peso e altura" });
+    if (rows.length >= 2) {
+      const f = rows[0], l = last; const dW = f.weight_kg - l.weight_kg;
+      if (dW >= 2 && f.lean_kg !== null && l.lean_kg !== null && (f.lean_kg - l.lean_kg) / dW > 0.3) out.push({ id: "massa_magra", mesa: false, analise: `Da perda de ${fmtNum(Math.round(dW * 10) / 10)} kg, ${Math.round((f.lean_kg - l.lean_kg) / dW * 100)} % foi massa magra`, no_prato: "demasiado: subir a proteína para o topo do alvo, treino de força 2 a 3 vezes por semana e défice mais pequeno" });
+    }
     return out;
+  }
+  /** Só o que muda o prato (sem os itens para o médico). */
+  const plateFlags = (pid = S.pid) => labFlags(pid).filter((f) => !f.medico);
+  /** Só o que é para levar ao médico. */
+  const doctorFlags = (pid = S.pid) => labFlags(pid).filter((f) => f.medico);
+  function labFlagsText(pid = S.pid) { return plateFlags(pid).map((f) => `${f.analise}: ${f.no_prato}`); }
+  /**
+   * As regras da mesa: o que vale para todos porque não faz mal a ninguém e ajuda quem precisa
+   * (sal, azeite, peixe gordo, sem álcool, padrão MIND), e o que cada um leva a mais ou a menos.
+   */
+  function tableConstraints(ids) {
+    const mesa = new Map(); const porPessoa = {};
+    for (const id of ids) {
+      const flags = plateFlags(id);
+      porPessoa[id] = flags.filter((f) => !f.mesa).map((f) => `${f.analise}: ${f.no_prato}`);
+      flags.filter((f) => f.mesa).forEach((f) => { if (!mesa.has(f.id)) mesa.set(f.id, { regra: f.no_prato, por_causa_de: [] }); mesa.get(f.id).por_causa_de.push(`${nameOf(id)} (${f.analise})`); });
+    }
+    if (ids.length >= 2) mesa.set("base", { regra: "azeite como gordura principal, sal abaixo de 5 g por dia e álcool zero à mesa; peixe 2 a 3 vezes por semana, uma delas gordo; cereais integrais; fruta inteira em vez de sumo", por_causa_de: ["regra da casa"] });
+    return { mesa: [...mesa.values()], por_pessoa: porPessoa };
   }
 
   /** Os passos do cálculo de energia e o que as análises mudam, em lista. */
@@ -1398,8 +1651,10 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     if (!t?.energia) return "";
     const passos = (t.energia.passos || []).map((x) => { const [a, b] = x.split(" — "); const [nome, val] = a.split(": "); return `<li><span class="n">${esc(val || "")}</span><span>${esc(nome)}${b ? `<span class="o">${esc(b)}</span>` : ""}</span></li>`; }).join("");
     const avisos = (t.energia.avisos || []).map((x) => `<li><span class="n">⚠</span><span>${esc(x)}</span></li>`).join("");
-    const labs = (t.ajustes_pelas_analises || []).map((x) => { const [a, b] = x.split(": "); return `<li><span class="n">🧪</span><span>${esc(a)}${b ? `<span class="o">${esc(b)}</span>` : ""}</span></li>`; }).join("");
-    return `<ul class="why-list">${passos}${avisos}</ul>${labs ? `<p class="small muted" style="margin:8px 0 4px">O que as análises mudam no prato</p><ul class="why-list">${labs}</ul>` : ""}`;
+    const item = (icon) => (x) => { const i = x.indexOf(": "); const a = i > 0 ? x.slice(0, i) : x, b = i > 0 ? x.slice(i + 2) : ""; return `<li><span class="n">${icon}</span><span>${esc(a)}${b ? `<span class="o">${esc(b)}</span>` : ""}</span></li>`; };
+    const labs = (t.ajustes_pelas_analises || []).map(item("🧪")).join("");
+    const med = (t.para_o_medico || []).map(item("🩺")).join("");
+    return `<ul class="why-list">${passos}${avisos}</ul>${labs ? `<p class="small muted" style="margin:8px 0 4px">O que as análises e as condições mudam no prato</p><ul class="why-list">${labs}</ul>` : ""}${med ? `<p class="small muted" style="margin:8px 0 4px">Para falar com o médico (a app não diagnostica)</p><ul class="why-list">${med}</ul>` : ""}`;
   }
   function planTargets(p, pid = S.pid) {
     const w = p.current_weight_kg ?? p.weight_kg, h = p.height_cm;
@@ -1409,10 +1664,11 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     const adj = w > ideal ? ideal + 0.25 * (w - ideal) : w;
     const goal = goalOf(p);
     let prot = goal === "perder" ? Math.max(1.4 * adj, 1.5 * ideal, female ? 80 : 100)
-      : goal === "ganhar" ? Math.max(1.6 * adj, female ? 90 : 110)
+      : goal === "ganhar" ? Math.max(1.7 * adj, female ? 70 : 90)
         : Math.max(1.1 * adj, female ? 70 : 85);
-    const flags = labFlags(pid);
+    const flags = plateFlags(pid); const medico = doctorFlags(pid);
     const capGkg = Math.min(...flags.map((f) => f.limite_proteina_g_kg).filter(Boolean), Infinity);
+    const conds = conditionsOf(p, pid);
     let notaProt = "";
     if (capGkg !== Infinity && prot > capGkg * w) { prot = capGkg * w; notaProt = ` (limitada a ${capGkg} g/kg pela função renal)`; }
     const perMeal = (goal === "perder" ? 0.4 : 0.35) * adj;
@@ -1428,7 +1684,10 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       energia_alvo_kcal: en?.energia_alvo_kcal ?? null,
       energia_piso_kcal: en?.piso_kcal ?? (female ? 1200 : 1500),
       energia: en ? { metodo_basal: en.metodo_basal, metabolismo_basal_kcal: en.metabolismo_basal_kcal, fator_atividade: en.fator_atividade, gasto_manutencao_kcal: en.gasto_manutencao_kcal, defice_kcal: en.defice_kcal, energia_alvo_kcal: en.energia_alvo_kcal, ritmo_esperado_kg_semana: en.ritmo_esperado_kg_semana, passos: en.passos.map((x) => `${x.passo}: ${x.valor} — ${x.porque}`), avisos: en.avisos } : null,
+      condicoes: conds.map((c) => CONDITIONS.find((x) => x.id === c)?.label || c),
       ajustes_pelas_analises: flags.map((f) => `${f.analise}: ${f.no_prato}`),
+      para_o_medico: medico.map((f) => `${f.analise}: ${f.no_prato}`),
+      titulacao_glp1: titrationInfo(p),
       liquidos_alvo_ml: waterGoal(p).ml,
       fibra_alvo_g: "22 a 28",
       ...(goal === "perder" && en?.ritmo_esperado_kg_semana ? { ritmo_de_perda_alvo: `${fmtNum(en.ritmo_esperado_kg_semana)} kg por semana com este défice` } : {}),
@@ -1547,6 +1806,19 @@ MEDIDAS CASEIRAS (Roda dos Alimentos, DGS) — usa-as em medida_caseira e diz se
 - leite 250 ml = 1 chávena almoçadeira · iogurte sólido 1 unidade ≈ 125 g · queijo 40 g = 2 fatias finas · queijo fresco 50 g = ¼ de unidade · requeijão 100 g = ½ unidade
 - ovo médio 55 g · pão 50 g = 1 papo-seco · batata média ≈ 85 g · fruta média 160 g = 1 peça
 - ATENÇÃO: a porção da Roda para carne e peixe (25 a 30 g) é uma unidade de contabilidade, não uma dose de refeição. Uma dose real de almoço são 120 a 150 g crus. Não confundas, senão o plano fica muito abaixo da proteína necessária.
+
+CRUZAMENTOS COM EVIDÊNCIA (aplica o que vier em "ajustes_pelas_analises"; a app já cruzou análises, condições, tensão, composição e suplementos)
+- Tirzepatida: dose sobe de 4 em 4 semanas; os dias 2 a 5 depois da injeção nas duas primeiras semanas de cada dose são os piores (SURMOUNT). Um quarto do peso perdido é massa magra sem treino de força (substudo DXA SURMOUNT-1). A densidade óssea desce com GLP-1 sem exercício (Hansen 2024; Jensen 2024): cálcio 1200 mg e força 2 a 3 vezes por semana em mulheres a partir dos 50. Vesícula: pelo menos uma refeição por dia com 10 g de gordura (Stokes 2014).
+- Tensão: cada kg perdido baixa cerca de 1 mmHg (Neter 2003); a tirzepatida baixa 7 a 10 mmHg às 36 semanas; sódio abaixo de 2 g e potássio pela comida (ESC 2024).
+- LDL: trocar gordura saturada baixa 7 mg/dL; 3 g de beta-glucano de aveia (40 g) ou psílio baixam 5 a 13 mg/dL; 30 g de frutos secos baixam 5 mg/dL; o azeite mexe pouco no LDL mas reduz eventos.
+- Glicemia em jejum alta com HbA1c normal: categoria de menor risco; hidratos no fim da refeição baixam o pico 40 a 55 % (Shukla); caminhar 2 a 5 minutos depois de comer baixa 17 %; fibra 25 a 29 g baixa a glicemia em jejum.
+- Ferritina alta com fibrinogénio e plaquetas altos é quase sempre inflamação, não sobrecarga de ferro (BSH 2018): sem ferro nem vitamina C às refeições, chá ou café depois de comer, carne vermelha 1 vez por semana; o resto é do médico.
+- Homocisteína alta com B12 e folato altos: riboflavina (McNulty 2006), B6, betaína e colina (ovos, beterraba); café filtrado no máximo 2 e álcool zero.
+- Cortisol alto: não saltar refeições, cafeína até ao início da tarde, dormir 7 a 9 horas; dietas de 1200 kcal sobem o cortisol (Tomiyama 2010): défice moderado.
+- Amenorreia com baixo peso (REDs, COI 2023): disponibilidade energética a 45 kcal por kg de massa magra, mais 20 a 40 % de energia (REFUEL 2021 conseguiu mais 330 kcal por dia e 64 % recuperaram o ciclo em 12 meses), hidratos 5 a 7 g por kg, proteína 1,6 g por kg, cálcio 1000 a 1500 mg; sem qualquer restrição; hidratos baixos prejudicam o osso mais do que a própria falta de energia (Fensham 2022).
+- Traumatismo craniano em fase crónica: não há ensaios; o padrão mediterrânico com azeite e frutos secos melhorou a cognição (PREDIMED-Navarra); peixe gordo 2 a 3 vezes por semana, ovos pela colina, frutos vermelhos; energia quase de manutenção; álcool zero.
+- Bioimpedância de consumo erra até 10 pontos de gordura em valor absoluto (Tinsley 2023): trata tendências, não valores; leituras implausíveis ficam fora dos cálculos.
+- Marmitas: arrefecer em menos de 2 horas, frigorífico a 5 °C ou menos, no máximo 3 a 4 dias, reaquecer até 74 °C ou fumegar por todo o lado, só uma vez; arroz cozido vai ao frio na hora e come-se em 24 horas ou congela-se (Bacillus cereus); congelado dura 2 a 3 meses.
 
 LIMITES DE ATUAÇÃO (obrigatórios)
 - Em Portugal a prescrição dietética é ato próprio do nutricionista. Isto é uma sugestão alimentar de apoio: nunca uses as palavras prescrever, tratamento ou terapêutica.
@@ -1911,6 +2183,9 @@ REGRA CENTRAL: cada refeição em família é UM prato só, o mesmo para toda a 
 PESSOAS (JSON):
 ${JSON.stringify(pessoas)}
 
+REGRAS DA MESA (valem para todos, porque não fazem mal a ninguém e ajudam quem precisa) E REFORÇOS POR PESSOA (JSON):
+${JSON.stringify(tableConstraints(ids))}
+
 ${PLAN_KNOWLEDGE}`;
 
     const menu = await ask(`${head}
@@ -1999,6 +2274,9 @@ ${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de 3)`
 
 PESSOAS (JSON):
 ${JSON.stringify((fam.pessoas || []).map(personCtx))}
+
+REGRAS DA MESA E REFORÇOS POR PESSOA (JSON):
+${JSON.stringify(tableConstraints(fam.pessoas || []))}
 
 ${PLAN_KNOWLEDGE}
 
@@ -3079,7 +3357,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();
@@ -3106,6 +3384,12 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
       db.collection("body").onSnapshot((snap) => {
         const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.bodyAll = next;
       }, (e) => console.warn("body all", e));
+      db.collection("vitals").onSnapshot((snap) => {
+        const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.vitalsAll = next;
+      }, (e) => console.warn("vitals all", e));
+      db.collection("docs").onSnapshot((snap) => {
+        const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.docsAll = next;
+      }, (e) => console.warn("docs all", e));
       db.doc("family/plan").onSnapshot((snap) => {
         if (S.generating) return;
         S.family = snap.exists ? thaw(snap.data()) : null;

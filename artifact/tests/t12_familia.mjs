@@ -71,6 +71,7 @@ export default async function () {
     assert((await page.evaluate(() => window.__shopIn)).includes("peito de frango grelhado"), "a lista soma o que está nos planos de todos");
 
     // 2. o ecrã: refeições primeiro, mesa com as diferenças, secções fechadas
+    await page.click('[data-day="segunda"]'); await page.waitForTimeout(200);
     const html = await page.evaluate(() => document.querySelector("#planBody").innerHTML);
     assert(html.indexOf('id="planMealsList"') < html.indexOf('id="planTargets"'), "refeições antes das metas");
     const meals = await app.text("#planMealsList");
@@ -80,6 +81,7 @@ export default async function () {
     assert((await app.text("#planWhy")).includes("1,6 g/kg"), "porquês na página");
 
     // 3. editar à mão o jantar em família muda para todos, cada um com as suas quantidades
+    await page.click('[data-day="segunda"]'); await page.waitForTimeout(200);
     const idx = await page.evaluate(() => [...document.querySelectorAll("#planMealsList .meal h3")].findIndex((h) => h.textContent.trim() === "Jantar"));
     await page.click(`[data-editmeal="segunda|${idx}"]`); await page.waitForTimeout(200);
     assert((await app.text(".modal .hint")).includes("Refeição em família"), "o editor avisa");

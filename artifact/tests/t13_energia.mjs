@@ -26,14 +26,14 @@ export default async function () {
     // Mãe: Katch-McArdle sobre 47,2 kg de massa magra; TSH alto −5 %; défice travado no metabolismo basal; proteína limitada pelos rins
     eq(T.mae.energia.metodo_basal, "Katch-McArdle", "com massa magra medida usa Katch-McArdle");
     eq(T.mae.energia.metabolismo_basal_kcal, 1390, "metabolismo basal da mãe");
-    assert(T.mae.energia.passos.some((x) => x.startsWith("Tiroide: −5 %")), "TSH alto desconta 5 %: " + T.mae.energia.passos.join(" | "));
-    eq(T.mae.energia.gasto_manutencao_kcal, 1720, "manutenção da mãe com o ajuste");
+    assert(T.mae.energia.passos.some((x) => x.startsWith("Tiroide: −3 %")), "TSH alto com T4 normal desconta 3 %: " + T.mae.energia.passos.join(" | "));
+    eq(T.mae.energia.gasto_manutencao_kcal, 1750, "manutenção da mãe com o ajuste");
     eq(T.mae.energia_alvo_kcal, 1390, "nunca abaixo do metabolismo basal");
-    eq(T.mae.energia.defice_kcal, 330, "défice efetivo da mãe");
+    eq(T.mae.energia.defice_kcal, 360, "défice efetivo da mãe");
     assert(T.mae.energia.passos.some((x) => x.includes("nunca abaixo do metabolismo basal")), "razão do piso escrita");
     eq(T.mae.proteina_alvo_g_dia, 94, "proteína limitada a 1,2 g/kg pela função renal");
     assert(T.mae.proteina_nota.includes("função renal"), "nota da proteína");
-    assert(T.mae.ajustes_pelas_analises.some((x) => x.startsWith("Função renal")) && T.mae.ajustes_pelas_analises.some((x) => x.startsWith("Colesterol LDL")) && T.mae.ajustes_pelas_analises.some((x) => x.startsWith("Tiroide lenta")), "as análises viram instruções para o prato");
+    assert(T.mae.ajustes_pelas_analises.some((x) => x.startsWith("Função renal")) && T.mae.ajustes_pelas_analises.some((x) => x.startsWith("Colesterol LDL")) && T.mae.ajustes_pelas_analises.some((x) => x.startsWith("TSH")), "as análises viram instruções para o prato");
     // Pai e Vitória: manutenção, sem défice
     eq(T.pai.energia.metabolismo_basal_kcal, 1611, "metabolismo basal do pai");
     eq(T.pai.energia_alvo_kcal, 2340, "o pai fica na manutenção");

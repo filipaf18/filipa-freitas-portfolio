@@ -32,6 +32,18 @@ ou do piso (1200/1500 kcal). As análises fora da referência viram instruções
 fígado, tiroide, potássio, sódio, albumina, PCR, magnésio. O assistente recebe tudo já calculado e não
 recalcula.
 
+**Cruzamentos** (setembro de 2026, com investigação de evidência): as análises avaliam-se pela referência
+clínica do marcador, ajustada ao sexo, e não pelas faixas estreitas de alguns laboratórios (a do relatório
+fica visível ao lado); registos antigos guardados como "outro" passam a ser reconhecidos pelo nome
+(fibrinogénio, homocisteína, AMH, cortisol, zinco, selénio, androgénios, anticorpos da tiroide). As
+condições de saúde escolhem-se no perfil ou leem-se das notas e dos relatórios (hipertensão por MAPA,
+traumatismo craniano, amenorreia). Os suplementos cruzam-se com as análises (ashwagandha e tiroide,
+magnésio acima de 350 mg, biotina e análises à tiroide, ferro com ferritina alta, creatina e TFG).
+A bioimpedância implausível fica fora do cálculo de energia. Cada perfil recebe regras para o prato e
+uma lista "para falar com o médico"; as refeições em família recebem as regras da mesa (o que ajuda
+quem precisa e não faz mal a ninguém) e os reforços por pessoa. A leitura de PDFs faz correspondência
+por palavra inteira e por unidade, e encaminha composição corporal para Corpo.
+
 **Refeições em família.** Não há um plano de família à parte: ao gerar o plano de uma pessoa, os
 jantares e almoços (em marmita) saem primeiro, iguais para toda a gente que come em família, e
 entram no plano individual de cada um com as suas quantidades e sem o que cada pessoa não come.

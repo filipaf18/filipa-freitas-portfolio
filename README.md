@@ -61,6 +61,13 @@ dia, ou é ajustada às metas dela (proteína pela proteína alvo, o resto pela 
 Além de 👍/👎, uma nota livre por refeição (porção, tempero, trocas) fica em `prefs` com `voto: 0` e entra
 nos próximos planos, nas trocas e no chat.
 
+**"Hoje ao almoço vou fazer X."** No chat, dizer o que se vai comer (ou pedir quantidades para um prato
+escolhido) chama a ferramenta `fixar_refeicao`: a refeição entra no plano desse dia com as quantidades
+calculadas (marcada `propria`, para o jantar em família não a sobrepor) e, no fim da resposta, a app faz
+um pedido curto que reequilibra as refeições ainda por comer desse dia (as já marcadas "Comi" e a fixada
+não mudam; numa refeição em família muda só a porção desta pessoa). O chat conta o que mudou e a refeição
+fica em Hoje para marcar "Comi".
+
 **Refeições em família.** Não há um plano de família à parte: ao gerar o plano de uma pessoa, os
 jantares e almoços (em marmita) saem primeiro, iguais para toda a gente que come em família, e
 entram no plano individual de cada um com as suas quantidades e sem o que cada pessoa não come.

@@ -38,6 +38,7 @@
   const CHAT_KEEP = 200;
 
   const S = {
+    pendingRebalance: null, // { dia, fixas } depois de fixar_refeicao pelo chat: o resto do dia ajusta-se no fim da resposta
     db: null,
     sample: null,
     pid: null,
@@ -2391,6 +2392,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
           familia: true, base_comum: fm.base, ...(fm.marmita ? { marmita: fm.marmita } : {}),
         });
         const i = dia.refeicoes.findIndex((m) => norm(m.nome) === norm(fm.nome));
+        if (i >= 0 && dia.refeicoes[i].propria) continue; // nesse dia a pessoa escolheu outra coisa (pelo chat)
         if (i >= 0) dia.refeicoes[i] = meal; else dia.refeicoes.push(meal);
         dia.refeicoes.sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
       }
@@ -2890,6 +2892,7 @@ Responde APENAS com JSON válido nesta forma:
       alternativas: (m.alternativas || []).map((a) => ({ em_vez_de: String(a.em_vez_de || ""), trocar_por: String(a.trocar_por || "") })).slice(0, 4),
       kcal: Number(m.kcal) || 0, proteina_g: Number(m.proteina_g) || 0, fibra_g: Number(m.fibra_g) || 0, hidratos_g: Number(m.hidratos_g) || 0, gordura_g: Number(m.gordura_g) || 0,
       ...(m.familia ? { familia: true } : {}),
+      ...(m.propria ? { propria: true } : {}),
       ...(m.base_comum ? { base_comum: String(m.base_comum) } : {}),
       ...(m.marmita ? { marmita: { preparar_em: String(m.marmita.preparar_em || ""), conservacao: String(m.marmita.conservacao || ""), montagem: String(m.marmita.montagem || "") } } : {}),
     };
@@ -3194,6 +3197,113 @@ Responde APENAS com JSON: {"lista":[{"corredor":"Talho","itens":[{"alimento":"pe
     return { ok: true, versao: S.plan.version, aplicado: done };
   }
 
+  /**
+   * A pessoa diz o que vai comer (ou comeu) numa refeição concreta: essa refeição entra no plano desse dia
+   * com as quantidades dela, e o resto do dia é reequilibrado a seguir (rebalanceRestOfDay).
+   */
+  async function fixMealForDay(input) {
+    if (!S.plan?.plan) throw new Error("Não existe plano. Pede à pessoa para gerar um plano na aba Plano.");
+    const dayName = input?.dia ? DAYS.find((d) => norm(d) === norm(input.dia)) : todayDayName();
+    if (!dayName) throw new Error(`Dia desconhecido: ${input.dia}. Usa: ${DAYS.join(", ")}.`);
+    const nome = String(input?.refeicao || "").trim(); if (!nome) throw new Error("Falta 'refeicao' (Pequeno-almoço, Almoço, Lanche, Jantar…).");
+    const itens = (Array.isArray(input?.itens) ? input.itens : []).map((i) => ({ alimento: String(i?.alimento || "").trim(), quantidade: String(i?.quantidade || "").trim(), estado: String(i?.estado || ""), medida_caseira: String(i?.medida_caseira || ""), grupo: String(i?.grupo || "") })).filter((i) => i.alimento && i.quantidade);
+    if (!itens.length) throw new Error("Falta 'itens' com alimento e quantidade (ex.: macarrão seco 60 g).");
+    const plan = JSON.parse(JSON.stringify(S.plan.plan));
+    let day = plan.dias.find((d) => norm(d.dia) === norm(dayName));
+    if (!day) { day = { dia: dayName, refeicoes: [] }; plan.dias.push(day); }
+    const slots = mealSlots(profile()); const mySlot = slotOfMeal({ nome }, slots);
+    const idx = day.refeicoes.findIndex((m) => norm(m.nome) === norm(nome) || (mySlot && slotOfMeal(m, slots)?.key === mySlot.key));
+    const antes = idx >= 0 ? day.refeicoes[idx] : null;
+    const hora = /^\d{2}:\d{2}$/.test(String(input.hora || "")) ? input.hora : (antes?.hora || mySlot?.hora || "");
+    const mm = mealMacros({ itens, kcal: input.kcal, proteina_g: input.proteina_g, hidratos_g: input.hidratos_g, gordura_g: input.gordura_g, fibra_g: input.fibra_g });
+    const meal = normMeal({ nome: antes?.nome || nome, hora, itens: itens.map((i) => ({ ...i, estado: i.estado || findFood(i.alimento)?.estado || "", grupo: i.grupo || guessGroup(findFood(i.alimento)) })), ordem: Array.isArray(input.ordem) ? input.ordem : (antes?.ordem || []), preparacao: String(input.preparacao || ""), porque: String(input.motivo || "Escolhido pela pessoa no chat"), alternativas: [], kcal: mm.kcal, proteina_g: mm.proteina_g, hidratos_g: mm.hidratos_g, gordura_g: mm.gordura_g, fibra_g: mm.fibra_g, propria: true });
+    if (idx >= 0) day.refeicoes[idx] = meal; else day.refeicoes.push(meal);
+    day.refeicoes.sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+    S.plan = { ...S.plan, plan, version: (S.plan.version || 1) + 1, previous: S.plan.plan, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: `${meal.nome} de ${dayName} escolhido no chat` }].slice(-20) };
+    await savePlan();
+    if (input.ja_comi && dayName === todayDayName()) await setAdherence(meal.nome, "comi");
+    const resto = day.refeicoes.filter((m) => m !== meal).map((m) => m.nome);
+    S.pendingRebalance = { dia: dayName, fixas: [meal.nome] };
+    return {
+      ok: true, versao: S.plan.version, dia: dayName,
+      refeicao: { nome: meal.nome, hora: meal.hora, itens: meal.itens.map((i) => `${i.alimento} ${i.quantidade}`), kcal: meal.kcal, proteina_g: meal.proteina_g, hidratos_g: meal.hidratos_g, gordura_g: meal.gordura_g, fibra_g: meal.fibra_g, macros_calculados_pela_tabela: mm.computed },
+      ...(antes?.familia ? { nota_familia: `Nesse dia a pessoa não come o ${antes.nome} em família; o prato dos outros fica igual.` } : {}),
+      resto_do_dia: resto,
+      proximo_passo: resto.length ? `A app vai reequilibrar sozinha as outras refeições de ${dayName} (${resto.join(", ")}) logo a seguir à tua resposta, para os totais do dia baterem certo: NÃO uses atualizar_refeicoes para isso. Diz à pessoa as quantidades, que a refeição já está no plano de ${dayName === todayDayName() ? "hoje" : dayName} e que pode marcar "Comi" em Hoje.` : "Diz à pessoa que a refeição já está no plano.",
+    };
+  }
+  /** A porção só desta pessoa numa refeição em família (os outros ficam iguais). */
+  async function setMyFamilyPortion(dayName, mealName, itens, macros) {
+    if (!S.family?.dias) return false;
+    const fam = JSON.parse(JSON.stringify(S.family));
+    const fd = fam.dias.find((d) => norm(d.dia) === norm(dayName)); const slot = famSlot(fd, mealName);
+    const pp = slot ? fd[slot].por_pessoa?.[S.pid] : null; if (!pp) return false;
+    fd[slot].por_pessoa[S.pid] = { ...pp, itens, kcal: macros.kcal, proteina_g: macros.proteina_g, hidratos_g: macros.hidratos_g, gordura_g: macros.gordura_g, fibra_g: macros.fibra_g };
+    fam.changelog = [...(fam.changelog || []), { at: new Date().toISOString(), o_que: `${mealName} de ${dayName}: porção de ${nameOf(S.pid)} ajustada ao resto do dia` }].slice(-20);
+    S.family = fam; await saveFamily();
+    return true;
+  }
+  /**
+   * Depois de a pessoa fixar uma refeição pelo chat: as refeições ainda por comer desse dia são ajustadas
+   * (um pedido curto) para o dia bater certo com as metas. As já comidas e a fixada não mudam; numa refeição
+   * em família mudam só as quantidades do prato desta pessoa.
+   */
+  async function rebalanceRestOfDay(pend) {
+    const pl = S.plan?.plan; const day = pl?.dias?.find((d) => norm(d.dia) === norm(pend.dia)); if (!day || !S.sample) return null;
+    const eaten = pend.dia === todayDayName() ? todayAdherence() : {};
+    const isFixed = (m) => pend.fixas.some((n) => norm(n) === norm(m.nome)) || ["comi", "parcial", "outro"].includes(eaten[m.nome]?.status);
+    const fixas = day.refeicoes.filter(isFixed); const livres = day.refeicoes.filter((m) => !isFixed(m));
+    if (!livres.length) return { mudadas: [], totais: dayMacros(day) };
+    const metas = pl.metas_diarias || {}; const t = planTargets(profile(), S.pid) || {};
+    const alvo = { kcal: metas.kcal || t.energia_alvo_kcal || null, proteina_g: metas.proteina_g || t.proteina_alvo_g_dia || null, fibra_g: metas.fibra_g || 25 };
+    const extras = (S.plan.extras || []).filter((e) => e.date === dateOfPlanDay(pend.dia));
+    const soma = (ms) => ms.reduce((a, m) => { const x = mealMacros(m); return { kcal: a.kcal + x.kcal, proteina_g: a.proteina_g + x.proteina_g, fibra_g: a.fibra_g + x.fibra_g }; }, { kcal: 0, proteina_g: 0, fibra_g: 0 });
+    const jaConta = soma(fixas); extras.forEach((e) => { jaConta.kcal += e.kcal || 0; jaConta.proteina_g += e.proteina_g || 0; });
+    const falta = { kcal: alvo.kcal ? Math.round(alvo.kcal - jaConta.kcal) : null, proteina_g: alvo.proteina_g ? Math.round(alvo.proteina_g - jaConta.proteina_g) : null, fibra_g: Math.round((alvo.fibra_g - jaConta.fibra_g) * 10) / 10 };
+    const p = profile(); const q = { nao_come: p.dislikes || [], alergias: p.allergies || [], intolerancias: p.intolerances || [], usa_glp1: !!p.uses_glp1 };
+    const detalhe = (m) => ({ nome: m.nome, hora: m.hora, familia: !!m.familia, itens: (m.itens || []).map((i) => `${i.alimento} ${i.quantidade}`), ...(({ kcal, proteina_g, fibra_g }) => ({ kcal, proteina_g, fibra_g }))(mealMacros(m)) });
+    const mealSchema = DAY_SCHEMA.split('"refeicoes":[')[1].split("]}]}")[0];
+    const prompt = `És nutricionista numa app familiar privada, em português de Portugal. A pessoa decidiu o que come em ${fixas.map((m) => m.nome).join(" e ")} de ${pend.dia}${extras.length ? ", e comeu extras fora do plano" : ""}. Reequilibra as refeições que ainda faltam nesse dia (${livres.map((m) => `${m.nome} às ${m.hora}`).join(", ")}) para os totais do dia baterem com as metas.
+
+METAS DO DIA: ${JSON.stringify(alvo)}
+JÁ CONTA (refeições fixas${extras.length ? " + extras" : ""}): ${JSON.stringify(jaConta)}
+O QUE FALTA REPARTIR PELAS REFEIÇÕES A AJUSTAR: ${JSON.stringify(falta)}
+
+Regras:
+- Mantém os nomes e as horas. Devolve só as refeições a ajustar, todas.
+- Se o que falta for pouco, aligeira (menos hidratos e gordura, proteína mantida); se for muito, reforça. Nunca deixes o dia abaixo de 1200 kcal nem cortes uma refeição inteira: no mínimo fica algo leve com proteína.
+- Numa refeição com "familia": true é um prato partilhado com a família: mantém os mesmos alimentos e muda só as quantidades desta pessoa.
+- Proteína primeiro; fibra com o que a pessoa come (não come: ${JSON.stringify(q.nao_come)}; alergias: ${JSON.stringify(q.alergias)}; intolerâncias: ${JSON.stringify(q.intolerancias)}).${q.usa_glp1 ? "\n- Usa GLP-1: porções pequenas, pouca gordura." : ""}
+${rulesFor(S.pid).length ? `- Regras da pessoa: ${rulesFor(S.pid).map((r) => r.texto).join("; ")}.\n` : ""}
+REFEIÇÕES FIXAS (não mudam): ${JSON.stringify(fixas.map(detalhe))}
+REFEIÇÕES A AJUSTAR (como estão agora): ${JSON.stringify(livres.map(detalhe))}
+
+Responde APENAS com JSON válido nesta forma: {"refeicoes":[${mealSchema}]}`;
+    const res = await S.sample.json(prompt, { cache: false, modelTier: "default" });
+    const novas = Array.isArray(res?.refeicoes) ? res.refeicoes : [];
+    if (!novas.length) throw { code: "invalid_json", message: "sem refeições" };
+    const plan = JSON.parse(JSON.stringify(pl)); const d2 = plan.dias.find((d) => d.dia === day.dia);
+    const mudadas = [];
+    for (const nv of novas) {
+      const i = d2.refeicoes.findIndex((m) => norm(m.nome) === norm(nv.nome) && livres.some((l) => norm(l.nome) === norm(m.nome)));
+      if (i < 0) continue;
+      const orig = d2.refeicoes[i];
+      const nm = normMeal({ ...nv, nome: orig.nome, hora: orig.hora, familia: orig.familia, base_comum: orig.base_comum, marmita: orig.marmita, propria: orig.propria });
+      if (!nm.itens.length) continue;
+      const mm = mealMacros(nm); const macros = mm.computed ? mm : { kcal: nm.kcal, proteina_g: nm.proteina_g, hidratos_g: nm.hidratos_g, gordura_g: nm.gordura_g, fibra_g: nm.fibra_g };
+      if (orig.familia && !orig.propria) {
+        const ok = await setMyFamilyPortion(day.dia, orig.nome, nm.itens, macros);
+        if (ok) { applyFamilyToPlan(plan, S.pid); mudadas.push(`${orig.nome}: ${nm.itens.map((x) => `${x.alimento} ${x.quantidade}`).join(", ")} (só a tua porção; o prato da família fica igual)`); continue; }
+      }
+      d2.refeicoes[i] = { ...nm, ...macros };
+      mudadas.push(`${orig.nome}: ${nm.itens.map((x) => `${x.alimento} ${x.quantidade}`).join(", ")}`);
+    }
+    if (!mudadas.length) return { mudadas: [], totais: dayMacros(day) };
+    S.plan = { ...S.plan, plan, version: (S.plan.version || 1) + 1, previous: S.plan.plan, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: `Resto de ${day.dia} ajustado a ${pend.fixas.join(", ")}` }].slice(-20) };
+    await savePlan();
+    return { mudadas, totais: dayMacros(d2), alvo };
+  }
+
   async function registerExtra(input) {
     if (!S.plan) throw new Error("Não existe plano; regista primeiro um plano na aba Plano.");
     const desc = String(input?.descricao || "").trim(); if (!desc) throw new Error("Falta 'descricao'.");
@@ -3238,6 +3348,8 @@ Fora do plano: quando a pessoa disser que comeu ou bebeu algo que não estava no
 Tensão arterial: quando a pessoa indicar uma medição (ex: "hoje 135/85"), regista-a com registar_tensao e comenta brevemente; valores ≥ 140/90 repetidos ou ≥ 180/110 uma vez: aconselha contacto médico.
 
 Documentos: quando a pessoa anexa análises ou outros documentos, a página lê-os e regista antes de te chegar a mensagem; os dados atualizados vêm no contexto. Comenta o que é relevante para a alimentação e propõe ajustes ao plano se fizer sentido.
+
+Refeição escolhida pela pessoa: quando ela disser o que vai comer (ou comeu) numa refeição concreta, ou pedir quantidades para um prato que ela escolheu ("hoje ao almoço vou fazer massa com frango, que quantidades?"), calcula as quantidades para as metas dela e fixa-as no plano com fixar_refeicao (dia por omissão hoje; itens com alimento e quantidade, no estado que ela pediu, cru ou cozinhado). A app ajusta a seguir, sozinha, as refeições seguintes desse dia (lanches, jantar) para compensar; não o faças tu com atualizar_refeicoes e não digas que ela não precisa de fazer nada: a refeição fica no plano desse dia para ela marcar "Comi" em Hoje. Responde com as quantidades e diz que já está no plano.
 
 Horários: o contexto traz "horario_das_refeicoes", as refeições que a pessoa faz e a que horas. Se ela disser que num dia concreto vai comer a outra hora ("amanhã tomo o pequeno-almoço às 7"), usa ajustar_horario para esse dia; se abrir um intervalo de mais de 5 horas, propõe um lanche pequeno nesse dia com atualizar_refeicoes. Se ela disser que o horário habitual mudou ("passei a jantar às 19"), guarda como regra com guardar_regra e diz-lhe que pode fixar a hora no Perfil, em Horário das refeições, para o plano inteiro se ajustar.
 
@@ -3479,6 +3591,17 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       description: "Muda a hora de uma refeição do plano num dia concreto (ex.: 'amanhã tomo o pequeno-almoço às 7'). Só nesse dia; o horário habitual fica no perfil. Numa refeição em família a hora muda para todos. Devolve as horas do dia e avisa se ficou um intervalo de mais de 5 horas.",
       inputSchema: { type: "object", properties: { dia: { type: "string", description: "segunda|terça|quarta|quinta|sexta|sábado|domingo (usa dia_da_semana_hoje para 'hoje' e 'amanhã')" }, refeicao: { type: "string", description: "Nome da refeição (Pequeno-almoço, Almoço, Lanche, Jantar…)" }, hora: { type: "string", description: "HH:MM" }, motivo: { type: "string" } }, required: ["dia", "refeicao", "hora"] },
       execute: async (input) => { bubble.innerHTML = `<span class="thinking">a ajustar o horário…</span>`; return setMealTimeForDay(input?.dia, input?.refeicao, String(input?.hora || "").trim(), input?.motivo); },
+    }] : []), ...(S.plan?.plan ? [{
+      name: "fixar_refeicao",
+      description: "Fixa no plano o que a pessoa vai comer (ou comeu) numa refeição concreta de um dia (por omissão hoje), com as quantidades que calculaste para as metas dela. Usa quando ela diz o que vai fazer para uma refeição ou pede quantidades para um prato escolhido por ela. A app reequilibra depois, sozinha, as outras refeições desse dia. Devolve a refeição guardada e os macros.",
+      inputSchema: { type: "object", properties: {
+        dia: { type: "string", description: "segunda|terça|quarta|quinta|sexta|sábado|domingo; por omissão hoje" },
+        refeicao: { type: "string", description: "Pequeno-almoço, Almoço, Lanche, Jantar…" },
+        itens: { type: "array", items: { type: "object", properties: { alimento: { type: "string" }, quantidade: { type: "string", description: "ex.: '60 g', '130 g', '1 c. sopa'" }, estado: { type: "string", description: "cru | cozinhado | seco…, como a pessoa pediu" }, medida_caseira: { type: "string" } }, required: ["alimento", "quantidade"] } },
+        preparacao: { type: "string" }, kcal: { type: "number" }, proteina_g: { type: "number" }, hidratos_g: { type: "number" }, gordura_g: { type: "number" }, fibra_g: { type: "number" },
+        ja_comi: { type: "boolean", description: "true se a pessoa disse que já comeu esta refeição" }, motivo: { type: "string" },
+      }, required: ["refeicao", "itens"] },
+      execute: async (input) => { bubble.innerHTML = `<span class="thinking">a pôr a refeição no plano…</span>`; return fixMealForDay(input); },
     }] : []), {
       name: "registar_tensao",
       description: "Regista uma medição de tensão arterial da pessoa (sistólica/diastólica em mmHg, pulso opcional) e devolve a classificação e a média recente. Usa quando a pessoa indica uma medição.",
@@ -3549,6 +3672,18 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
     }
     renderChat();
     if (!err || err.code === "cancelled") await saveChat();
+    if (S.pendingRebalance && S.plan?.plan && !err) {
+      const pend = S.pendingRebalance; S.pendingRebalance = null;
+      const b2 = document.createElement("div"); b2.className = "msg assistant"; b2.innerHTML = `<span class="thinking">a ajustar o resto do dia…</span>`; log.appendChild(b2); log.scrollTop = log.scrollHeight;
+      try {
+        const r = await rebalanceRestOfDay(pend);
+        if (r?.mudadas?.length) pushChat({ role: "assistant", content: `🔁 Ajustei o resto de ${pend.dia} ao ${pend.fixas.join(" e ")}:\n${r.mudadas.map((x) => "- " + x).join("\n")}\nDia: ${r.totais.kcal} kcal, ${r.totais.proteina_g} g de proteína${r.alvo?.kcal ? ` (meta ${r.alvo.kcal} kcal, ${r.alvo.proteina_g || "?"} g)` : ""}.`, at: new Date().toISOString() });
+        else if (r && r.mudadas) pushChat({ role: "assistant", content: `O resto de ${pend.dia} ficou como estava (nada por ajustar).`, at: new Date().toISOString() });
+      } catch (e) {
+        if (e?.code !== "cancelled") { pushChat({ role: "assistant", content: "⚠️ Não consegui ajustar o resto do dia automaticamente. Podes pedir-me: \"ajusta o lanche e o jantar de hoje\".", at: new Date().toISOString(), error: true }); S.diag.lastErr = `reequilibrar: ${e?.code || e?.message}`; renderDiag(); }
+      }
+      renderChat(); await saveChat();
+    } else S.pendingRebalance = null;
     if (!err) distillMemory().catch((e) => console.warn("memória", e));
   }
 
@@ -3792,7 +3927,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, portionFor, avoidsFood, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, portionFor, avoidsFood, fixMealForDay, rebalanceRestOfDay, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

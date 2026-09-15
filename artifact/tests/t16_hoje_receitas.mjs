@@ -58,12 +58,22 @@ export default async function () {
     assert(rc.includes("230 g") && !rc.includes("Jorge"), "só para duas: 120+110: " + rc.slice(0, 120));
     assert((await app.text(".modal")).includes("Grelhar o frango"), "preparação na receita");
     await page.click(".modal [data-no]"); await page.waitForTimeout(100);
-    // receita individual com doses
+    // receita individual: só para mim por omissão; escolher outros ajusta a porção deles às metas
     await app.go("plano"); await page.click(`[data-day="${hoje}"]`); await page.waitForTimeout(200);
     await page.click(`#planMealsList [data-recipe="${hoje}|1"]`); await page.waitForTimeout(200);
-    assert((await app.text("#rcRows")).includes("130 g"), "dose 1");
-    await page.click('.modal [data-dose="+"]'); await page.waitForTimeout(100);
-    assert((await app.text("#rcRows")).includes("260 g"), "dose 2 duplica: " + (await app.text("#rcRows")).slice(0, 100));
+    assert(!(await page.evaluate(() => document.querySelector(".modal [data-dose]"))), "sem contador de doses");
+    eq(await page.evaluate(() => [...document.querySelectorAll(".modal [data-for]:checked")].map((c) => c.dataset.for).join(",")), "filipa", "só eu marcada numa refeição individual");
+    assert((await app.text("#rcRows")).includes("130 g") && (await app.text("#rcWho")).includes("Só para ti"), "a minha porção");
+    await page.check('.modal [data-for="pai"]'); await page.waitForTimeout(100);
+    rc = await app.text("#rcRows");
+    const arroz = parseInt((rc.match(/arroz integral\s*(\d+) g/) || [])[1] || "0");
+    assert(rc.includes("Jorge") && arroz > 200, "o pai (manter, 77 kg) leva mais arroz do que eu, e a soma passa o dobro dos meus 100 g: " + rc.slice(0, 160));
+    assert((await app.text("#rcWho")).includes("2 pessoas") && (await app.text("#rcWho")).includes("ajustada às metas"), "diz de onde vem a porção do pai");
+    await page.uncheck('.modal [data-for="filipa"]'); await page.waitForTimeout(100);
+    assert((await app.text("#rcWho")).includes("Só para Jorge"), "cozinhar só para outra pessoa");
+    await page.check('.modal [data-for="vitoria"]'); await page.waitForTimeout(100);
+    rc = await app.text("#rcRows");
+    assert(rc.includes("sem: Vitória"), "a Vitória não leva a sopa de legumes: " + rc.slice(0, 160));
     await page.click(".modal [data-no]"); await page.waitForTimeout(100);
     // 5. nota livre: fica na memória, sobrevive ao 👍 e entra no resumo
     await page.click(`#planMealsList [data-note="${hoje}|1"]`); await page.waitForTimeout(200);

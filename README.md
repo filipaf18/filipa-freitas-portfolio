@@ -54,8 +54,10 @@ só esse dia (ferramenta `ajustar_horario`); numa refeição em família a hora 
 **Hoje, adesão e receitas.** Em cada refeição do dia: Comi, Comi parte (escolhe-se os itens), Comi outra
 coisa, Saltei. "Já comeste hoje" mostra energia, proteína, hidratos, gordura e fibra do que entrou
 (refeições comidas, itens comidos em parte e extras), contado pela tabela de alimentos, com um traço onde se
-fica seguindo o resto do plano. Cada refeição tem Receita: numa refeição em família escolhe-se para quem se
-cozinha e as quantidades somam-se pessoa a pessoa, com a repartição por prato; numa individual há doses.
+fica seguindo o resto do plano. Cada refeição tem Receita: escolhe-se para quem se cozinha (só para mim, ou
+também para outros da casa) e as quantidades somam-se pessoa a pessoa, com a repartição por prato, para não
+sobrar: a porção de cada um vem da refeição em família, do plano dessa pessoa se tiver o mesmo prato nesse
+dia, ou é ajustada às metas dela (proteína pela proteína alvo, o resto pela energia alvo, sem o que não come).
 Além de 👍/👎, uma nota livre por refeição (porção, tempero, trocas) fica em `prefs` com `voto: 0` e entra
 nos próximos planos, nas trocas e no chat.
 

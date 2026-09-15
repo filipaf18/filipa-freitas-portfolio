@@ -2775,31 +2775,70 @@ Responde APENAS com JSON válido nesta forma:
     const bits = []; if (g) bits.push(`${Math.round(g / 5) * 5} g`); if (un) bits.push(`${fmtNum(un)} ${un === 1 ? "unidade" : "unidades"}`); bits.push(...others);
     return bits.join(" + ") || "q.b.";
   }
+  /** Um alimento que esta pessoa não come (não gosta, alergia, intolerância), pelo nome ou pelo grupo. */
+  function avoidsFood(id, alimento, grupo) {
+    const q = S.profiles[id] || {};
+    const skip = [...(q.dislikes || []), ...(q.allergies || []), ...(q.intolerances || [])].map(norm).filter(Boolean);
+    const a = norm(alimento); const g = norm(grupo || "");
+    return skip.some((d) => a.includes(d) || (d && g && d.startsWith(g.slice(0, 5))) || (/legumin/.test(d) && /grao|feijao|lentilha|ervilha|fava|soja|tremoco/.test(a)));
+  }
   /**
-   * A receita de uma refeição, para quem cozinha. Numa refeição em família escolhe-se para quem
-   * se cozinha e as quantidades somam-se pessoa a pessoa; na individual há um multiplicador de doses.
+   * A porção de uma refeição para outra pessoa: da refeição em família (se for), do plano dela (se
+   * tiver o mesmo prato nesse dia) ou ajustada às metas dela a partir da porção de quem cozinha.
+   */
+  function portionFor(meal, dayName, id, fromId = S.pid) {
+    if (id === fromId) return { itens: (meal.itens || []).map((i) => ({ ...i })), fonte: "mine" };
+    const fd = (S.family?.dias || []).find((d) => norm(d.dia) === norm(dayName)); const slot = meal.familia ? famSlot(fd, meal.nome) : null;
+    const pp = slot ? fd[slot]?.por_pessoa?.[id] : null;
+    if (pp) return { itens: (pp.itens || []).map((i) => ({ ...i })), fonte: "familia", nota: pp.nota || "" };
+    const deles = (S.plans?.[id]?.plan?.dias || []).find((d) => norm(d.dia) === norm(dayName))?.refeicoes?.find((m) => norm(m.nome) === norm(meal.nome));
+    if (deles?.itens?.length) {
+      const mine = new Set((meal.itens || []).map((i) => norm(i.alimento)));
+      const comum = deles.itens.filter((i) => mine.has(norm(i.alimento))).length;
+      if (comum * 2 >= Math.max(1, mine.size)) return { itens: deles.itens.map((i) => ({ ...i })), fonte: "plano" };
+    }
+    const tMine = planTargets(S.profiles[fromId] || {}, fromId) || {}; const tId = planTargets(S.profiles[id] || {}, id) || {};
+    const rProt = (tId.proteina_alvo_g_dia || 80) / (tMine.proteina_alvo_g_dia || 80);
+    const rKcal = tId.energia_alvo_kcal && tMine.energia_alvo_kcal ? tId.energia_alvo_kcal / tMine.energia_alvo_kcal : rProt;
+    const clamp = (r) => Math.max(0.5, Math.min(2, r));
+    const itens = (meal.itens || []).map((it) => {
+      const f = findFood(it.alimento); const grupo = it.grupo || guessGroup(f);
+      if (avoidsFood(id, it.alimento, grupo)) return null;
+      const q = parseQty(it.quantidade); const ratio = clamp(grupo === "proteina" ? rProt : rKcal);
+      let quantidade = it.quantidade;
+      if (q && (q.u === "g" || q.u === "ml")) quantidade = fmtQty({ n: Math.max(5, Math.round(q.n * ratio / 5) * 5), u: q.u });
+      else if (q && q.u === "un" && ratio !== 1) quantidade = fmtQty({ n: Math.max(0.5, Math.round(q.n * ratio * 2) / 2), u: "un" });
+      return { ...it, quantidade, grupo };
+    }).filter(Boolean);
+    return { itens, fonte: "estimado", ratio: { proteina: clamp(rProt), energia: clamp(rKcal) } };
+  }
+  /**
+   * A receita de uma refeição, para quem cozinha: escolhe-se para quem se cozinha (só para mim, ou
+   * também para outros) e as quantidades somam-se pessoa a pessoa, cada uma com a sua porção.
    */
   function openRecipe(dayName, idx) {
     const day = S.plan?.plan?.dias?.find((d) => d.dia === dayName); const meal = day?.refeicoes?.[idx]; if (!meal) return;
     const fd = (S.family?.dias || []).find((d) => norm(d.dia) === norm(dayName)); const slot = meal.familia ? famSlot(fd, meal.nome) : null; const fm = slot ? fd[slot] : null;
-    const members = fm ? (S.family.pessoas || []).filter((id) => fm.por_pessoa?.[id]) : [];
-    const wrap = document.createElement("div"); wrap.className = "modal"; let doses = 1;
+    const members = [S.pid, ...PROFILE_IDS.filter((id) => id !== S.pid && hasProfile(id))];
+    const inFam = (id) => !!fm?.por_pessoa?.[id];
+    const wrap = document.createElement("div"); wrap.className = "modal";
     const build = () => {
-      const chosen = members.length ? [...wrap.querySelectorAll("[data-for]:checked")].map((c) => c.dataset.for) : null;
-      let rows;
-      if (fm) {
-        const byItem = new Map();
-        (chosen || []).forEach((id) => (fm.por_pessoa[id].itens || []).forEach((i) => { const k = norm(i.alimento); if (!byItem.has(k)) byItem.set(k, { alimento: i.alimento, food: findFood(i.alimento), parts: [] }); byItem.get(k).parts.push({ id, quantidade: i.quantidade, food: findFood(i.alimento) }); }));
-        rows = [...byItem.values()].map((it) => `<li><span>${esc(it.alimento)}</span><span class="qty num"><strong>${esc(sumQuantities(it.parts))}</strong>${(chosen || []).length > 1 ? `<span class="who">${it.parts.map((x) => `${esc(nameOf(x.id))} ${esc(x.quantidade)}`).join(" · ")}${it.parts.length < (chosen || []).length ? ` · sem: ${(chosen || []).filter((id) => !it.parts.some((x) => x.id === id)).map(nameOf).join(", ")}` : ""}</span>` : ""}</span></li>`).join("");
-      } else {
-        rows = (meal.itens || []).map((i) => { const q = parseQty(i.quantidade); const qty = doses !== 1 && q ? fmtQty({ n: q.n * doses, u: q.u }) : i.quantidade; return `<li><span>${esc(i.alimento)}${i.medida_caseira ? ` <span class="meta muted">(${esc(i.medida_caseira)})</span>` : ""}</span><span class="qty num"><strong>${esc(qty)}</strong></span></li>`; }).join("");
-      }
-      $("rcRows").innerHTML = rows || `<li class="muted small">Sem itens.</li>`;
+      const chosen = [...wrap.querySelectorAll("[data-for]:checked")].map((c) => c.dataset.for);
+      const portions = {}; chosen.forEach((id) => { portions[id] = portionFor(meal, dayName, id); });
+      const byItem = new Map();
+      chosen.forEach((id) => portions[id].itens.forEach((i) => { const k = norm(i.alimento); if (!byItem.has(k)) byItem.set(k, { alimento: i.alimento, medida: i.medida_caseira || "", parts: [] }); byItem.get(k).parts.push({ id, quantidade: i.quantidade, food: findFood(i.alimento) }); }));
+      const rows = [...byItem.values()].map((it) => `<li><span>${esc(it.alimento)}${chosen.length === 1 && it.medida ? ` <span class="meta muted">(${esc(it.medida)})</span>` : ""}</span><span class="qty num"><strong>${esc(chosen.length === 1 ? (it.parts[0].quantidade || sumQuantities(it.parts)) : sumQuantities(it.parts))}</strong>${chosen.length > 1 ? `<span class="who">${it.parts.map((x) => `${esc(nameOf(x.id))} ${esc(x.quantidade)}`).join(" · ")}${it.parts.length < chosen.length ? ` · sem: ${chosen.filter((id) => !it.parts.some((x) => x.id === id)).map(nameOf).join(", ")}` : ""}</span>` : ""}</span></li>`).join("");
+      $("rcRows").innerHTML = rows || `<li class="muted small">${chosen.length ? "Sem itens." : "Escolhe pelo menos uma pessoa."}</li>`;
+      const fontes = chosen.filter((id) => id !== S.pid).map((id) => { const f = portions[id].fonte; return `${nameOf(id)}: ${f === "familia" ? "porção da refeição em família" : f === "plano" ? "porção do plano dela" : "porção ajustada às metas dela" + (portions[id].nota ? ` (${portions[id].nota})` : "")}`; });
+      $("rcWho").textContent = chosen.length > 1 ? `Para ${chosen.length} pessoas, sem sobrar. ${fontes.join(" · ")}.` : chosen.length === 1 && chosen[0] !== S.pid ? `Só para ${nameOf(chosen[0])}. ${fontes.join("")}.` : "Só para ti.";
     };
     const prep = fm ? fm.preparacao : meal.preparacao;
     wrap.innerHTML = `<div class="box editor" role="dialog" aria-modal="true">
       <div class="row between"><h2>🍳 ${esc(meal.nome)} · ${esc(dayName)}</h2><button type="button" class="btn ghost sm" data-no>Fechar</button></div>
-      ${fm ? `<p class="small"><strong>${esc(fm.base || meal.base_comum || "")}</strong>${fm.hora ? ` · às ${esc(fm.hora)}` : ""}</p><div class="famwho" style="margin:0">${members.map((id) => `<label><input type="checkbox" data-for="${id}" checked> ${esc(nameOf(id))}</label>`).join("")}</div><p class="hint">Escolhe para quem cozinhas: as quantidades somam-se e cada nome diz o que vai para o prato de cada um.</p>` : `<div class="row" style="justify-content:flex-start; gap:8px"><span class="small muted">Doses</span><button type="button" class="btn ghost sm" data-dose="-">−</button><strong class="num" id="rcDoses">1</strong><button type="button" class="btn ghost sm" data-dose="+">+</button></div>`}
+      ${fm ? `<p class="small"><strong>${esc(fm.base || meal.base_comum || "")}</strong>${fm.hora ? ` · às ${esc(fm.hora)}` : ""}</p>` : ""}
+      <p class="small muted" style="margin:0 0 4px">Para quem cozinhas?</p>
+      <div class="famwho" style="margin:0">${members.map((id) => `<label><input type="checkbox" data-for="${id}"${id === S.pid || inFam(id) ? " checked" : ""}> ${esc(id === S.pid ? "Eu" : nameOf(id))}${inFam(id) && id !== S.pid ? ' <span class="meta muted">(à mesa)</span>' : ""}</label>`).join("")}</div>
+      <p class="hint" id="rcWho"></p>
       <ul class="items" id="rcRows"></ul>
       ${prep ? `<div class="prep">👩‍🍳 ${esc(prep)}</div>` : ""}
       ${(fm?.marmita || meal.marmita)?.preparar_em ? `<div class="marmita">🥡 Marmita: preparar ${esc((fm?.marmita || meal.marmita).preparar_em)}${(fm?.marmita || meal.marmita).conservacao ? ` · ${esc((fm?.marmita || meal.marmita).conservacao)}` : ""}${(fm?.marmita || meal.marmita).montagem ? `<br>${esc((fm?.marmita || meal.marmita).montagem)}` : ""}</div>` : ""}
@@ -2807,10 +2846,7 @@ Responde APENAS com JSON válido nesta forma:
       <p class="hint">Marmitas: arrefecer em menos de 2 horas, frigorífico a 5 °C, no máximo 3 a 4 dias, reaquecer até fumegar e só uma vez; arroz no frio na hora e em 24 horas.</p>
     </div>`;
     wrap.addEventListener("change", build);
-    wrap.addEventListener("click", (e) => {
-      if (e.target === wrap || e.target.closest("[data-no]")) { wrap.remove(); return; }
-      const d = e.target.closest("[data-dose]"); if (d) { doses = Math.max(1, Math.min(8, doses + (d.dataset.dose === "+" ? 1 : -1))); $("rcDoses").textContent = String(doses); build(); }
-    });
+    wrap.addEventListener("click", (e) => { if (e.target === wrap || e.target.closest("[data-no]")) wrap.remove(); });
     document.body.appendChild(wrap); build();
   }
   /** Nota livre sobre uma refeição: entra na memória e nos próximos planos. */
@@ -3756,7 +3792,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, portionFor, avoidsFood, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

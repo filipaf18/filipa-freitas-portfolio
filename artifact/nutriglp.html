@@ -275,7 +275,7 @@
       <h2>Ainda não há plano</h2>
       <p class="muted small">Preenche o perfil (peso, altura, objetivo, o que não comes) e as análises que tiveres. Depois gera o plano: alguns pedidos ao Claude, entre 2 e 6 minutos. O resultado traz metas, refeições com quantidades e medidas caseiras, horário de água, trocas e dias difíceis.</p>
       <label class="check small" id="famSharedWrap" hidden><input type="checkbox" id="famShared" checked> Jantares e almoços iguais para a família (<span id="famSharedNames"></span>): a mesma comida para todos, cada um com as suas quantidades</label>
-      <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button></div>
+      <div class="row"><button class="btn primary" id="genPlan">Gerar plano semanal</button><button class="btn" id="genAll" title="Refaz as refeições em família e o plano de cada pessoa, com os dados de cada uma">👨‍👩‍👧‍👧 Refazer tudo para a família</button></div>
       <div class="progress" id="genProgress" hidden><div></div></div>
     </div>
 
@@ -323,6 +323,7 @@
       <label class="check small" id="famRegenWrap" hidden><input type="checkbox" id="famRegen"> Refazer também os jantares e almoços da família (muda para todos)</label>
       <div class="row">
         <button class="btn" id="regenPlan">Gerar novo plano</button>
+        <button class="btn" id="genAll2" title="Refaz as refeições em família e o plano de cada pessoa, com os dados de cada uma">👨‍👩‍👧‍👧 Refazer tudo para a família</button>
         <button class="btn ghost sm" id="undoPlan" hidden>Repor versão anterior</button>
         <span class="small muted" id="genMsg"></span>
       </div>

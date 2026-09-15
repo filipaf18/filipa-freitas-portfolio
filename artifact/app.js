@@ -60,6 +60,7 @@
     labsAll: {},           // análises de todos os perfis (para o cálculo de energia de cada um)
     vitalsAll: {},         // tensão de todos os perfis
     docsAll: {},           // documentos de todos os perfis (as condições também se leem deles)
+    rulesAll: {}, prefsAll: {}, weightsAll: {}, // regras, preferências e pesos de todos, para gerar o plano de cada um
     bodyAll: {},           // composição corporal de todos os perfis
     promptMax: 65536,      // limites lidos em sample.limits()
     toolMax: 8,
@@ -240,7 +241,7 @@
       const w = mem.water; for (const k in w) if (w[k].profile === S.pid) S.water.set(w[k].date, { entries: thaw(w[k].entries), total: w[k].total });
       S.chat = thaw(mem.chat[S.pid]?.messages) || []; S.memUpto = mem.chat[S.pid]?.memory_upto || null; S.weights = thaw(mem.weights[S.pid]?.entries) || [];
       S.labs = thaw(mem.labs[S.pid]?.entries) || []; S.plan = thaw(mem.plans[S.pid]) || null; S.plans = thaw(mem.plans) || {}; S.vitals = thaw(mem.vitals[S.pid]?.entries) || []; S.docs = thaw(mem.docs[S.pid]?.entries) || []; S.rules = thaw(mem.rules[S.pid]?.entries) || []; S.body = thaw(mem.body[S.pid]?.entries) || [];
-      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || []; S.family = thaw(mem.family.plan) || null; S.shopping = thaw(mem.shopping[mondayOf()]) || null; S.labsAll = thaw(mem.labs) || {}; S.bodyAll = thaw(mem.body) || {}; S.vitalsAll = thaw(mem.vitals) || {}; S.docsAll = thaw(mem.docs) || {};
+      S.adherence = thaw(mem.adherence[S.pid]?.days) || {}; S.symptoms = thaw(mem.symptoms[S.pid]?.days) || {}; S.reviews = thaw(mem.reviews[S.pid]?.entries) || []; S.prefs = thaw(mem.prefs[S.pid]?.entries) || []; S.family = thaw(mem.family.plan) || null; S.shopping = thaw(mem.shopping[mondayOf()]) || null; S.labsAll = thaw(mem.labs) || {}; S.bodyAll = thaw(mem.body) || {}; S.vitalsAll = thaw(mem.vitals) || {}; S.docsAll = thaw(mem.docs) || {}; S.rulesAll = thaw(mem.rules) || {}; S.prefsAll = thaw(mem.prefs) || {}; S.weightsAll = thaw(mem.weights) || {};
       renderAll(); return;
     }
     S.unsub.push(S.db.collection("water").where("profile", "==", S.pid).where("date", ">=", from).onSnapshot((snap) => {
@@ -968,6 +969,9 @@ Responde APENAS com JSON válido nesta forma:
 
   /** Última análise por marcador, para o contexto do assistente. */
   const labsFor = (pid) => pid === S.pid ? S.labs : (S.labsAll[pid]?.entries || []);
+  const rulesFor = (pid) => pid === S.pid ? S.rules : (S.rulesAll?.[pid]?.entries || []);
+  const prefsFor = (pid) => pid === S.pid ? S.prefs : (S.prefsAll?.[pid]?.entries || []);
+  const weightsFor = (pid) => pid === S.pid ? S.weights : (S.weightsAll?.[pid]?.entries || []);
   const bodyFor = (pid) => pid === S.pid ? S.body : (S.bodyAll[pid]?.entries || []);
   function latestLabsFor(pid) {
     const m = new Map(); const sex = S.profiles[pid]?.sex;
@@ -1381,32 +1385,33 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
   const todayDayName = () => DAYS[(new Date().getDay() + 6) % 7];
   const mondayOf = (d = new Date()) => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return localDate(x); };
 
-  function planPromptContext() {
-    const p = profile(); const goal = waterGoal(p); const meds = (p.meds || []).filter((m) => m.active !== false);
+  function planPromptContext(pid = S.pid) {
+    const p = S.profiles[pid] || {}; const goal = waterGoal(p); const meds = (p.meds || []).filter((m) => m.active !== false); const mine = pid === S.pid;
     return JSON.stringify({
       perfil: { nome: p.name, idade: ageFrom(p.birth_date), sexo: p.sex, altura_cm: p.height_cm, peso_atual_kg: p.weight_kg, peso_objetivo_kg: p.target_kg, imc: bmi(p.height_cm, p.weight_kg), objetivo: GOALS[goalOf(p)], saciedade_precoce: p.satiety || "não indicada", alergias: p.allergies || [], intolerancias: p.intolerances || [], nao_come: p.dislikes || [], preferencias: p.preferences || null, notas: p.notes || null },
       agregado: householdContext(),
       glp1: p.uses_glp1 ? { substancia: p.glp1_substance, dose_atual: p.glp1_dose, inicio: p.glp1_start, dia_da_injecao: p.glp1_inj_day || null, titulacao: (p.titrations || []).slice(-6) } : null,
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
-      regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
-      calculos_de_referencia: planTargets(p),
+      regras_alimentares_obrigatorias: rulesFor(pid).map((r) => r.texto),
+      calculos_de_referencia: planTargets(p, pid),
       horario_das_refeicoes: mealSlots(p).map((sl) => `${sl.nome} ${sl.hora}`),
-      analises_mais_recentes: latestLabs(),
-      tensao_arterial: bpSummary(),
-      documentos_de_saude: S.docs.slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
+      analises_mais_recentes: latestLabsFor(pid),
+      tensao_arterial: bpSummary(pid),
+      documentos_de_saude: docsFor(pid).slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
       meta_agua_ml: goal.ml,
-      composicao_corporal: bodyContext(),
-      adesao_ultimos_14_dias: adherenceSummary(14),
-      sintomas_ultimos_14_dias: symptomsSummary(14),
-      ultima_revisao_semanal: lastReview() ? (({ at, resumo, ajustar, propostas, stats }) => ({ data: String(at).slice(0, 10), resumo, ajustar, propostas_a_aplicar_neste_plano: propostas, adesao: stats?.adesao, agua: stats?.agua, peso: stats?.peso }))(lastReview()) : null,
-      preferencias_registadas: prefsSummary(),
+      composicao_corporal: bodyContext(pid),
+      adesao_ultimos_14_dias: mine ? adherenceSummary(14) : [],
+      sintomas_ultimos_14_dias: mine ? symptomsSummary(14) : [],
+      ultima_revisao_semanal: mine && lastReview() ? (({ at, resumo, ajustar, propostas, stats }) => ({ data: String(at).slice(0, 10), resumo, ajustar, propostas_a_aplicar_neste_plano: propostas, adesao: stats?.adesao, agua: stats?.agua, peso: stats?.peso }))(lastReview()) : null,
+      preferencias_registadas: prefsSummary(pid),
     });
   }
   /** Resumo da composição corporal para o assistente e para o plano. */
-  function bodyContext() {
-    const rows = bodySeries();
-    if (rows.length === 0) return S.weights.length ? { evolucao_peso: S.weights.slice(-8) } : null;
+  function bodyContext(pid = S.pid) {
+    const rows = bodyFor(pid).map(bodyRow).sort((a, b) => a.date.localeCompare(b.date));
+    const ws = weightsFor(pid);
+    if (rows.length === 0) return ws.length ? { evolucao_peso: ws.slice(-8) } : null;
     const last = rows[rows.length - 1], first = rows[0];
     const out = {
       ultima_medicao: { data: last.date, peso_kg: last.weight_kg, massa_gorda_pct: last.fat_pct, massa_gorda_kg: last.fat_kg, massa_magra_kg: last.lean_kg, massa_muscular_pct: last.muscle_pct, massa_muscular_kg: last.muscle_kg, agua_corporal_pct: last.water_pct, gordura_visceral: last.visceral },
@@ -1426,9 +1431,11 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     return out;
   }
 
-  function bpSummary() {
-    const avg = bpAverage(); if (!avg) return null;
-    return { media_ultimas_medicoes: avg, ultimas: S.vitals.slice(-6).map(({ date, time, sys, dia, pulse }) => ({ data: date, hora: time || null, sistolica: sys, diastolica: dia, pulso: pulse })), classificacao: bpClass({ sys: avg.sys, dia: avg.dia }) || "normal" };
+  function bpSummary(pid = S.pid) {
+    const vit = pid === S.pid ? S.vitals : (S.vitalsAll?.[pid]?.entries || []);
+    const last = vit.slice(-7); const avg = last.length ? { n: last.length, sys: Math.round(last.reduce((a, e) => a + e.sys, 0) / last.length), dia: Math.round(last.reduce((a, e) => a + e.dia, 0) / last.length) } : null;
+    if (!avg) return null;
+    return { media_ultimas_medicoes: avg, ultimas: vit.slice(-6).map(({ date, time, sys, dia, pulse }) => ({ data: date, hora: time || null, sistolica: sys, diastolica: dia, pulso: pulse })), classificacao: bpClass({ sys: avg.sys, dia: avg.dia }) || "normal" };
   }
 
   // ---------------------------------------------------------------------------
@@ -2073,46 +2080,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
         S.family = fam; await saveFamily();
         await mergeFamilyIntoPlans(fam, [S.pid]);
       }
-      const head = planHead(null);
-      // 1. estrutura do plano
-      const slots = mealSlots(p);
-      const slotsTxt = slots.map((sl) => `${sl.nome} às ${sl.hora}`).join(", ");
-      const frame = await ask(`${head}\n\nHORÁRIO DESTA PESSOA (obrigatório): as refeições do dia são exatamente estas, com estes nomes e estas horas, nem mais nem menos: ${slotsTxt}. Distribui a energia e a proteína por elas; um pequeno-almoço tardio leva mais proteína.\n\nPasso 1 de 3: define a ESTRUTURA do plano semanal (ainda sem as refeições em detalhe).\nResponde APENAS com JSON válido nesta forma:\n${FRAME_SCHEMA}`,
-        "A calcular metas e estrutura… (1 de 3)", 10, "complex");
-      if (!frame?.metas_diarias) throw { code: "invalid_json", message: "estrutura incompleta" };
-
-      const frameTxt = JSON.stringify({ metas_diarias: frame.metas_diarias, estrutura_do_dia: frame.estrutura_do_dia || [], principios: frame.principios || [], regras_aplicadas: frame.regras_aplicadas || [] });
-      // 2. refeições, em dois blocos para caberem
-      const blocks = [["segunda", "terça", "quarta", "quinta"], ["sexta", "sábado", "domingo"]];
-      const dias = [];
-      for (let i = 0; i < blocks.length; i++) {
-        const jaFeitos = dias.length ? `\nJá planeaste estes dias, não repitas as mesmas refeições:\n${JSON.stringify(dias.map((d) => ({ dia: d.dia, refeicoes: d.refeicoes.map((m) => m.itens.map((x) => x.alimento).join(", ")) })))}` : "";
-        const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}\nHORÁRIO OBRIGATÓRIO: ${slotsTxt} (só estas refeições, com estes nomes e horas).${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${blocks[i].join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação e pelo menos uma alternativa. Os totais do dia têm de bater certo com as metas.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
-          `A escrever as refeições… (${i + 2} de 3)`, 25 + i * 30);
-        const got = Array.isArray(res?.dias) ? res.dias : [];
-        blocks[i].forEach((d) => {
-          const f = got.find((x) => norm(x.dia) === norm(d)) || got[blocks[i].indexOf(d)];
-          dias.push({ dia: d, refeicoes: ((f && f.refeicoes) || []).map(normMeal) });
-        });
-      }
-      if (dias.every((d) => d.refeicoes.length === 0)) throw { code: "invalid_json", message: "sem refeições" };
-      retimePlan({ dias }, slots);
-
-      const compras = [];
-      const hidr = (Array.isArray(frame.hidratacao) ? frame.hidratacao : []).map((h) => ({ hora: String(h.hora || ""), quantidade_ml: Math.round(Number(h.quantidade_ml) || 0), nota: String(h.nota || "") })).filter((h) => h.quantidade_ml > 0).sort((a, b) => a.hora.localeCompare(b.hora));
-      plan = {
-        metas_diarias: frame.metas_diarias || {},
-        racional: String(frame.racional || ""),
-        porques: (frame.porques || []).map((x) => ({ decisao: String(x.decisao || ""), numero: String(x.numero || ""), origem: String(x.origem || "") })).filter((x) => x.decisao).slice(0, 10),
-        principios: (frame.principios || []).map(String).slice(0, 8),
-        regras_aplicadas: (frame.regras_aplicadas || []).map((r) => ({ regra: String(r.regra || ""), como: String(r.como || "") })).filter((r) => r.regra),
-        suplementos: (frame.suplementos || []).map((x) => ({ nome: String(x.nome || ""), hora: String(x.hora || ""), nota: String(x.nota || "") })).filter((x) => x.nome),
-        dias_dificeis: frame.dias_dificeis && typeof frame.dias_dificeis === "object" ? frame.dias_dificeis : {},
-        preparacao_antecipada: (frame.preparacao_antecipada || []).map(String).slice(0, 8),
-        lista_compras: compras.map((c) => ({ categoria: String(c.categoria || ""), itens: (c.itens || []).map((x) => typeof x === "string" ? x : { alimento: String(x.alimento || ""), quantidade: String(x.quantidade || "") }) })).filter((c) => c.categoria),
-        hidratacao: hidr,
-        dias,
-      };
+      plan = await buildIndividualPlan(S.pid, ask);
     } catch (e) { err = e; }
 
     S.generating = null;
@@ -2134,15 +2102,122 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("genMsg").textContent = "Plano gerado ✓"; setTimeout(() => $("genMsg").textContent = "", 4000);
   }
 
+  /** Guarda um plano novo para um perfil (o atual ou outro), com a versão anterior guardada. */
+  async function saveNewPlanFor(pid, plan, what) {
+    applyFamilyToPlan(plan, pid);
+    const atual = pid === S.pid ? S.plan : (S.plans[pid] || null);
+    const doc = { ...(atual || {}), profile: pid, week_start: mondayOf(), version: (atual?.version || 0) + 1, plan, previous: atual?.plan || null, extras: (atual?.extras || []).filter((x) => x.date >= addDays(localDate(), -7)), changelog: [{ at: new Date().toISOString(), o_que: what }], generatedAt: new Date().toISOString() };
+    S.plans = { ...S.plans, [pid]: doc };
+    if (pid === S.pid) { S.plan = doc; S.planDay = todayDayName(); await savePlan(); }
+    else await write(`plans/${pid}`, doc, mem.plans, pid);
+  }
+  /**
+   * Refaz tudo para a família: as refeições em família primeiro e depois o plano de cada pessoa,
+   * cada um com os seus dados (análises, condições, horário, regras, preferências).
+   */
+  async function generateAllPlans() {
+    if (!S.sample) { $("planNote").hidden = false; $("planNote").textContent = "A geração só funciona com a página aberta no claude.ai."; return; }
+    const ids = PROFILE_IDS.filter(hasProfile);
+    const semDados = ids.filter((id) => !S.profiles[id]?.weight_kg);
+    if (ids.length === 0 || semDados.length) { $("planNote").hidden = false; $("planNote").textContent = semDados.length ? `Preenche o peso no perfil de: ${semDados.map(nameOf).join(", ")}.` : "Preenche pelo menos um perfil."; return; }
+    const household = familyIds(); const comFamilia = household.length >= 2;
+    const total = (comFamilia ? 3 : 0) + ids.length * 3 + 1;
+    if (!(await askConfirm(`Refaz ${comFamilia ? "as refeições em família e " : ""}o plano de ${ids.map(nameOf).join(", ")}, cada um com os seus dados. São ${total} pedidos ao Claude, entre ${Math.round(total * 0.6)} e ${Math.round(total * 1.2)} minutos. As versões anteriores ficam guardadas.`, "Refazer tudo"))) return;
+    $("planNote").hidden = true;
+    const ctl = new AbortController(); S.generating = ctl;
+    ["genPlan", "regenPlan", "genAll", "genAll2"].forEach((id) => { const b = $(id); if (b) b.disabled = true; });
+    $("genProgress").hidden = false; const bar = $("genProgress").firstElementChild;
+    let feito = 0; let quem = "";
+    const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
+    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.round(feito / (total + 1) * 100), `${quem}${msg.replace(/\s*\(\d+ de \d+\)/, "")} (${feito} de ${total})`); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
+    const falhas = [];
+    try {
+      if (comFamilia) {
+        quem = "Família · ";
+        const fam = await familyPipeline(household, true, ask);
+        S.family = fam; await saveFamily();
+        // quem vai ter plano novo recebe as refeições em família nele; os outros (fora da lista) recebem-nas já
+        await mergeFamilyIntoPlans(fam, ids);
+      }
+      for (const id of ids) {
+        quem = `${nameOf(id)} · `;
+        try {
+          const plan = await buildIndividualPlan(id, ask);
+          await saveNewPlanFor(id, plan, "Plano gerado para toda a família");
+        } catch (e) {
+          if (e?.code === "cancelled") throw e;
+          falhas.push(`${nameOf(id)} (${e?.code === "invalid_json" ? "veio incompleto" : (e?.code || e?.message || "erro")})`);
+          S.diag.lastErr = `plano ${id}: ${e?.code || e?.message}`; renderDiag();
+          // o plano antigo desta pessoa fica pelo menos com as refeições em família novas
+          if (comFamilia && S.family?.pessoas?.includes(id)) { try { await mergeFamilyIntoPlans(S.family, ids.filter((x) => x !== id)); } catch (e2) { console.warn("família", e2); } }
+        }
+      }
+      quem = "";
+      step(96, "A fazer a lista de compras da casa…");
+      try { await generateShopping(ctl.signal); } catch (e) { console.warn("compras", e); }
+    } catch (e) {
+      if (e?.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = ERR_COPY[e?.code] || "Não foi possível refazer os planos. Tenta outra vez."; S.diag.lastErr = `todos: ${e?.code || e?.message}`; renderDiag(); }
+    }
+    S.generating = null;
+    ["genPlan", "regenPlan", "genAll", "genAll2"].forEach((id) => { const b = $(id); if (b) b.disabled = false; });
+    $("genProgress").hidden = true; bar.style.width = "0%";
+    renderPlan(); renderHome(); renderShopping();
+    if (falhas.length) { $("planNote").hidden = false; $("planNote").textContent = `Ficou por gerar o plano de: ${falhas.join("; ")}. Podes gerar só esse no perfil da pessoa.`; }
+    $("genMsg").textContent = falhas.length ? "" : "Planos de toda a família gerados ✓"; setTimeout(() => { $("genMsg").textContent = ""; }, 5000);
+  }
+  /** Constrói o plano individual de um perfil (3 pedidos); devolve o plano ou lança o erro. */
+  async function buildIndividualPlan(pid, ask) {
+  const q = S.profiles[pid] || {}; const head = planHead(null, pid);
+    // 1. estrutura do plano
+    const slots = mealSlots(q);
+    const slotsTxt = slots.map((sl) => `${sl.nome} às ${sl.hora}`).join(", ");
+    const frame = await ask(`${head}\n\nHORÁRIO DESTA PESSOA (obrigatório): as refeições do dia são exatamente estas, com estes nomes e estas horas, nem mais nem menos: ${slotsTxt}. Distribui a energia e a proteína por elas; um pequeno-almoço tardio leva mais proteína.\n\nPasso 1 de 3: define a ESTRUTURA do plano semanal (ainda sem as refeições em detalhe).\nResponde APENAS com JSON válido nesta forma:\n${FRAME_SCHEMA}`,
+      "A calcular metas e estrutura… (1 de 3)", 10, "complex");
+    if (!frame?.metas_diarias) throw { code: "invalid_json", message: "estrutura incompleta" };
+
+    const frameTxt = JSON.stringify({ metas_diarias: frame.metas_diarias, estrutura_do_dia: frame.estrutura_do_dia || [], principios: frame.principios || [], regras_aplicadas: frame.regras_aplicadas || [] });
+    // 2. refeições, em dois blocos para caberem
+    const blocks = [["segunda", "terça", "quarta", "quinta"], ["sexta", "sábado", "domingo"]];
+    const dias = [];
+    for (let i = 0; i < blocks.length; i++) {
+      const jaFeitos = dias.length ? `\nJá planeaste estes dias, não repitas as mesmas refeições:\n${JSON.stringify(dias.map((d) => ({ dia: d.dia, refeicoes: d.refeicoes.map((m) => m.itens.map((x) => x.alimento).join(", ")) })))}` : "";
+      const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}\nHORÁRIO OBRIGATÓRIO: ${slotsTxt} (só estas refeições, com estes nomes e horas).${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${blocks[i].join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação e pelo menos uma alternativa. Os totais do dia têm de bater certo com as metas.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
+        `A escrever as refeições… (${i + 2} de 3)`, 25 + i * 30);
+      const got = Array.isArray(res?.dias) ? res.dias : [];
+      blocks[i].forEach((d) => {
+        const f = got.find((x) => norm(x.dia) === norm(d)) || got[blocks[i].indexOf(d)];
+        dias.push({ dia: d, refeicoes: ((f && f.refeicoes) || []).map(normMeal) });
+      });
+    }
+    if (dias.every((d) => d.refeicoes.length === 0)) throw { code: "invalid_json", message: "sem refeições" };
+    retimePlan({ dias }, slots);
+
+    const compras = [];
+    const hidr = (Array.isArray(frame.hidratacao) ? frame.hidratacao : []).map((h) => ({ hora: String(h.hora || ""), quantidade_ml: Math.round(Number(h.quantidade_ml) || 0), nota: String(h.nota || "") })).filter((h) => h.quantidade_ml > 0).sort((a, b) => a.hora.localeCompare(b.hora));
+    return {
+      metas_diarias: frame.metas_diarias || {},
+      racional: String(frame.racional || ""),
+      porques: (frame.porques || []).map((x) => ({ decisao: String(x.decisao || ""), numero: String(x.numero || ""), origem: String(x.origem || "") })).filter((x) => x.decisao).slice(0, 10),
+      principios: (frame.principios || []).map(String).slice(0, 8),
+      regras_aplicadas: (frame.regras_aplicadas || []).map((r) => ({ regra: String(r.regra || ""), como: String(r.como || "") })).filter((r) => r.regra),
+      suplementos: (frame.suplementos || []).map((x) => ({ nome: String(x.nome || ""), hora: String(x.hora || ""), nota: String(x.nota || "") })).filter((x) => x.nome),
+      dias_dificeis: frame.dias_dificeis && typeof frame.dias_dificeis === "object" ? frame.dias_dificeis : {},
+      preparacao_antecipada: (frame.preparacao_antecipada || []).map(String).slice(0, 8),
+      lista_compras: compras.map((c) => ({ categoria: String(c.categoria || ""), itens: (c.itens || []).map((x) => typeof x === "string" ? x : { alimento: String(x.alimento || ""), quantidade: String(x.quantidade || "") }) })).filter((c) => c.categoria),
+      hidratacao: hidr,
+      dias,
+    };
+  }
+
   // ---------- cabeçalho comum dos pedidos de plano, dia e refeição ----------
-  function planHead(alignWith) {
-    const ctx = planPromptContext();
-    const rules = S.rules.length
-      ? `REGRAS OBRIGATÓRIAS DESTA PESSOA — tens de as cumprir em todos os dias e refeições, e depois declarar em "regras_aplicadas" onde cada uma foi aplicada:\n${S.rules.map((r, i) => `${i + 1}. ${r.texto}`).join("\n")}\n\nSe alguma regra entrar em conflito com a base clínica, cumpre a regra e explica o ajuste no racional.`
+  function planHead(alignWith, pid = S.pid) {
+    const ctx = planPromptContext(pid); const regras = rulesFor(pid);
+    const rules = regras.length
+      ? `REGRAS OBRIGATÓRIAS DESTA PESSOA — tens de as cumprir em todos os dias e refeições, e depois declarar em "regras_aplicadas" onde cada uma foi aplicada:\n${regras.map((r, i) => `${i + 1}. ${r.texto}`).join("\n")}\n\nSe alguma regra entrar em conflito com a base clínica, cumpre a regra e explica o ajuste no racional.`
       : `A pessoa ainda não definiu regras próprias.`;
-    const prefs = prefsSummary();
+    const prefs = prefsSummary(pid);
     const prefTxt = prefs ? `\n\nPREFERÊNCIAS REGISTADAS NA APP (gostei / não gostei em refeições anteriores):\n${JSON.stringify(prefs)}\nRepete o estilo do que gostou, não voltes a propor o que não gostou, e aplica as "notas" (são ajustes concretos que a pessoa pediu em refeições anteriores: porção, tempero, trocas).` : "";
-    const famMeals = familyMealsFor(S.pid);
+    const famMeals = familyMealsFor(pid);
     const famTxt = famMeals
       ? `\n\nREFEIÇÕES EM FAMÍLIA JÁ FIXADAS (a família come o mesmo prato; não as mudes, constrói o resto do dia à volta delas e desconta os macros que já trazem):\n${JSON.stringify(famMeals)}`
       : "";
@@ -2193,10 +2268,11 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     await savePrefs();
   }
   /** Resumo das preferências para os prompts: o que gostou e o que não gostou, sem repetições. */
-  function prefsSummary() {
-    if (!S.prefs.length) return null;
-    const pick = (v) => [...new Map(S.prefs.filter((p) => p.voto === v).map((p) => [p.key, p.dia ? `${p.refeicao}: ${p.itens}` : p.itens])).values()].slice(-15);
-    const notas = S.prefs.filter((p) => p.voto === 0 && p.nota).slice(-12).map((p) => `${p.refeicao}${p.dia ? ` (${p.dia})` : ""}: ${p.nota}`);
+  function prefsSummary(pid = S.pid) {
+    const prefs = prefsFor(pid);
+    if (!prefs.length) return null;
+    const pick = (v) => [...new Map(prefs.filter((p) => p.voto === v).map((p) => [p.key, p.dia ? `${p.refeicao}: ${p.itens}` : p.itens])).values()].slice(-15);
+    const notas = prefs.filter((p) => p.voto === 0 && p.nota).slice(-12).map((p) => `${p.refeicao}${p.dia ? ` (${p.dia})` : ""}: ${p.nota}`);
     return { gostei: pick(1), nao_gostei: pick(-1), ...(notas.length ? { notas } : {}) };
   }
 
@@ -3619,6 +3695,8 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   $("labPick").addEventListener("change", (e) => { S.labPick = e.target.value; renderLabChart(); });
   $("bodyPick").addEventListener("change", (e) => { S.bodyPick = e.target.value; renderBodyChart(); });
   $("genPlan").addEventListener("click", generatePlan);
+  $("genAll")?.addEventListener("click", generateAllPlans);
+  $("genAll2")?.addEventListener("click", generateAllPlans);
   $("shopRefresh")?.addEventListener("click", () => generateShopping());
   document.addEventListener("change", async (ev) => {
     const t = ev.target.closest("[data-shopck]"); if (!t) return;
@@ -3650,7 +3728,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();
@@ -3683,6 +3761,9 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
       db.collection("docs").onSnapshot((snap) => {
         const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S.docsAll = next;
       }, (e) => console.warn("docs all", e));
+      [["rules", "rulesAll"], ["prefs", "prefsAll"], ["weights", "weightsAll"]].forEach(([coll, key]) => {
+        db.collection(coll).onSnapshot((snap) => { const next = {}; snap.docs.forEach((d) => { next[d.id] = thaw(d.data()); }); S[key] = next; }, (e) => console.warn(coll + " all", e));
+      });
       db.doc("family/plan").onSnapshot((snap) => {
         if (S.generating) return;
         S.family = snap.exists ? thaw(snap.data()) : null;

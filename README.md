@@ -66,6 +66,10 @@ Cada uma dessas refeições mostra "Na mesa": só as diferenças dos outros, par
 editar à mão, refazer o dia ou alterar pelo chat uma refeição em família muda-a para todos (quem já
 tinha o alimento mantém a sua quantidade; um alimento novo entra proporcional às metas de cada um).
 A origem fica em `family/plan`; o plano individual é sempre a superfície.
+O botão "Refazer tudo para a família" (no Plano) refaz de uma vez as refeições em família e o plano
+de cada uma das quatro pessoas, cada um com os seus próprios dados (análises, condições, horário,
+regras, preferências e metas de energia), e no fim a lista de compras; as versões anteriores ficam
+guardadas e, se o plano de alguém falhar, os outros ficam feitos e esse pode ser gerado no perfil.
 
 **Lista de compras.** Uma só para a casa: a página soma o que está nos planos de todos (as refeições
 em família contam por pessoa, que é o que vai ao lume) e um pedido rápido converte a soma em

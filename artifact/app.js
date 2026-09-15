@@ -642,6 +642,9 @@ Responde APENAS com JSON válido nesta forma:
     f("height_cm").value = p.height_cm ?? ""; f("weight_kg").value = p.weight_kg ?? ""; f("target_kg").value = p.target_kg ?? ""; f("water_goal_ml").value = p.water_goal_ml ?? "";
     f("objetivo").value = p.objetivo || goalOf(p); f("activity").value = p.activity || "";
     f("dislikes").value = (p.dislikes || []).join(", "); f("family").checked = p.family !== false;
+    { const w = $("mealTimesWrap"); if (w) { const t = mealTimesOf(p); const auto = !p.meal_times_set;
+      w.innerHTML = MEAL_SLOTS.map((sl) => `<label class="mt"><span>${esc(sl.nome)}</span><input class="input num" type="time" data-mt="${sl.key}" value="${esc(t[sl.key] || "")}"></label>`).join("");
+      const note = $("mealTimesNote"); if (note) note.textContent = auto ? "Lido das notas e dos valores habituais. Vazio = não faz essa refeição. Ao guardar, o plano atual passa para estas horas." : "Vazio = não faz essa refeição. Ao guardar, o plano atual passa para estas horas."; } }
     { const wrap = $("condWrap"); if (wrap) { const chosen = new Set(p.conditions || []); const auto = new Set(conditionsOf(p).filter((c) => !chosen.has(c) && c !== "glp1"));
       wrap.innerHTML = CONDITIONS.map((c) => `<label><input type="checkbox" data-cond="${c.id}" ${chosen.has(c.id) ? "checked" : ""}> ${esc(c.label)}${auto.has(c.id) ? ' <span class="muted">(detetado nas notas)</span>' : ""}</label>`).join(""); } }
     f("uses_glp1").checked = !!p.uses_glp1; $("glp1Fields").hidden = !p.uses_glp1;
@@ -676,6 +679,8 @@ Responde APENAS com JSON válido nesta forma:
       objetivo: f.objetivo.value || null, activity: f.activity.value || null,
       dislikes: list(f.dislikes.value), family: f.family.checked,
       conditions: [...$("profileForm").querySelectorAll("[data-cond]:checked")].map((x) => x.dataset.cond),
+      meal_times: Object.fromEntries(MEAL_SLOTS.map((sl) => [sl.key, ($("profileForm").querySelector(`[data-mt="${sl.key}"]`)?.value || "").trim()])),
+      meal_times_set: true,
       uses_glp1: uses,
       glp1_substance: uses ? f.glp1_substance.value.trim() || null : null,
       glp1_dose: uses ? f.glp1_dose.value.trim() || null : null,
@@ -1351,6 +1356,7 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
       calculos_de_referencia: planTargets(p),
+      horario_das_refeicoes: mealSlots(p).map((sl) => `${sl.nome} ${sl.hora}`),
       analises_mais_recentes: latestLabs(),
       tensao_arterial: bpSummary(),
       documentos_de_saude: S.docs.slice(-8).map((d) => ({ tipo: d.tipo, data: d.date, titulo: d.titulo, resumo: d.resumo, pontos: d.pontos })),
@@ -1411,6 +1417,160 @@ Regras: um objeto por documento distinto; se for um registo MAPA/Holter de tens�
     const w = p.current_weight_kg ?? p.weight_kg;
     return w && p.target_kg && p.target_kg < w - 1 ? "perder" : "manter";
   }
+  // ---------- horário das refeições: de cada pessoa, lido do perfil ou das notas ----------
+  const MEAL_SLOTS = [
+    { key: "pequeno_almoco", nome: "Pequeno-almoço", def: "08:00", re: /pequeno[- ]?almoco|peq\.? ?almoco|breakfast/ },
+    { key: "meio_manha", nome: "Meio da manhã", def: "", re: /meio da manha|meio[- ]manha|lanche da manha/ },
+    { key: "almoco", nome: "Almoço", def: "13:00", re: /\balmoco\b|lunch/ },
+    { key: "lanche", nome: "Lanche", def: "16:30", re: /\blanche\b(?! da manha)|lanche da tarde|meio da tarde/ },
+    { key: "jantar", nome: "Jantar", def: "20:00", re: /\bjantar\b|dinner/ },
+    { key: "ceia", nome: "Ceia", def: "", re: /\bceia\b/ },
+  ];
+  const HM = /(\d{1,2})(?:[:h.](\d{2}))?\s*h?/;
+  const toHM = (h, m) => `${pad(Math.min(23, Number(h)))}:${pad(Number(m) || 0)}`;
+  /** "10 da manhã", "20h-21h", "13:30" → hora; um intervalo dá o meio, arredondado aos 30 minutos. */
+  function parseTime(txt) {
+    const t = norm(txt);
+    const range = t.match(/(\d{1,2})(?:[:h.](\d{2}))?\s*h?\s*(?:-|a|as|ate|e)\s*(\d{1,2})(?:[:h.](\d{2}))?\s*h?/);
+    if (range) { const a = Number(range[1]) * 60 + Number(range[2] || 0), b = Number(range[3]) * 60 + Number(range[4] || 0); if (b > a && b - a <= 240) { const mid = Math.round((a + b) / 2 / 30) * 30; return toHM(Math.floor(mid / 60), mid % 60); } }
+    const one = t.match(HM); if (!one) return null;
+    let h = Number(one[1]); const m = Number(one[2] || 0);
+    if (/tarde|noite/.test(t) && h < 12) h += 12;
+    if (h > 23) return null;
+    return toHM(h, m);
+  }
+  /** Horários escritos nas notas: "Horário de pequeno almoço: 10 da manhã" e afins. */
+  function parseMealTimesFromNotes(text) {
+    const out = {};
+    String(text || "").split(/\n|;|\.\s/).forEach((line) => {
+      const n = norm(line); if (!/\d/.test(n)) return;
+      for (const slot of MEAL_SLOTS) { if (slot.re.test(n)) { const after = n.split(slot.re).pop(); const hm = parseTime(after || n); if (hm) out[slot.key] = hm; break; } }
+    });
+    return out;
+  }
+  /** O horário efetivo: o do perfil; senão o das notas por cima dos valores por omissão. */
+  function mealTimesOf(p) {
+    if (p.meal_times_set && p.meal_times) return { ...p.meal_times };
+    const notas = parseMealTimesFromNotes(`${p.notes || ""}\n${p.preferences || ""}`);
+    const t = {}; MEAL_SLOTS.forEach((sl) => { t[sl.key] = notas[sl.key] ?? (p.meal_times?.[sl.key] ?? sl.def); });
+    return t;
+  }
+  const minutesOf = (hm) => { const [h, m] = String(hm || "0:0").split(":").map(Number); return h * 60 + (m || 0); };
+  /**
+   * As refeições que a pessoa faz, por ordem, com hora. Sem horário definido à mão, um intervalo
+   * de mais de 5 h entre refeições ganha um lanche a meio; um pequeno-almoço tardio (10:00) não
+   * deixa espaço para meio da manhã, e a app não o inventa.
+   */
+  function mealSlots(p) {
+    const t = mealTimesOf(p);
+    let slots = MEAL_SLOTS.filter((sl) => t[sl.key]).map((sl) => ({ key: sl.key, nome: sl.nome, hora: t[sl.key] })).sort((a, b) => minutesOf(a.hora) - minutesOf(b.hora));
+    if (!p.meal_times_set) {
+      // lanches por omissão só quando há espaço
+      slots = slots.filter((sl) => {
+        if (sl.key !== "meio_manha" && sl.key !== "lanche") return true;
+        const i = MEAL_SLOTS.findIndex((x) => x.key === sl.key);
+        const prev = slots.filter((x) => minutesOf(x.hora) < minutesOf(sl.hora) && x.key !== sl.key).pop();
+        const next = slots.find((x) => minutesOf(x.hora) > minutesOf(sl.hora) && x.key !== sl.key);
+        void i;
+        return (!prev || minutesOf(sl.hora) - minutesOf(prev.hora) >= 120) && (!next || minutesOf(next.hora) - minutesOf(sl.hora) >= 120);
+      });
+      for (let i = 0; i + 1 < slots.length; i++) {
+        const gap = minutesOf(slots[i + 1].hora) - minutesOf(slots[i].hora);
+        if (gap > 330 && !["meio_manha", "lanche", "ceia"].includes(slots[i].key) && !["meio_manha", "lanche", "ceia"].includes(slots[i + 1].key)) {
+          const mid = Math.round((minutesOf(slots[i].hora) + gap / 2) / 30) * 30;
+          const key = slots[i].key === "pequeno_almoco" ? "meio_manha" : "lanche";
+          slots.splice(i + 1, 0, { key, nome: MEAL_SLOTS.find((x) => x.key === key).nome, hora: toHM(Math.floor(mid / 60), mid % 60), auto: true }); i++;
+        }
+      }
+    }
+    return slots;
+  }
+  /** A que ranhura pertence uma refeição de um plano, pelo nome e, no empate, pela hora. */
+  function slotOfMeal(m, slots) {
+    const n = norm(m.nome || "");
+    const byName = MEAL_SLOTS.find((sl) => sl.re.test(n)) || (/(lanche|snack|merenda)/.test(n) ? MEAL_SLOTS[3] : null);
+    if (byName) { const hit = slots.find((sl) => sl.key === byName.key); if (hit) return hit; }
+    if (!m.hora) return null;
+    const t = minutesOf(m.hora);
+    return slots.reduce((best, sl) => (!best || Math.abs(minutesOf(sl.hora) - t) < Math.abs(minutesOf(best.hora) - t)) ? sl : best, null);
+  }
+  /**
+   * Põe um plano nos horários da pessoa: cada refeição vai para a sua ranhura e ganha a hora dela;
+   * uma refeição sem ranhura (por exemplo "Meio da manhã" quando o pequeno-almoço é às 10) funde os
+   * itens na refeição mais próxima, para o dia não perder energia nem proteína. As refeições em
+   * família mantêm o nome; o jantar mantém a hora comum da mesa.
+   */
+  function retimePlan(plan, slots, opts = {}) {
+    if (!plan?.dias || !slots.length) return plan;
+    for (const d of plan.dias) {
+      const byKey = new Map();
+      const meals = (d.refeicoes || []).slice().sort((a, b) => minutesOf(a.hora || "0:0") - minutesOf(b.hora || "0:0"));
+      const leftovers = [];
+      for (const m of meals) {
+        const sl = slotOfMeal(m, slots);
+        if (!sl || byKey.has(sl.key)) { leftovers.push(m); continue; }
+        byKey.set(sl.key, { ...m, nome: m.familia ? m.nome : sl.nome, hora: (m.familia && opts.keepFamilyHour) ? m.hora : sl.hora });
+      }
+      for (const m of leftovers) {
+        const t = minutesOf(m.hora || "12:00");
+        const target = [...byKey.values()].reduce((best, x) => (!best || Math.abs(minutesOf(x.hora) - t) < Math.abs(minutesOf(best.hora) - t)) ? x : best, null);
+        if (!target) { byKey.set("x" + t, { ...m }); continue; }
+        if (target.familia) { // não se mexe no prato da família: fica como refeição extra com a hora mais próxima
+          const extraKey = "extra" + t; byKey.set(extraKey, { ...m }); continue;
+        }
+        const itens = [...(target.itens || []), ...(m.itens || []).filter((i) => !(target.itens || []).some((x) => norm(x.alimento) === norm(i.alimento)))];
+        const merged = normMeal({ ...target, itens, preparacao: [target.preparacao, m.preparacao].filter(Boolean).join(" "), kcal: (target.kcal || 0) + (m.kcal || 0), proteina_g: (target.proteina_g || 0) + (m.proteina_g || 0), hidratos_g: (target.hidratos_g || 0) + (m.hidratos_g || 0), gordura_g: (target.gordura_g || 0) + (m.gordura_g || 0), fibra_g: (target.fibra_g || 0) + (m.fibra_g || 0) });
+        const mm = mealMacros(merged); if (mm.computed) Object.assign(merged, { kcal: mm.kcal, proteina_g: mm.proteina_g, hidratos_g: mm.hidratos_g, gordura_g: mm.gordura_g, fibra_g: mm.fibra_g });
+        for (const [k, v] of byKey) if (v === target) byKey.set(k, merged);
+      }
+      d.refeicoes = [...byKey.values()].sort((a, b) => minutesOf(a.hora || "0:0") - minutesOf(b.hora || "0:0"));
+    }
+    return plan;
+  }
+  /** O plano está nas horas da pessoa? (compara o primeiro dia com refeições) */
+  function planMatchesSlots(plan, slots) {
+    const d = (plan?.dias || []).find((x) => (x.refeicoes || []).length); if (!d) return true;
+    const horas = d.refeicoes.map((m) => m.hora).sort().join(","); const alvo = slots.map((sl) => sl.hora).sort().join(",");
+    return horas === alvo;
+  }
+  async function retimeCurrentPlan(slots) {
+    if (!S.plan?.plan) return;
+    const plan = retimePlan(JSON.parse(JSON.stringify(S.plan.plan)), slots, { keepFamilyHour: true });
+    S.plan = { ...S.plan, plan, previous: S.plan.plan, version: (S.plan.version || 1) + 1, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: "Plano posto no horário das refeições" }].slice(-20) };
+    await savePlan();
+  }
+  /** A hora comum do jantar da mesa: a mais frequente entre quem come em família; empate, a mais tardia. */
+  function sharedMealTime(ids, key) {
+    const votes = new Map();
+    ids.forEach((id) => { const t = mealTimesOf(S.profiles[id] || {})[key]; if (t) votes.set(t, (votes.get(t) || 0) + 1); });
+    if (!votes.size) return MEAL_SLOTS.find((x) => x.key === key)?.def || "20:00";
+    return [...votes.entries()].sort((a, b) => b[1] - a[1] || minutesOf(b[0]) - minutesOf(a[0]))[0][0];
+  }
+  /** Muda a hora de uma refeição num dia só (a pessoa disse no chat). Refeições em família mudam a hora para todos. */
+  async function setMealTimeForDay(dayName, mealName, hora, motivo) {
+    const pl = S.plan?.plan; const day = pl?.dias?.find((d) => norm(d.dia) === norm(dayName)); if (!day) throw new Error(`Dia desconhecido: ${dayName}.`);
+    const m = day.refeicoes.find((x) => norm(x.nome) === norm(mealName)) || (slotOfMeal({ nome: mealName }, mealSlots(profile())) && day.refeicoes.find((x) => slotOfMeal(x, mealSlots(profile()))?.key === slotOfMeal({ nome: mealName }, mealSlots(profile())).key));
+    if (!m) throw new Error(`Não há "${mealName}" em ${day.dia}. Refeições desse dia: ${day.refeicoes.map((x) => x.nome).join(", ")}.`);
+    if (!/^\d{2}:\d{2}$/.test(hora)) throw new Error("Hora no formato HH:MM.");
+    const plan = JSON.parse(JSON.stringify(pl));
+    const d2 = plan.dias.find((d) => d.dia === day.dia); const m2 = d2.refeicoes.find((x) => x.nome === m.nome);
+    m2.hora = hora; d2.refeicoes.sort((a, b) => minutesOf(a.hora || "0:0") - minutesOf(b.hora || "0:0"));
+    let paraTodos = false;
+    if (m.familia && S.family?.dias) {
+      const fd = S.family.dias.find((x) => norm(x.dia) === norm(day.dia)); const slot = famSlot(fd, m.nome);
+      if (slot) {
+        S.family = { ...S.family, dias: S.family.dias.map((x) => x === fd ? { ...x, [slot]: { ...x[slot], hora } } : x), version: (S.family.version || 1) + 1, changelog: [...(S.family.changelog || []), { at: new Date().toISOString(), o_que: `${m.nome} de ${day.dia} às ${hora}` }].slice(-20) };
+        await saveFamily(); paraTodos = true;
+      }
+    }
+    S.plan = { ...S.plan, plan, previous: S.plan.plan, version: (S.plan.version || 1) + 1, changelog: [...(S.plan.changelog || []), { at: new Date().toISOString(), o_que: `${m.nome} de ${day.dia} passa para as ${hora}${motivo ? ` (${motivo})` : ""}` }].slice(-20) };
+    await savePlan();
+    if (paraTodos) await mergeFamilyIntoPlans(S.family, [S.pid]);
+    const horas = d2.refeicoes.map((x) => `${x.nome} ${x.hora}`);
+    const gaps = d2.refeicoes.slice(1).map((x, i) => ({ entre: `${d2.refeicoes[i].nome} e ${x.nome}`, horas: Math.round((minutesOf(x.hora) - minutesOf(d2.refeicoes[i].hora)) / 30) / 2 })).filter((g) => g.horas > 5);
+    return { ok: true, dia: d2.dia, refeicoes: horas, para_toda_a_familia: paraTodos, intervalos_longos: gaps, nota: gaps.length ? "Há um intervalo com mais de 5 horas: propõe um lanche pequeno com atualizar_refeicoes se fizer sentido." : "" };
+  }
+
   /** Perfis com dados preenchidos (os outros ainda não contam como agregado). */
   const hasProfile = (id) => { const q = S.profiles[id]; return !!(q && (q.name || q.weight_kg || q.height_cm)); };
   const familyIds = () => PROFILE_IDS.filter((id) => hasProfile(id) && S.profiles[id].family !== false);
@@ -1880,7 +2040,9 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       }
       const head = planHead(null);
       // 1. estrutura do plano
-      const frame = await ask(`${head}\n\nPasso 1 de 3: define a ESTRUTURA do plano semanal (ainda sem as refeições em detalhe).\nResponde APENAS com JSON válido nesta forma:\n${FRAME_SCHEMA}`,
+      const slots = mealSlots(p);
+      const slotsTxt = slots.map((sl) => `${sl.nome} às ${sl.hora}`).join(", ");
+      const frame = await ask(`${head}\n\nHORÁRIO DESTA PESSOA (obrigatório): as refeições do dia são exatamente estas, com estes nomes e estas horas, nem mais nem menos: ${slotsTxt}. Distribui a energia e a proteína por elas; um pequeno-almoço tardio leva mais proteína.\n\nPasso 1 de 3: define a ESTRUTURA do plano semanal (ainda sem as refeições em detalhe).\nResponde APENAS com JSON válido nesta forma:\n${FRAME_SCHEMA}`,
         "A calcular metas e estrutura… (1 de 3)", 10, "complex");
       if (!frame?.metas_diarias) throw { code: "invalid_json", message: "estrutura incompleta" };
 
@@ -1890,7 +2052,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       const dias = [];
       for (let i = 0; i < blocks.length; i++) {
         const jaFeitos = dias.length ? `\nJá planeaste estes dias, não repitas as mesmas refeições:\n${JSON.stringify(dias.map((d) => ({ dia: d.dia, refeicoes: d.refeicoes.map((m) => m.itens.map((x) => x.alimento).join(", ")) })))}` : "";
-        const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${blocks[i].join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação e pelo menos uma alternativa. Os totais do dia têm de bater certo com as metas.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
+        const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}\nHORÁRIO OBRIGATÓRIO: ${slotsTxt} (só estas refeições, com estes nomes e horas).${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${blocks[i].join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação e pelo menos uma alternativa. Os totais do dia têm de bater certo com as metas.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
           `A escrever as refeições… (${i + 2} de 3)`, 25 + i * 30);
         const got = Array.isArray(res?.dias) ? res.dias : [];
         blocks[i].forEach((d) => {
@@ -1899,6 +2061,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
         });
       }
       if (dias.every((d) => d.refeicoes.length === 0)) throw { code: "invalid_json", message: "sem refeições" };
+      retimePlan({ dias }, slots);
 
       const compras = [];
       const hidr = (Array.isArray(frame.hidratacao) ? frame.hidratacao : []).map((h) => ({ hora: String(h.hora || ""), quantidade_ml: Math.round(Number(h.quantidade_ml) || 0), nota: String(h.nota || "") })).filter((h) => h.quantidade_ml > 0).sort((a, b) => a.hora.localeCompare(b.hora));
@@ -2102,7 +2265,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
         const fm = fd[slot]; const pp = fm?.por_pessoa?.[id];
         if (!fm || !pp) continue;
         const meal = normMeal({
-          nome: fm.nome, hora: fm.hora, ordem: pp.ordem, itens: pp.itens,
+          nome: fm.nome, hora: slot === "almoco" ? (mealTimesOf(S.profiles[id] || {}).almoco || fm.hora) : fm.hora, ordem: pp.ordem, itens: pp.itens,
           preparacao: fm.preparacao, porque: pp.nota || "", alternativas: [],
           kcal: pp.kcal, proteina_g: pp.proteina_g, hidratos_g: pp.hidratos_g, gordura_g: pp.gordura_g, fibra_g: pp.fibra_g,
           familia: true, base_comum: fm.base, ...(fm.marmita ? { marmita: fm.marmita } : {}),
@@ -2194,6 +2357,7 @@ Passo 1 de 3: escreve a EMENTA para ${dayList.join(", ")}.
 - O jantar de cada dia é uma refeição completa e prática de fazer para ${ids.length} pessoas, com proteína, legumes e hidratos.
 ${comAlmoco ? "- O almoço de cada dia é uma MARMITA, preparada no dia anterior ou ao início da semana (cozinhados em lote ao domingo e à quarta, por exemplo). Diz em que dia se prepara, quanto tempo dura no frigorífico e como se monta e reaquece.\n" : "- Não escrevas almoços: só jantares.\n"}- Varia as proteínas ao longo da semana e usa comida portuguesa acessível.${avoidBases.length ? `\n- Já há estes pratos noutros dias, não os repitas: ${avoidBases.join("; ")}.` : ""}
 - Em cada componente diz quem o leva: "todos" ou a lista de perfis (usa os identificadores ${JSON.stringify(ids)}).
+- O jantar é às ${sharedMealTime(ids, "jantar")} para todos; o almoço (marmita) cada um come à sua hora.
 Responde APENAS com JSON válido nesta forma:
 ${FAMILY_MENU_SCHEMA}`, "A montar a ementa da família… (1 de 3)", 10, "complex");
     const dias0 = Array.isArray(menu?.dias) ? menu.dias : [];
@@ -2243,7 +2407,10 @@ ${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de 3)`
           por_pessoa: por,
         };
       };
-      return { dia: d, jantar: build(src?.jantar), ...(comAlmoco ? { almoco: build(src?.almoco) } : {}) };
+      const j = build(src?.jantar), a = comAlmoco ? build(src?.almoco) : null;
+      if (j) j.hora = sharedMealTime(ids, "jantar");
+      if (a) a.hora = sharedMealTime(ids, "almoco");
+      return { dia: d, jantar: j, ...(comAlmoco ? { almoco: a } : {}) };
     }).filter((d) => d.jantar || d.almoco);
     if (dias.length === 0) throw { code: "invalid_json", message: "sem refeições" };
 
@@ -2490,6 +2657,7 @@ Responde APENAS com JSON válido nesta forma:
     $("planEmpty").hidden = has; $("planBody").hidden = !has;
     $("planBody").style.display = has ? "flex" : "none";
     renderFamilyOptions();
+    { const n = $("retimeNote"); if (n) { const slots = has ? mealSlots(profile()) : []; const ok = !has || planMatchesSlots(S.plan.plan, slots); n.hidden = ok; if (!ok) n.innerHTML = `O plano não está no teu horário (${esc(slots.map((sl) => `${sl.nome} ${sl.hora}`).join(", "))}). <button type="button" class="btn sm" id="retimeBtn">Pôr no meu horário</button>`; } }
     if (!has) { $("planMeta").textContent = "Plano semanal com quantidades, gerado a partir do perfil, GLP-1, análises, medicação e objetivo de peso."; return; }
     const pl = S.plan.plan; const t = pl.metas_diarias || {};
     $("planMeta").textContent = `Versão ${S.plan.version} · semana de ${S.plan.week_start}${S.plan.changelog?.length > 1 ? ` · último ajuste: ${S.plan.changelog[S.plan.changelog.length - 1].o_que}` : ""}`;
@@ -2827,6 +2995,8 @@ Tensão arterial: quando a pessoa indicar uma medição (ex: "hoje 135/85"), reg
 
 Documentos: quando a pessoa anexa análises ou outros documentos, a página lê-os e regista antes de te chegar a mensagem; os dados atualizados vêm no contexto. Comenta o que é relevante para a alimentação e propõe ajustes ao plano se fizer sentido.
 
+Horários: o contexto traz "horario_das_refeicoes", as refeições que a pessoa faz e a que horas. Se ela disser que num dia concreto vai comer a outra hora ("amanhã tomo o pequeno-almoço às 7"), usa ajustar_horario para esse dia; se abrir um intervalo de mais de 5 horas, propõe um lanche pequeno nesse dia com atualizar_refeicoes. Se ela disser que o horário habitual mudou ("passei a jantar às 19"), guarda como regra com guardar_regra e diz-lhe que pode fixar a hora no Perfil, em Horário das refeições, para o plano inteiro se ajustar.
+
 Água: o plano tem um horário de água (hidratacao) com horas e quantidades; usa-o nas tuas sugestões e, com GLP-1, lembra goles pequenos, pouca água às refeições e mais entre refeições.
 
 Plano alimentar: se existir um plano guardado (vem no contexto), é esse que a pessoa segue. Quando ela pedir para trocar, aligeirar ou ajustar refeições (ou relatar sintomas que justifiquem ajustar), usa a ferramenta atualizar_refeicoes para aplicar a mudança diretamente ao plano guardado e depois resume em 2–3 linhas o que mudou. Mantém proteína e fibra equivalentes na troca. Não uses a ferramenta para mudanças que a pessoa ainda não pediu.
@@ -2880,6 +3050,7 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       medicacao: meds.filter((m) => m.kind !== "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       suplementos: meds.filter((m) => m.kind === "suplemento").map(({ name, dose, freq }) => ({ nome: name, dose, frequencia: freq })),
       hidratacao: { meta_ml: goal.ml, origem_meta: goal.why, bebido_hoje_ml: day.total },
+      horario_das_refeicoes: mealSlots(p).map((sl) => `${sl.nome} ${sl.hora}`),
       composicao_corporal: level >= 2 ? (bodyContext()?.ultima_medicao || null) : bodyContext(),
       analises_mais_recentes: labsDigest(level),
       regras_alimentares_obrigatorias: S.rules.map((r) => r.texto),
@@ -3059,7 +3230,12 @@ Formato: responde de forma direta e curta, em texto simples (sem títulos nem ma
       description: "Guarda de forma permanente uma regra alimentar pessoal que a pessoa quer que seja sempre respeitada (ordem por que come os alimentos, horários, alimentos proibidos, forma de confecionar, etc.). Usa sempre que ela enunciar uma preferência ou regra duradoura, mesmo de passagem. Não uses para pedidos pontuais de um só dia.",
       inputSchema: { type: "object", properties: { regra: { type: "string", description: "A regra numa frase curta e clara, na 2.ª pessoa (ex: 'Comer sempre os legumes primeiro, depois a proteína e os hidratos no fim')" } }, required: ["regra"] },
       execute: async (input) => { const r = await addRule(input?.regra, "chat"); return r ? (r.duplicada ? { ok: true, nota: "já estava guardada" } : { ok: true, guardada: r.texto, total: S.rules.length }) : { ok: false, erro: "regra vazia" }; },
-    }, {
+    }, ...(S.plan?.plan ? [{
+      name: "ajustar_horario",
+      description: "Muda a hora de uma refeição do plano num dia concreto (ex.: 'amanhã tomo o pequeno-almoço às 7'). Só nesse dia; o horário habitual fica no perfil. Numa refeição em família a hora muda para todos. Devolve as horas do dia e avisa se ficou um intervalo de mais de 5 horas.",
+      inputSchema: { type: "object", properties: { dia: { type: "string", description: "segunda|terça|quarta|quinta|sexta|sábado|domingo (usa dia_da_semana_hoje para 'hoje' e 'amanhã')" }, refeicao: { type: "string", description: "Nome da refeição (Pequeno-almoço, Almoço, Lanche, Jantar…)" }, hora: { type: "string", description: "HH:MM" }, motivo: { type: "string" } }, required: ["dia", "refeicao", "hora"] },
+      execute: async (input) => { bubble.innerHTML = `<span class="thinking">a ajustar o horário…</span>`; return setMealTimeForDay(input?.dia, input?.refeicao, String(input?.hora || "").trim(), input?.motivo); },
+    }] : []), {
       name: "registar_tensao",
       description: "Regista uma medição de tensão arterial da pessoa (sistólica/diastólica em mmHg, pulso opcional) e devolve a classificação e a média recente. Usa quando a pessoa indica uma medição.",
       inputSchema: { type: "object", properties: { sistolica: { type: "number" }, diastolica: { type: "number" }, pulso: { type: "number" }, data: { type: "string", description: "YYYY-MM-DD, por omissão hoje" }, hora: { type: "string", description: "HH:MM" } }, required: ["sistolica", "diastolica"] },
@@ -3174,7 +3350,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday],[data-delpref]");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday],[data-delpref],#retimeBtn");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
@@ -3191,6 +3367,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
     if (t.dataset.like) { const [d, i, v] = t.dataset.like.split("|"); await votePref(d, +i, +v); return; }
     if (t.dataset.swapmeal) { if (S.generating) return; const [d, i] = t.dataset.swapmeal.split("|"); await swapMeal(d, +i); return; }
     if (t.dataset.regenday) { if (S.generating) return; await regenerateDay(t.dataset.regenday); return; }
+    if (t.id === "retimeBtn") { await retimeCurrentPlan(mealSlots(profile())); return; }
     if (t.dataset.attach !== undefined) { setView("chat"); $("fileInput").click(); return; }
     if (t.dataset.goto) { ev.preventDefault(); setView(t.dataset.goto); return; }
     if (t.dataset.ml) { t.disabled = true; try { await addWater(t.dataset.ml); } finally { t.disabled = false; } return; }
@@ -3219,7 +3396,10 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
     if (f.id === "profileForm") {
       ev.preventDefault(); const data = readProfileForm(); $("saveProfile").disabled = true;
       try {
+        const beforeSlots = JSON.stringify(mealSlots(profile()));
         await saveProfile(data);
+        void beforeSlots;
+        if (S.plan?.plan && !planMatchesSlots(S.plan.plan, mealSlots(data))) await retimeCurrentPlan(mealSlots(data));
         if (data.weight_kg) { const today = localDate(); S.weights = [...S.weights.filter((w) => w.date !== today), { date: today, kg: data.weight_kg }].sort((a, b) => a.date.localeCompare(b.date)).slice(-120); await saveWeights(); }
         $("saveMsg").textContent = "Guardado ✓"; $("saveMsg").style.color = "var(--accent)";
       } catch (e) { $("saveMsg").textContent = "Não foi possível guardar. Tenta outra vez."; $("saveMsg").style.color = "var(--danger)"; }
@@ -3357,7 +3537,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

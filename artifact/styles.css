@@ -435,3 +435,7 @@
   .meal details.more > summary::before { content: "▸ "; }
   .meal details.more[open] > summary::before { content: "▾ "; }
   .meal details.more[open] > summary { margin-bottom: 4px; }
+
+  .mts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .mts .mt { display: grid; gap: 4px; font-size: 0.82rem; color: var(--ink-2); }
+  .mts .mt input { width: 100%; }

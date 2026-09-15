@@ -33,7 +33,7 @@ export default async function () {
     eq(calls.length, 2, "repetiu o pedido depois de prompt_too_large");
     assert(calls[0].bytes < 20000, `1.º pedido já vem apertado: ${calls[0].bytes} bytes`);
     assert(calls[1].bytes < calls[0].bytes, `a repetição vai mais curta: ${calls[1].bytes} < ${calls[0].bytes}`);
-    eq(calls[1].tools, 4, "a repetição mantém as ferramentas");
+    eq(calls[1].tools, 5, "a repetição mantém as ferramentas");
     const big = await page.evaluate(() => window.__big);
     assert(big.includes("máximo é 8") && big.includes("guardar_regra"), "alteração em massa travada com explicação: " + big);
     const st = await app.dump();
@@ -69,7 +69,7 @@ export default async function () {
     await app3.go("chat");
     await app3.page.fill("#chatInput", "não como leguminosas"); await app3.page.click("#sendChat");
     await app3.page.waitForTimeout(1200);
-    eq(JSON.stringify(await app3.page.evaluate(() => window.__k)), "[4,0]", "segunda tentativa sem ferramentas");
+    eq(JSON.stringify(await app3.page.evaluate(() => window.__k)), "[5,0]", "segunda tentativa sem ferramentas");
     assert((await app3.page.evaluate(() => window.__last)).includes("só em texto"), "pede resposta escrita");
     const log3 = await app3.text("#chatLog");
     assert(log3.includes("aba Plano") && !log3.includes("⚠️"), "a pessoa recebeu resposta: " + log3.slice(-120));

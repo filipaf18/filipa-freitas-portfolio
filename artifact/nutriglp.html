@@ -268,6 +268,7 @@
       <p class="small muted" id="familyLine" hidden></p>
     </div>
     <div class="status" id="planNote" hidden></div>
+    <div class="status" id="retimeNote" hidden></div>
     <div id="planEmpty" class="card lift">
       <h2>Ainda não há plano</h2>
       <p class="muted small">Preenche o perfil (peso, altura, objetivo, o que não comes) e as análises que tiveres. Depois gera o plano: alguns pedidos ao Claude, entre 2 e 6 minutos. O resultado traz metas, refeições com quantidades e medidas caseiras, horário de água, trocas e dias difíceis.</p>
@@ -432,6 +433,9 @@
         <div class="field"><label for="f_dislikes">Não come (separados por vírgula)</label><input class="input" id="f_dislikes" name="dislikes" placeholder="legumes, leguminosas, peixe cozido"><span class="hint">Nas refeições em família, isto sai do prato desta pessoa e o resto da mesa mantém-se.</span></div>
       </div>
       <label class="check"><input type="checkbox" id="f_family" name="family" checked> Come as refeições em família (jantar igual para todos)</label>
+      <h2>Horário das refeições</h2>
+      <p class="hint" id="mealTimesNote"></p>
+      <div class="mts" id="mealTimesWrap"></div>
       <h2>Condições de saúde</h2>
       <p class="hint">Mudam a energia, a proteína e o que vai para o prato. O que escreveres nas notas também é detetado.</p>
       <div class="famwho" id="condWrap"></div>

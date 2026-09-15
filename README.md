@@ -44,6 +44,13 @@ uma lista "para falar com o médico"; as refeições em família recebem as regr
 quem precisa e não faz mal a ninguém) e os reforços por pessoa. A leitura de PDFs faz correspondência
 por palavra inteira e por unidade, e encaminha composição corporal para Corpo.
 
+**Horário das refeições.** Cada perfil tem o seu (Perfil → Horário das refeições), lido também das
+notas ("pequeno almoço: 10 da manhã", "jantar 20h-21h"). O plano gera-se só com essas refeições e essas
+horas; ao guardar o perfil, o plano atual passa para o horário (uma refeição sem lugar funde os itens na
+mais próxima, sem perder energia), e o Plano avisa quando não está no horário. O jantar em família fica à
+hora mais comum da mesa; a marmita à hora de cada um. No chat, "amanhã tomo o pequeno-almoço às 7" muda
+só esse dia (ferramenta `ajustar_horario`); numa refeição em família a hora muda para todos.
+
 **Refeições em família.** Não há um plano de família à parte: ao gerar o plano de uma pessoa, os
 jantares e almoços (em marmita) saem primeiro, iguais para toda a gente que come em família, e
 entram no plano individual de cada um com as suas quantidades e sem o que cada pessoa não come.

@@ -2067,9 +2067,9 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const ctl = new AbortController(); S.generating = ctl;
     $("genPlan").disabled = true; $("regenPlan").disabled = true; $("genProgress").hidden = false;
     const bar = $("genProgress").firstElementChild;
-    const total = (famNow ? 3 : 0) + 3 + 1; let feito = 0;
+    const total = (famNow ? familyRequestCount(household) : 0) + 3 + 1; let feito = 0;
     const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
-    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.round(feito / (total + 1) * 100), msg.replace(/\(\d+ de \d+\)/, `(${feito} de ${total})`)); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
+    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), msg.replace(/\(\d+ de \d+\)/, `(${feito} de ${Math.max(feito, total)})`)); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
 
     let err = null, plan = null;
     try {
@@ -2121,15 +2121,15 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const semDados = ids.filter((id) => !S.profiles[id]?.weight_kg);
     if (ids.length === 0 || semDados.length) { $("planNote").hidden = false; $("planNote").textContent = semDados.length ? `Preenche o peso no perfil de: ${semDados.map(nameOf).join(", ")}.` : "Preenche pelo menos um perfil."; return; }
     const household = familyIds(); const comFamilia = household.length >= 2;
-    const total = (comFamilia ? 3 : 0) + ids.length * 3 + 1;
-    if (!(await askConfirm(`Refaz ${comFamilia ? "as refeições em família e " : ""}o plano de ${ids.map(nameOf).join(", ")}, cada um com os seus dados. São ${total} pedidos ao Claude, entre ${Math.round(total * 0.6)} e ${Math.round(total * 1.2)} minutos. As versões anteriores ficam guardadas.`, "Refazer tudo"))) return;
+    const total = (comFamilia ? familyRequestCount(household) : 0) + ids.length * 3 + 1;
+    if (!(await askConfirm(`Refaz ${comFamilia ? "as refeições em família e " : ""}o plano de ${ids.map(nameOf).join(", ")}, cada um com os seus dados. São cerca de ${total} pedidos ao Claude, entre ${Math.round(total * 0.6)} e ${Math.round(total * 1.2)} minutos. As versões anteriores ficam guardadas.`, "Refazer tudo"))) return;
     $("planNote").hidden = true;
     const ctl = new AbortController(); S.generating = ctl;
     ["genPlan", "regenPlan", "genAll", "genAll2"].forEach((id) => { const b = $(id); if (b) b.disabled = true; });
     $("genProgress").hidden = false; const bar = $("genProgress").firstElementChild;
     let feito = 0; let quem = "";
     const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
-    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.round(feito / (total + 1) * 100), `${quem}${msg.replace(/\s*\(\d+ de \d+\)/, "")} (${feito} de ${total})`); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
+    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), `${quem}${msg.replace(/\s*\(\d+ de \d+\)/, "")} (${feito} de ${Math.max(feito, total)})`); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
     const falhas = [];
     try {
       if (comFamilia) {
@@ -2176,16 +2176,23 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     if (!frame?.metas_diarias) throw { code: "invalid_json", message: "estrutura incompleta" };
 
     const frameTxt = JSON.stringify({ metas_diarias: frame.metas_diarias, estrutura_do_dia: frame.estrutura_do_dia || [], principios: frame.principios || [], regras_aplicadas: frame.regras_aplicadas || [] });
-    // 2. refeições, em dois blocos para caberem
+    // 2. refeições, em dois blocos para caberem; se um bloco vier cortado, pede-se metade de cada vez
     const blocks = [["segunda", "terça", "quarta", "quinta"], ["sexta", "sábado", "domingo"]];
+    const famNames = [...new Set((familyMealsFor(pid) || []).flatMap((d) => d.refeicoes.map((r) => r.refeicao)))];
+    const soltas = slots.filter((sl) => !famNames.some((n) => norm(n) === norm(sl.nome))).map((sl) => sl.nome);
+    const famSkip = famNames.length
+      ? `\nAS REFEIÇÕES EM FAMÍLIA (${famNames.join(", ")}) JÁ ESTÃO FIXADAS e são juntas ao plano depois: NÃO as escrevas. Escreve só as outras refeições do horário (${soltas.join(", ")}), contando com a energia e a proteína que as refeições em família já trazem nesse dia, para os totais do dia baterem certo.`
+      : "";
     const dias = [];
     for (let i = 0; i < blocks.length; i++) {
-      const jaFeitos = dias.length ? `\nJá planeaste estes dias, não repitas as mesmas refeições:\n${JSON.stringify(dias.map((d) => ({ dia: d.dia, refeicoes: d.refeicoes.map((m) => m.itens.map((x) => x.alimento).join(", ")) })))}` : "";
-      const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}\nHORÁRIO OBRIGATÓRIO: ${slotsTxt} (só estas refeições, com estes nomes e horas).${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${blocks[i].join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação e pelo menos uma alternativa. Os totais do dia têm de bater certo com as metas.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
-        `A escrever as refeições… (${i + 2} de 3)`, 25 + i * 30);
-      const got = Array.isArray(res?.dias) ? res.dias : [];
+      const got = await askInHalves(blocks[i], async (lista) => {
+        const jaFeitos = dias.length ? `\nJá planeaste estes dias, não repitas as mesmas refeições:\n${JSON.stringify(dias.map((d) => ({ dia: d.dia, refeicoes: d.refeicoes.map((m) => m.itens.map((x) => x.alimento).join(", ")) })))}` : "";
+        const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}\nHORÁRIO OBRIGATÓRIO: ${slotsTxt} (só estas refeições, com estes nomes e horas).${famSkip}${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${lista.join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação em 1 a 2 frases e uma alternativa. Os totais do dia têm de bater certo com as metas. Sê conciso, sem texto fora do JSON.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
+          `A escrever as refeições… (${i + 2} de 3)`, 25 + i * 30);
+        return Array.isArray(res?.dias) ? res.dias : null;
+      });
       blocks[i].forEach((d) => {
-        const f = got.find((x) => norm(x.dia) === norm(d)) || got[blocks[i].indexOf(d)];
+        const f = (got || []).find((x) => norm(x.dia) === norm(d)) || ((got || []).length === blocks[i].length ? got[blocks[i].indexOf(d)] : null);
         dias.push({ dia: d, refeicoes: ((f && f.refeicoes) || []).map(normMeal) });
       });
     }
@@ -2438,6 +2445,22 @@ LIMITES DE ATUAÇÃO (obrigatórios)
    * Gera as refeições em família: ementa e quantidades por pessoa.
    * `dayList` limita aos dias pedidos (refazer um dia); `avoidBases` evita repetir pratos da semana.
    */
+  /**
+   * Pede um bloco de dias; se a resposta vier cortada pelo limite de tamanho (invalid_json) ou vazia,
+   * divide o bloco ao meio e pede cada metade, até ficar um dia por pedido.
+   */
+  async function askInHalves(list, fn) {
+    try { const r = await fn(list); if ((r && r.length) || list.length <= 1) return r || []; }
+    catch (e) { if (e?.code !== "invalid_json" || list.length <= 1) throw e; }
+    const mid = Math.ceil(list.length / 2);
+    const a = await askInHalves(list.slice(0, mid), fn);
+    const b = await askInHalves(list.slice(mid), fn);
+    return [...(a || []), ...(b || [])];
+  }
+  /** Quantos dias cabem num pedido de quantidades: com mais pessoas à mesa, menos dias por pedido. */
+  const familyDaysPerAsk = (n) => Math.max(1, Math.min(4, Math.floor(8 / Math.max(1, n))));
+  /** Pedidos previstos para as refeições em família (ementa + blocos de quantidades). */
+  const familyRequestCount = (ids, dayList = DAYS) => 1 + Math.ceil(dayList.length / familyDaysPerAsk(ids.length));
   async function familyPipeline(ids, comAlmoco, ask, dayList = DAYS, avoidBases = []) {
     const pessoas = ids.map((id) => {
       const q = S.profiles[id]; const t = planTargets(q, id);
@@ -2476,23 +2499,28 @@ ${FAMILY_MENU_SCHEMA}`, "A montar a ementa da família… (1 de 3)", 10, "comple
     const dias0 = Array.isArray(menu?.dias) ? menu.dias : [];
     if (dias0.length === 0) throw { code: "invalid_json", message: "ementa vazia" };
 
-    const blocos = dayList.length > 4 ? [dayList.slice(0, 4), dayList.slice(4)] : [dayList];
+    const porBloco = familyDaysPerAsk(ids.length);
+    const blocos = []; for (let i = 0; i < dayList.length; i += porBloco) blocos.push(dayList.slice(i, i + porBloco));
     const porDia = {};
     for (let i = 0; i < blocos.length; i++) {
-      const ementa = dias0.filter((d) => blocos[i].some((x) => norm(x) === norm(d.dia)));
-      if (ementa.length === 0) continue;
-      const r = await ask(`${head}
+      const got = await askInHalves(blocos[i], async (lista) => {
+        const ementa = dias0.filter((d) => lista.some((x) => norm(x) === norm(d.dia)));
+        if (ementa.length === 0) return [];
+        const r = await ask(`${head}
 
 EMENTA JÁ DEFINIDA (respeita-a tal como está):
 ${JSON.stringify(ementa)}
 
-Passo ${i + 2} de 3: escreve as QUANTIDADES de cada pessoa para ${blocos[i].join(", ")}.
+Passo ${i + 2} de ${blocos.length + 1}: escreve as QUANTIDADES de cada pessoa para ${lista.join(", ")}.
 - Para cada refeição da ementa, dá a lista de itens de cada pessoa, com gramas e medida caseira, e os macros dessa pessoa.
 - Respeita as metas de cada um: quem quer perder peso leva porções menores de hidratos e gordura, mas a mesma proteína; quem só quer comer equilibrado fica na energia de manutenção.
 - Quem não come um componente não o leva, e recebe mais de outro em troca.
+- Sê conciso: sem comentários fora do JSON, notas só quando o prato de alguém é diferente.
 Responde APENAS com JSON válido nesta forma:
-${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de 3)`, 35 + i * 30);
-      (Array.isArray(r?.dias) ? r.dias : []).forEach((d) => { porDia[norm(d.dia)] = d.refeicoes || []; });
+${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de ${blocos.length + 1})`, 35 + Math.round(i / blocos.length * 55));
+        return Array.isArray(r?.dias) ? r.dias : null;
+      });
+      (got || []).forEach((d) => { porDia[norm(d.dia)] = d.refeicoes || []; });
     }
 
     const dias = dayList.map((d) => {

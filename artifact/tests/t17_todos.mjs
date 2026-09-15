@@ -25,6 +25,9 @@ export default async function () {
         { componente: "legumes", alimento: "espinafres", grupo: "legumes", quem_leva: ["filipa", "mae", "pai"] }] },
       almoco: { nome: "Almoço", hora: "13:00", base: "Marmita de frango com quinoa", preparacao: "Preparar ao domingo.", marmita: { preparar_em: "domingo", conservacao: "frigorífico até 3 dias", montagem: "Caixas individuais." }, componentes: [] } })),
       preparacao_antecipada: ["Domingo: cozer 600 g de quinoa"] };
+    window.__fail = window.__fail || {};
+    if (t.includes("QUANTIDADES para") || t.includes("QUANTIDADES de cada pessoa para segunda, terça.")) { if (!window.__fail.fam) { window.__fail.fam = 1; throw { code: "invalid_json", message: "cortado" }; } }
+    if (t.includes("define a ESTRUTURA") === false && /destes dias: segunda, terça, quarta, quinta\./.test(t) && t.includes('"nome":"Jorge"') && !window.__fail.jorge) { window.__fail.jorge = 1; throw { code: "invalid_json", message: "cortado" }; }
     if (t.includes("QUANTIDADES")) { const dias = t.match(/QUANTIDADES de cada pessoa para ([^\\n.]+)\\./)[1].split(", ");
       return { dias: dias.map((d) => ({ dia: d, refeicoes: [{ refeicao: "Jantar", por_pessoa: ${PLATES} }, { refeicao: "Almoço", por_pessoa: ${PLATES} }] })) }; }
     if (t.includes("define a ESTRUTURA")) { const nome = (t.match(/"nome":"([^"]+)"/) || [])[1] || "";
@@ -40,15 +43,21 @@ export default async function () {
     assert(!(await page.isHidden("#genAll")), "botão de refazer tudo visível sem plano");
     await page.click("#genAll"); await page.waitForTimeout(300);
     const modal = await app.text(".modal");
-    assert(modal.includes("Filipa") && modal.includes("Vitória") && modal.includes("16 pedidos"), "a confirmação diz quem e quantos pedidos: " + modal);
+    assert(modal.includes("Filipa") && modal.includes("Vitória") && modal.includes("cerca de 18 pedidos"), "a confirmação diz quem e quantos pedidos: " + modal);
     await page.click(".modal [data-yes]"); await page.waitForTimeout(6000);
     const st = await app.dump();
     const prompts = await page.evaluate(() => window.__p);
     eq(prompts.filter((x) => x.includes("escreve a EMENTA")).length, 1, "uma ementa em família");
     eq(prompts.filter((x) => x.includes("define a ESTRUTURA")).length, 4, "uma estrutura por pessoa");
-    eq(prompts.filter((x) => /destes dias: /.test(x)).length, 8, "dois blocos de dias por pessoa");
+    eq(prompts.filter((x) => x.includes("QUANTIDADES")).length, 6, "quatro pessoas: 2 dias por pedido de quantidades (4 blocos), e o bloco cortado foi pedido em duas metades");
+    eq(prompts.filter((x) => /destes dias: /.test(x)).length, 10, "dois blocos de dias por pessoa, e o bloco cortado do pai foi pedido em duas metades");
+    assert(prompts.some((x) => /destes dias: segunda, terça\./.test(x) && x.includes('"nome":"Jorge"')) && prompts.some((x) => /destes dias: quarta, quinta\./.test(x) && x.includes('"nome":"Jorge"')), "as metades do pai: segunda+terça e quarta+quinta");
+    assert(prompts.some((x) => x.includes("QUANTIDADES de cada pessoa para segunda.")) && prompts.some((x) => x.includes("QUANTIDADES de cada pessoa para terça.")), "as metades da família: segunda e terça");
     eq(prompts.filter((x) => x.includes("LISTA DE COMPRAS")).length, 1, "uma lista de compras no fim");
-    eq(prompts.length, 16, "16 pedidos ao todo");
+    eq(prompts.length, 22, "18 pedidos previstos + 4 das metades");
+    const dayAsks = prompts.filter((x) => /destes dias: /.test(x));
+    assert(dayAsks.every((x) => x.includes("JÁ ESTÃO FIXADAS") && x.includes("NÃO as escrevas")), "o pedido dos dias diz para não repetir as refeições em família");
+    assert(dayAsks[0].includes("(Pequeno-almoço, Lanche") || dayAsks[0].includes("(Pequeno-almoço"), "e diz quais escrever: " + dayAsks[0].match(/Escreve só as outras refeições do horário \([^)]*\)/)?.[0]);
     assert(prompts.findIndex((x) => x.includes("escreve a EMENTA")) < prompts.findIndex((x) => x.includes("define a ESTRUTURA")), "família antes dos planos individuais");
     assert(prompts.findIndex((x) => x.includes("LISTA DE COMPRAS")) === prompts.length - 1, "compras no fim");
     // cada pessoa pediu com os seus dados
@@ -69,6 +78,7 @@ export default async function () {
       eq(jantar.base_comum, "Salmão no forno com batata-doce", `base comum em ${id}`);
       eq(jantar.itens.some((i) => i.alimento === "espinafres"), id !== "vitoria", `legumes no prato de ${id}`);
       assert(seg.refeicoes.some((m) => m.nome === "Lanche"), `o resto do dia de ${id} veio do plano individual`);
+      assert(plan.plan.dias.every((d) => d.refeicoes.some((m) => m.nome === "Lanche") && d.refeicoes.some((m) => m.nome === "Jantar" && m.familia)), `todos os dias de ${id} completos, mesmo os que vieram em metades`);
       eq(plan.changelog.at(-1).o_que, "Plano gerado para toda a família", `changelog de ${id}`);
     }
     eq(st["plans/pai"].version, 4, "o pai passou da versão 3 para a 4 (uma só versão nova)");

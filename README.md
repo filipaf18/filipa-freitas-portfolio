@@ -61,6 +61,10 @@ dia, ou é ajustada às metas dela (proteína pela proteína alvo, o resto pela 
 Além de 👍/👎, uma nota livre por refeição (porção, tempero, trocas) fica em `prefs` com `voto: 0` e entra
 nos próximos planos, nas trocas e no chat.
 
+**Falhas a meio da geração.** Cada pedido que falhe com `upstream_error` (o serviço caiu) é repetido uma
+vez passados 4 s. A geração guarda rascunhos em memória (estrutura, blocos de dias, ementa e quantidades em
+família) e, se falhar mesmo assim, o próximo "Gerar" continua de onde ficou, sem repetir os pedidos já feitos.
+
 **"Hoje ao almoço vou fazer X."** No chat, dizer o que se vai comer (ou pedir quantidades para um prato
 escolhido) chama a ferramenta `fixar_refeicao`: a refeição entra no plano desse dia com as quantidades
 calculadas (marcada `propria`, para o jantar em família não a sobrepor) e, no fim da resposta, a app faz

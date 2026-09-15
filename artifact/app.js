@@ -76,6 +76,7 @@
     imageLimits: null,
     diag: { sample: null, images: null, tools: null, db: null, saveErr: "", lastErr: "", lastTools: "", step: "arranque" },
     estimating: false,     // a estimar macros de "comi outra coisa"
+    drafts: {},            // rascunhos de geração (por perfil / família) para continuar de onde ficou depois de uma falha
     plan: null,            // {week_start, version, plan:{...}, previous, changelog}
     planDay: null,
     labPick: null,
@@ -2122,7 +2123,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const bar = $("genProgress").firstElementChild;
     const total = (famNow ? familyRequestCount(household) : 0) + 3 + 1; let feito = 0;
     const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
-    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), msg.replace(/\(\d+ de \d+\)/, `(${feito} de ${Math.max(feito, total)})`)); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
+    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), msg.replace(/\(\d+ de \d+\)/, `(${feito} de ${Math.max(feito, total)})`)); return askRetry(() => S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" })); };
 
     let err = null, plan = null;
     try {
@@ -2141,7 +2142,8 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     if (err) {
       if (err.code !== "cancelled") {
         $("planNote").hidden = false;
-        $("planNote").textContent = err.code === "sem_dados" ? err.message : err.code === "invalid_json" ? "O plano veio incompleto. Tenta gerar outra vez." : (ERR_COPY[err.code] || "Não foi possível gerar o plano. Tenta outra vez.");
+        const resume = Object.keys(S.drafts).length ? " O que já estava feito ficou guardado: carrega outra vez em Gerar e a app continua de onde ficou." : "";
+        $("planNote").textContent = (err.code === "sem_dados" ? err.message : err.code === "invalid_json" ? "O plano veio incompleto. Tenta gerar outra vez." : (ERR_COPY[err.code] || "Não foi possível gerar o plano. Tenta outra vez.")) + (err.code === "sem_dados" ? "" : resume);
         S.diag.lastErr = `plano: ${err.code || err.message}`; renderDiag();
       }
       $("genMsg").textContent = ""; return;
@@ -2182,7 +2184,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     $("genProgress").hidden = false; const bar = $("genProgress").firstElementChild;
     let feito = 0; let quem = "";
     const step = (pct, msg) => { bar.style.width = pct + "%"; $("genMsg").textContent = msg; };
-    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), `${quem}${msg.replace(/\s*\(\d+ de \d+\)/, "")} (${feito} de ${Math.max(feito, total)})`); return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
+    const ask = (prompt, msg, pct, tier) => { feito++; step(Math.min(96, Math.round(feito / (total + 1) * 100)), `${quem}${msg.replace(/\s*\(\d+ de \d+\)/, "")} (${feito} de ${Math.max(feito, total)})`); return askRetry(() => S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" })); };
     const falhas = [];
     try {
       if (comFamilia) {
@@ -2209,7 +2211,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       step(96, "A fazer a lista de compras da casa…");
       try { await generateShopping(ctl.signal); } catch (e) { console.warn("compras", e); }
     } catch (e) {
-      if (e?.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = ERR_COPY[e?.code] || "Não foi possível refazer os planos. Tenta outra vez."; S.diag.lastErr = `todos: ${e?.code || e?.message}`; renderDiag(); }
+      if (e?.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = (ERR_COPY[e?.code] || "Não foi possível refazer os planos. Tenta outra vez.") + (Object.keys(S.drafts).length ? " O que já estava feito ficou guardado: carrega outra vez e a app continua de onde ficou." : ""); S.diag.lastErr = `todos: ${e?.code || e?.message}`; renderDiag(); }
     }
     S.generating = null;
     ["genPlan", "regenPlan", "genAll", "genAll2"].forEach((id) => { const b = $(id); if (b) b.disabled = false; });
@@ -2224,9 +2226,14 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     // 1. estrutura do plano
     const slots = mealSlots(q);
     const slotsTxt = slots.map((sl) => `${sl.nome} às ${sl.hora}`).join(", ");
-    const frame = await ask(`${head}\n\nHORÁRIO DESTA PESSOA (obrigatório): as refeições do dia são exatamente estas, com estes nomes e estas horas, nem mais nem menos: ${slotsTxt}. Distribui a energia e a proteína por elas; um pequeno-almoço tardio leva mais proteína.\n\nPasso 1 de 3: define a ESTRUTURA do plano semanal (ainda sem as refeições em detalhe).\nResponde APENAS com JSON válido nesta forma:\n${FRAME_SCHEMA}`,
-      "A calcular metas e estrutura… (1 de 3)", 10, "complex");
-    if (!frame?.metas_diarias) throw { code: "invalid_json", message: "estrutura incompleta" };
+    const draftKey = `plano:${pid}`; const draft = draftFor(draftKey, head + slotsTxt);
+    let frame = draft?.frame || null;
+    if (!frame) {
+      frame = await ask(`${head}\n\nHORÁRIO DESTA PESSOA (obrigatório): as refeições do dia são exatamente estas, com estes nomes e estas horas, nem mais nem menos: ${slotsTxt}. Distribui a energia e a proteína por elas; um pequeno-almoço tardio leva mais proteína.\n\nPasso 1 de 3: define a ESTRUTURA do plano semanal (ainda sem as refeições em detalhe).\nResponde APENAS com JSON válido nesta forma:\n${FRAME_SCHEMA}`,
+        "A calcular metas e estrutura… (1 de 3)", 10, "complex");
+      if (!frame?.metas_diarias) throw { code: "invalid_json", message: "estrutura incompleta" };
+      S.drafts[draftKey] = { at: Date.now(), head: head + slotsTxt, frame, dias: [] };
+    }
 
     const frameTxt = JSON.stringify({ metas_diarias: frame.metas_diarias, estrutura_do_dia: frame.estrutura_do_dia || [], principios: frame.principios || [], regras_aplicadas: frame.regras_aplicadas || [] });
     // 2. refeições, em dois blocos para caberem; se um bloco vier cortado, pede-se metade de cada vez
@@ -2236,8 +2243,9 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const famSkip = famNames.length
       ? `\nAS REFEIÇÕES EM FAMÍLIA (${famNames.join(", ")}) JÁ ESTÃO FIXADAS e são juntas ao plano depois: NÃO as escrevas. Escreve só as outras refeições do horário (${soltas.join(", ")}), contando com a energia e a proteína que as refeições em família já trazem nesse dia, para os totais do dia baterem certo.`
       : "";
-    const dias = [];
+    const dias = (draft?.dias || []).map((d) => JSON.parse(JSON.stringify(d)));
     for (let i = 0; i < blocks.length; i++) {
+      if (blocks[i].every((d) => dias.some((x) => x.dia === d))) continue; // bloco já feito num rascunho anterior
       const got = await askInHalves(blocks[i], async (lista) => {
         const jaFeitos = dias.length ? `\nJá planeaste estes dias, não repitas as mesmas refeições:\n${JSON.stringify(dias.map((d) => ({ dia: d.dia, refeicoes: d.refeicoes.map((m) => m.itens.map((x) => x.alimento).join(", ")) })))}` : "";
         const res = await ask(`${head}\n\nESTRUTURA JÁ DEFINIDA (respeita-a):\n${frameTxt}\nHORÁRIO OBRIGATÓRIO: ${slotsTxt} (só estas refeições, com estes nomes e horas).${famSkip}${jaFeitos}\n\nPasso ${i + 2} de 3: escreve as refeições completas destes dias: ${lista.join(", ")}.\nCada refeição leva ordem de ingestão, itens com gramas e medida caseira e grupo (proteina, legumes, hidratos, gordura, fruta, lacticinio), preparação em 1 a 2 frases e uma alternativa. Os totais do dia têm de bater certo com as metas. Sê conciso, sem texto fora do JSON.\nResponde APENAS com JSON válido nesta forma:\n${DAY_SCHEMA}`,
@@ -2248,8 +2256,11 @@ LIMITES DE ATUAÇÃO (obrigatórios)
         const f = (got || []).find((x) => norm(x.dia) === norm(d)) || ((got || []).length === blocks[i].length ? got[blocks[i].indexOf(d)] : null);
         dias.push({ dia: d, refeicoes: ((f && f.refeicoes) || []).map(normMeal) });
       });
+      if (S.drafts[draftKey]) { S.drafts[draftKey].dias = dias.map((d) => JSON.parse(JSON.stringify(d))); S.drafts[draftKey].at = Date.now(); }
     }
+    dias.sort((a, b) => DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia));
     if (dias.every((d) => d.refeicoes.length === 0)) throw { code: "invalid_json", message: "sem refeições" };
+    delete S.drafts[draftKey];
     retimePlan({ dias }, slots);
 
     const compras = [];
@@ -2342,7 +2353,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
     const ctl = new AbortController(); S.generating = ctl;
     $("regenPlan").disabled = true; $("genMsg").textContent = msg;
     document.querySelectorAll("[data-swapmeal],[data-regenday]").forEach((b) => { b.disabled = true; });
-    try { return await S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); }
+    try { return await askRetry(() => S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" })); }
     catch (e) {
       if (e?.code !== "cancelled") { $("planNote").hidden = false; $("planNote").textContent = ERR_COPY[e?.code] || "Não foi possível pedir ao assistente. Tenta outra vez."; S.diag.lastErr = `plano parcial: ${e?.code || e?.message}`; renderDiag(); }
       return null;
@@ -2362,7 +2373,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       const ctl = new AbortController(); S.generating = ctl;
       $("regenPlan").disabled = true; $("genMsg").textContent = `A refazer as refeições em família de ${dayName}…`;
       try {
-        const ask = (prompt, msg, pct, tier) => { $("genMsg").textContent = msg; return S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" }); };
+        const ask = (prompt, msg, pct, tier) => { $("genMsg").textContent = msg; return askRetry(() => S.sample.json(prompt, { signal: ctl.signal, cache: false, modelTier: tier || "default" })); };
         const part = await familyPipeline(S.family.pessoas, !!S.family.com_almoco, ask, [dayName], S.family.dias.filter((d) => norm(d.dia) !== norm(dayName)).map((d) => d.jantar?.base).filter(Boolean));
         const novo = part.dias[0];
         if (!novo) throw { code: "invalid_json", message: "dia vazio" };
@@ -2499,6 +2510,21 @@ LIMITES DE ATUAÇÃO (obrigatórios)
    * Gera as refeições em família: ementa e quantidades por pessoa.
    * `dayList` limita aos dias pedidos (refazer um dia); `avoidBases` evita repetir pratos da semana.
    */
+  /** Um pedido ao Claude; se o serviço falhar a meio (upstream_error, transitório), espera 4 s e repete uma vez. */
+  async function askRetry(fn) {
+    try { return await fn(); }
+    catch (e) {
+      if (e?.code !== "upstream_error") throw e;
+      S.diag.lastErr = "upstream_error — repetido uma vez"; renderDiag();
+      await new Promise((r) => setTimeout(r, 4000));
+      return fn();
+    }
+  }
+  /** Rascunho reutilizável de uma geração (mesmo contexto, menos de 45 min). */
+  function draftFor(key, head) {
+    const d = S.drafts[key];
+    return d && d.head === head && Date.now() - d.at < 45 * 60e3 ? d : null;
+  }
   /**
    * Pede um bloco de dias; se a resposta vier cortada pelo limite de tamanho (invalid_json) ou vazia,
    * divide o bloco ao meio e pede cada metade, até ficar um dia por pedido.
@@ -2541,7 +2567,8 @@ ${JSON.stringify(tableConstraints(ids))}
 
 ${PLAN_KNOWLEDGE}`;
 
-    const menu = await ask(`${head}
+    const draftKey = `familia:${ids.join(",")}:${dayList.join(",")}`; const draft = draftFor(draftKey, head + avoidBases.join("|"));
+    const menu = draft?.menu || await ask(`${head}
 
 Passo 1 de 3: escreve a EMENTA para ${dayList.join(", ")}.
 - O jantar de cada dia é uma refeição completa e prática de fazer para ${ids.length} pessoas, com proteína, legumes e hidratos.
@@ -2552,11 +2579,13 @@ Responde APENAS com JSON válido nesta forma:
 ${FAMILY_MENU_SCHEMA}`, "A montar a ementa da família… (1 de 3)", 10, "complex");
     const dias0 = Array.isArray(menu?.dias) ? menu.dias : [];
     if (dias0.length === 0) throw { code: "invalid_json", message: "ementa vazia" };
+    if (!draft) S.drafts[draftKey] = { at: Date.now(), head: head + avoidBases.join("|"), menu, porDia: {} };
 
     const porBloco = familyDaysPerAsk(ids.length);
     const blocos = []; for (let i = 0; i < dayList.length; i += porBloco) blocos.push(dayList.slice(i, i + porBloco));
-    const porDia = {};
+    const porDia = { ...(draft?.porDia || {}) };
     for (let i = 0; i < blocos.length; i++) {
+      if (blocos[i].every((d) => porDia[norm(d)])) continue; // bloco já feito num rascunho anterior
       const got = await askInHalves(blocos[i], async (lista) => {
         const ementa = dias0.filter((d) => lista.some((x) => norm(x) === norm(d.dia)));
         if (ementa.length === 0) return [];
@@ -2575,6 +2604,7 @@ ${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de ${b
         return Array.isArray(r?.dias) ? r.dias : null;
       });
       (got || []).forEach((d) => { porDia[norm(d.dia)] = d.refeicoes || []; });
+      if (S.drafts[draftKey]) { S.drafts[draftKey].porDia = { ...porDia }; S.drafts[draftKey].at = Date.now(); }
     }
 
     const dias = dayList.map((d) => {
@@ -2608,6 +2638,7 @@ ${FAMILY_QTY_SCHEMA}`, `A calcular as quantidades de cada um… (${i + 2} de ${b
       return { dia: d, jantar: j, ...(comAlmoco ? { almoco: a } : {}) };
     }).filter((d) => d.jantar || d.almoco);
     if (dias.length === 0) throw { code: "invalid_json", message: "sem refeições" };
+    delete S.drafts[draftKey];
 
     return {
       week_start: mondayOf(), version: (S.family?.version || 0) + 1,
@@ -4036,7 +4067,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, portionFor, avoidsFood, fixMealForDay, rebalanceRestOfDay, applyFromAnswer, estimateOthers, consumedMacros, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, portionFor, avoidsFood, fixMealForDay, rebalanceRestOfDay, applyFromAnswer, drafts: () => S.drafts, estimateOthers, consumedMacros, planPromptContext, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

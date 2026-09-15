@@ -51,6 +51,14 @@ mais próxima, sem perder energia), e o Plano avisa quando não está no horári
 hora mais comum da mesa; a marmita à hora de cada um. No chat, "amanhã tomo o pequeno-almoço às 7" muda
 só esse dia (ferramenta `ajustar_horario`); numa refeição em família a hora muda para todos.
 
+**Hoje, adesão e receitas.** Em cada refeição do dia: Comi, Comi parte (escolhe-se os itens), Comi outra
+coisa, Saltei. "Já comeste hoje" mostra energia, proteína, hidratos, gordura e fibra do que entrou
+(refeições comidas, itens comidos em parte e extras), contado pela tabela de alimentos, com um traço onde se
+fica seguindo o resto do plano. Cada refeição tem Receita: numa refeição em família escolhe-se para quem se
+cozinha e as quantidades somam-se pessoa a pessoa, com a repartição por prato; numa individual há doses.
+Além de 👍/👎, uma nota livre por refeição (porção, tempero, trocas) fica em `prefs` com `voto: 0` e entra
+nos próximos planos, nas trocas e no chat.
+
 **Refeições em família.** Não há um plano de família à parte: ao gerar o plano de uma pessoa, os
 jantares e almoços (em marmita) saem primeiro, iguais para toda a gente que come em família, e
 entram no plano individual de cada um com as suas quantidades e sem o que cada pessoa não come.

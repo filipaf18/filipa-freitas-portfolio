@@ -52,7 +52,8 @@
     adherence: {},         // adesão por dia: { "YYYY-MM-DD": { "<refeição>": { status, texto, at } } }
     symptoms: {},          // sintomas por dia: { "YYYY-MM-DD": { nauseas, vomitos, transito, energia, apetite, dor_intensa, sem_liquidos, at } }
     reviews: [],           // revisões semanais [{week_start, texto, propostas, at}]
-    prefs: [],             // gostei/não gostei por refeição [{id, at, dia, refeicao, itens, voto}]
+    prefs: [],             // gostei/não gostei por refeição [{id, at, dia, refeicao, itens, voto}]; voto 0 = nota livre
+    partialFor: null,      // refeição com a lista "comi parte" aberta
     memUpto: null,         // ISO da última mensagem já destilada para regras/preferências
     family: null,          // refeições em família (documento partilhado family/plan)
     shopping: null,        // lista de compras da semana (documento partilhado shopping/<semana>)
@@ -463,9 +464,9 @@
 
   // ---------- adesão ----------
   const todayAdherence = () => S.adherence[localDate()] || {};
-  async function setAdherence(mealName, status, texto) {
+  async function setAdherence(mealName, status, texto, itens) {
     const day = { ...todayAdherence() };
-    if (status === null) delete day[mealName]; else day[mealName] = { status, ...(texto ? { texto } : {}), at: new Date().toISOString() };
+    if (status === null) delete day[mealName]; else day[mealName] = { status, ...(texto ? { texto } : {}), ...(Array.isArray(itens) ? { itens } : {}), at: new Date().toISOString() };
     S.adherence = { ...S.adherence, [localDate()]: day };
     await saveAdherence();
   }
@@ -484,7 +485,38 @@
   function adherenceButtons(m, compact) {
     const st = todayAdherence()[m.nome]?.status;
     const b = (v, l) => `<button type="button" class="btn sm ${st === v ? "done" : ""}" data-adh="${esc(m.nome)}" data-st="${v}">${l}</button>`;
-    return `${b("comi", "Comi ✓")}${b("outro", "Comi outra coisa")}${b("saltei", "Saltei")}`;
+    return `${b("comi", "Comi ✓")}${b("parcial", "Comi parte")}${b("outro", "Comi outra coisa")}${b("saltei", "Saltei")}`;
+  }
+  /** Lista de itens para marcar o que se comeu de uma refeição. */
+  function partialHtml(m) {
+    const cur = todayAdherence()[m.nome]; const chosen = new Set(cur?.status === "parcial" && Array.isArray(cur.itens) ? cur.itens.map(norm) : []);
+    return `<div class="partial" data-partial="${esc(m.nome)}"><p class="small muted">O que comeste desta refeição?</p>${(m.itens || []).map((i, k) => `<label><input type="checkbox" data-pitem="${k}" ${chosen.size === 0 || chosen.has(norm(i.alimento)) ? "checked" : ""}> ${esc(i.alimento)} <span class="muted">${esc(i.quantidade)}</span></label>`).join("")}<div class="row" style="justify-content:flex-end; gap:6px"><button type="button" class="btn ghost sm" data-pcancel>Cancelar</button><button type="button" class="btn sm primary" data-psave="${esc(m.nome)}">Guardar</button></div></div>`;
+  }
+  /** Macros do que já entrou hoje: refeições comidas, comidas em parte e extras. */
+  function eatenToday() {
+    const adh = todayAdherence(); const tot = { kcal: 0, proteina_g: 0, hidratos_g: 0, gordura_g: 0, fibra_g: 0 }; const planned = { ...tot };
+    const add = (t, mm) => { t.kcal += mm.kcal; t.proteina_g += mm.proteina_g; t.hidratos_g += mm.hidratos_g; t.gordura_g += mm.gordura_g; t.fibra_g += mm.fibra_g; };
+    let desconhecidas = 0;
+    for (const m of todayMeals()) {
+      const a = adh[m.nome]; const full = mealMacros(m);
+      if (!a) { add(planned, full); continue; }
+      if (a.status === "comi") add(tot, full);
+      else if (a.status === "parcial") { const set = new Set((a.itens || []).map(norm)); add(tot, mealMacros({ ...m, itens: (m.itens || []).filter((i) => set.has(norm(i.alimento))) })); }
+      else if (a.status === "outro") desconhecidas++;
+    }
+    for (const x of (S.plan?.extras || []).filter((x) => x.date === localDate())) { tot.kcal += x.kcal || 0; tot.proteina_g += x.proteina_g || 0; }
+    return { comido: tot, por_vir: planned, desconhecidas };
+  }
+  function renderEaten() {
+    const el = $("eatenChart"); if (!el) return;
+    if (!S.plan?.plan) { el.innerHTML = ""; return; }
+    const { comido, por_vir, desconhecidas } = eatenToday();
+    const metas = S.plan.plan.metas_diarias || {}; const t = planTargets(profile()) || {};
+    const alvo = { kcal: metas.kcal || t.energia_alvo_kcal || 0, proteina_g: metas.proteina_g || t.proteina_alvo_g_dia || 0, hidratos_g: metas.hidratos_g || 0, gordura_g: metas.gordura_g || 0, fibra_g: metas.fibra_g || 25 };
+    const rows = [["kcal", "Energia", "kcal"], ["proteina_g", "Proteína", "g"], ["hidratos_g", "Hidratos", "g"], ["gordura_g", "Gordura", "g"], ["fibra_g", "Fibra", "g"]].filter(([k]) => alvo[k]);
+    el.innerHTML = `<div class="row between"><span class="eyebrow">Já comeste hoje</span><span class="small muted">${desconhecidas ? `${desconhecidas} refeição${desconhecidas > 1 ? "ões" : ""} "outra coisa" sem conta` : "contado pela tabela de alimentos"}</span></div>
+      <div class="meters">${rows.map(([k, label, un]) => { const v = Math.round(comido[k]), a = Math.round(alvo[k]), pv = Math.round(comido[k] + por_vir[k]); const pct = Math.min(100, Math.round(v / a * 100)); const pp = Math.min(100, Math.round(pv / a * 100)); return `<div class="meter" title="${esc(label)}: ${v} de ${a} ${un}; com o resto do plano ${pv}"><div class="row between"><span class="k">${esc(label)}</span><span class="num v"><strong>${v}</strong> <span class="muted">/ ${a} ${un}</span></span></div><div class="track"><div class="fill" style="width:${pct}%"></div><div class="tick" style="left:${pp}%"></div></div></div>`; }).join("")}</div>
+      <p class="hint">A barra é o que já entrou; o traço é onde ficas se seguires o resto do plano de hoje.</p>`;
   }
 
   function renderHome() {
@@ -530,7 +562,8 @@
         $("nextMealBody").innerHTML = `<h2>${esc(m.nome)}${m.familia ? ` <span class="tag fam">em família</span>` : ""}</h2><p class="when">${m.hora ? `às ${esc(m.hora)} · ` : ""}${mm.kcal} kcal · ${mm.proteina_g} g proteína${m.base_comum ? ` · ${esc(m.base_comum)}` : ""}</p>
           ${(m.ordem || []).length ? `<div class="order">Ordem: ${m.ordem.map((o, i) => `${i ? '<span class="arrow">→</span> ' : ""}<b>${esc(o)}</b>`).join(" ")}</div>` : ""}
           <ul class="items">${(m.itens || []).map((i) => `<li><span><span class="grp g-${grupoOf(i.grupo)}"></span>${esc(i.alimento)}${i.medida_caseira ? ` <span class="meta muted">(${esc(i.medida_caseira)})</span>` : ""}</span><span class="qty num">${esc(i.quantidade)}</span></li>`).join("")}</ul>`;
-        $("nextMealActions").innerHTML = adherenceButtons(m);
+        $("nextMealActions").innerHTML = adherenceButtons(m) + `<button type="button" class="btn sm" data-recipe="${esc(todayDayName())}|${(S.plan.plan.dias.find((x) => x.dia === todayDayName())?.refeicoes || []).indexOf(m)}">🍳 Receita</button>`;
+        const partWrap = $("nextMealPartial"); if (partWrap) partWrap.innerHTML = S.partialFor === m.nome ? partialHtml(m) : "";
       }
       $("nextMealOther").hidden = !S.otherFor;
     }
@@ -538,8 +571,9 @@
     // refeições de hoje com adesão + resumo
     renderTodayMeals();
     const adh = todayAdherence(); const meals = todayMeals();
-    const n = Object.values(adh); const c = n.filter((x) => x.status === "comi").length, o = n.filter((x) => x.status === "outro").length, sk = n.filter((x) => x.status === "saltei").length;
-    $("adherenceSummary").textContent = meals.length ? `${c} seguida${c === 1 ? "" : "s"}${o ? `, ${o} diferente${o === 1 ? "" : "s"}` : ""}${sk ? `, ${sk} saltada${sk === 1 ? "" : "s"}` : ""} de ${meals.length}` : "";
+    const n = Object.values(adh); const c = n.filter((x) => x.status === "comi").length, pa = n.filter((x) => x.status === "parcial").length, o = n.filter((x) => x.status === "outro").length, sk = n.filter((x) => x.status === "saltei").length;
+    $("adherenceSummary").textContent = meals.length ? `${c} seguida${c === 1 ? "" : "s"}${pa ? `, ${pa} em parte` : ""}${o ? `, ${o} diferente${o === 1 ? "" : "s"}` : ""}${sk ? `, ${sk} saltada${sk === 1 ? "" : "s"}` : ""} de ${meals.length}` : "";
+    renderEaten();
 
     renderSymptoms();
     renderReviewCard();
@@ -557,8 +591,9 @@
     const inWeek = (d) => d >= from && d <= today;
     // adesão
     let comi = 0, outro = 0, saltei = 0; const diasComRegisto = new Set();
-    Object.entries(S.adherence).forEach(([d, meals]) => { if (!inWeek(d)) return; Object.values(meals).forEach((v) => { if (v.status === "comi") comi++; else if (v.status === "outro") outro++; else if (v.status === "saltei") saltei++; diasComRegisto.add(d); }); });
-    const totalAdh = comi + outro + saltei;
+    let parcial = 0;
+    Object.entries(S.adherence).forEach(([d, meals]) => { if (!inWeek(d)) return; Object.values(meals).forEach((v) => { if (v.status === "comi") comi++; else if (v.status === "parcial") parcial++; else if (v.status === "outro") outro++; else if (v.status === "saltei") saltei++; diasComRegisto.add(d); }); });
+    const totalAdh = comi + parcial + outro + saltei;
     // água
     const goal = waterGoal(profile()).ml; const dias = [];
     for (let i = n - 1; i >= 0; i--) { const d = addDays(today, -i); const w = S.water.get(d); if (w && w.total > 0) dias.push(w.total); }
@@ -579,7 +614,7 @@
     const prefs = S.prefs.filter((p) => inWeek(String(p.at).slice(0, 10)));
     return {
       periodo: { de: from, a: today },
-      adesao: { refeicoes_registadas: totalAdh, seguidas: comi, diferentes: outro, saltadas: saltei, percentagem_seguida: totalAdh ? Math.round(comi / totalAdh * 100) : null, dias_com_registo: diasComRegisto.size },
+      adesao: { refeicoes_registadas: totalAdh, seguidas: comi, em_parte: parcial, diferentes: outro, saltadas: saltei, percentagem_seguida: totalAdh ? Math.round((comi + 0.5 * parcial) / totalAdh * 100) : null, dias_com_registo: diasComRegisto.size },
       agua: { media_ml_dia: aguaMedia, meta_ml: goal, dias_com_registo: dias.length, percentagem_da_meta: aguaMedia ? Math.round(aguaMedia / goal * 100) : null },
       peso,
       tensao: { esta_semana: avg(bpWeek), semana_anterior: avg(bpPrev) },
@@ -1126,7 +1161,7 @@ Responde APENAS com JSON válido nesta forma:
     const rows = [...S.prefs].reverse();
     pl.innerHTML = rows.length === 0
       ? `<li class="muted small">Ainda sem preferências. Marca 👍/👎 nas refeições do plano ou diz no chat do que gostas e não gostas.</li>`
-      : rows.map((p) => `<li><span>${p.voto === 1 ? "👍" : "👎"} ${esc(p.dia ? `${p.refeicao} (${p.dia}): ${p.itens}` : p.itens)}${p.origem === "chat" ? ` <span class="meta">· do chat</span>` : ""}</span><button type="button" class="btn ghost sm" data-delpref="${p.id}">remover</button></li>`).join("");
+      : rows.map((p) => `<li><span>${p.voto === 1 ? "👍" : p.voto === -1 ? "👎" : "💬"} ${p.voto === 0 ? `<strong>${esc(p.refeicao)}${p.dia ? ` (${p.dia})` : ""}:</strong> ${esc(p.nota || "")}` : esc(p.dia ? `${p.refeicao} (${p.dia}): ${p.itens}` : p.itens)}${p.origem === "chat" ? ` <span class="meta">· do chat</span>` : ""}</span><button type="button" class="btn ghost sm" data-delpref="${p.id}">remover</button></li>`).join("");
   }
 
   async function addRule(texto, origem) {
@@ -2106,7 +2141,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
       ? `REGRAS OBRIGATÓRIAS DESTA PESSOA — tens de as cumprir em todos os dias e refeições, e depois declarar em "regras_aplicadas" onde cada uma foi aplicada:\n${S.rules.map((r, i) => `${i + 1}. ${r.texto}`).join("\n")}\n\nSe alguma regra entrar em conflito com a base clínica, cumpre a regra e explica o ajuste no racional.`
       : `A pessoa ainda não definiu regras próprias.`;
     const prefs = prefsSummary();
-    const prefTxt = prefs ? `\n\nPREFERÊNCIAS REGISTADAS NA APP (gostei / não gostei em refeições anteriores):\n${JSON.stringify(prefs)}\nRepete o estilo do que gostou e não voltes a propor o que não gostou.` : "";
+    const prefTxt = prefs ? `\n\nPREFERÊNCIAS REGISTADAS NA APP (gostei / não gostei em refeições anteriores):\n${JSON.stringify(prefs)}\nRepete o estilo do que gostou, não voltes a propor o que não gostou, e aplica as "notas" (são ajustes concretos que a pessoa pediu em refeições anteriores: porção, tempero, trocas).` : "";
     const famMeals = familyMealsFor(S.pid);
     const famTxt = famMeals
       ? `\n\nREFEIÇÕES EM FAMÍLIA JÁ FIXADAS (a família come o mesmo prato; não as mudes, constrói o resto do dia à volta delas e desconta os macros que já trazem):\n${JSON.stringify(famMeals)}`
@@ -2148,11 +2183,12 @@ LIMITES DE ATUAÇÃO (obrigatórios)
 
   // ---------- preferências (gostei / não gostei) ----------
   const mealKey = (m) => `${norm(m.nome)}|${(m.itens || []).map((i) => norm(i.alimento)).join(",")}`;
-  function prefOf(m) { const k = mealKey(m); return [...S.prefs].reverse().find((p) => p.key === k) || null; }
+  function prefOf(m) { const k = mealKey(m); return [...S.prefs].reverse().find((p) => p.key === k && p.voto !== 0) || null; }
+  const notesOf = (m) => S.prefs.filter((p) => p.voto === 0 && p.key === mealKey(m));
   async function votePref(dayName, idx, voto) {
     const meal = S.plan?.plan?.dias?.find((d) => d.dia === dayName)?.refeicoes?.[idx]; if (!meal) return;
     const key = mealKey(meal); const cur = prefOf(meal);
-    S.prefs = S.prefs.filter((p) => p.key !== key);
+    S.prefs = S.prefs.filter((p) => !(p.key === key && p.voto !== 0));
     if (!(cur && cur.voto === voto)) S.prefs = [...S.prefs, { id: uid(), at: new Date().toISOString(), key, dia: dayName, refeicao: meal.nome, itens: (meal.itens || []).map((i) => `${i.alimento} ${i.quantidade}`.trim()).join(", "), voto }];
     await savePrefs();
   }
@@ -2160,7 +2196,8 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   function prefsSummary() {
     if (!S.prefs.length) return null;
     const pick = (v) => [...new Map(S.prefs.filter((p) => p.voto === v).map((p) => [p.key, p.dia ? `${p.refeicao}: ${p.itens}` : p.itens])).values()].slice(-15);
-    return { gostei: pick(1), nao_gostei: pick(-1) };
+    const notas = S.prefs.filter((p) => p.voto === 0 && p.nota).slice(-12).map((p) => `${p.refeicao}${p.dia ? ` (${p.dia})` : ""}: ${p.nota}`);
+    return { gostei: pick(1), nao_gostei: pick(-1), ...(notas.length ? { notas } : {}) };
   }
 
   // ---------- regenerar só um dia / trocar só uma refeição ----------
@@ -2627,6 +2664,73 @@ Responde APENAS com JSON válido nesta forma:
     });
     document.body.appendChild(wrap); refresh();
   }
+  /** Soma as quantidades de um item para várias pessoas; devolve texto e a repartição. */
+  function sumQuantities(parts) {
+    let g = 0, un = 0, others = [];
+    for (const { quantidade, food } of parts) { const q = parseQty(quantidade); const gr = gramsOf(quantidade, food); if (q && q.u === "un") un += q.n; else if (gr) g += gr; else if (quantidade) others.push(quantidade); }
+    const bits = []; if (g) bits.push(`${Math.round(g / 5) * 5} g`); if (un) bits.push(`${fmtNum(un)} ${un === 1 ? "unidade" : "unidades"}`); bits.push(...others);
+    return bits.join(" + ") || "q.b.";
+  }
+  /**
+   * A receita de uma refeição, para quem cozinha. Numa refeição em família escolhe-se para quem
+   * se cozinha e as quantidades somam-se pessoa a pessoa; na individual há um multiplicador de doses.
+   */
+  function openRecipe(dayName, idx) {
+    const day = S.plan?.plan?.dias?.find((d) => d.dia === dayName); const meal = day?.refeicoes?.[idx]; if (!meal) return;
+    const fd = (S.family?.dias || []).find((d) => norm(d.dia) === norm(dayName)); const slot = meal.familia ? famSlot(fd, meal.nome) : null; const fm = slot ? fd[slot] : null;
+    const members = fm ? (S.family.pessoas || []).filter((id) => fm.por_pessoa?.[id]) : [];
+    const wrap = document.createElement("div"); wrap.className = "modal"; let doses = 1;
+    const build = () => {
+      const chosen = members.length ? [...wrap.querySelectorAll("[data-for]:checked")].map((c) => c.dataset.for) : null;
+      let rows;
+      if (fm) {
+        const byItem = new Map();
+        (chosen || []).forEach((id) => (fm.por_pessoa[id].itens || []).forEach((i) => { const k = norm(i.alimento); if (!byItem.has(k)) byItem.set(k, { alimento: i.alimento, food: findFood(i.alimento), parts: [] }); byItem.get(k).parts.push({ id, quantidade: i.quantidade, food: findFood(i.alimento) }); }));
+        rows = [...byItem.values()].map((it) => `<li><span>${esc(it.alimento)}</span><span class="qty num"><strong>${esc(sumQuantities(it.parts))}</strong>${(chosen || []).length > 1 ? `<span class="who">${it.parts.map((x) => `${esc(nameOf(x.id))} ${esc(x.quantidade)}`).join(" · ")}${it.parts.length < (chosen || []).length ? ` · sem: ${(chosen || []).filter((id) => !it.parts.some((x) => x.id === id)).map(nameOf).join(", ")}` : ""}</span>` : ""}</span></li>`).join("");
+      } else {
+        rows = (meal.itens || []).map((i) => { const q = parseQty(i.quantidade); const qty = doses !== 1 && q ? fmtQty({ n: q.n * doses, u: q.u }) : i.quantidade; return `<li><span>${esc(i.alimento)}${i.medida_caseira ? ` <span class="meta muted">(${esc(i.medida_caseira)})</span>` : ""}</span><span class="qty num"><strong>${esc(qty)}</strong></span></li>`; }).join("");
+      }
+      $("rcRows").innerHTML = rows || `<li class="muted small">Sem itens.</li>`;
+    };
+    const prep = fm ? fm.preparacao : meal.preparacao;
+    wrap.innerHTML = `<div class="box editor" role="dialog" aria-modal="true">
+      <div class="row between"><h2>🍳 ${esc(meal.nome)} · ${esc(dayName)}</h2><button type="button" class="btn ghost sm" data-no>Fechar</button></div>
+      ${fm ? `<p class="small"><strong>${esc(fm.base || meal.base_comum || "")}</strong>${fm.hora ? ` · às ${esc(fm.hora)}` : ""}</p><div class="famwho" style="margin:0">${members.map((id) => `<label><input type="checkbox" data-for="${id}" checked> ${esc(nameOf(id))}</label>`).join("")}</div><p class="hint">Escolhe para quem cozinhas: as quantidades somam-se e cada nome diz o que vai para o prato de cada um.</p>` : `<div class="row" style="justify-content:flex-start; gap:8px"><span class="small muted">Doses</span><button type="button" class="btn ghost sm" data-dose="-">−</button><strong class="num" id="rcDoses">1</strong><button type="button" class="btn ghost sm" data-dose="+">+</button></div>`}
+      <ul class="items" id="rcRows"></ul>
+      ${prep ? `<div class="prep">👩‍🍳 ${esc(prep)}</div>` : ""}
+      ${(fm?.marmita || meal.marmita)?.preparar_em ? `<div class="marmita">🥡 Marmita: preparar ${esc((fm?.marmita || meal.marmita).preparar_em)}${(fm?.marmita || meal.marmita).conservacao ? ` · ${esc((fm?.marmita || meal.marmita).conservacao)}` : ""}${(fm?.marmita || meal.marmita).montagem ? `<br>${esc((fm?.marmita || meal.marmita).montagem)}` : ""}</div>` : ""}
+      ${(meal.ordem || []).length ? `<div class="order">Ordem no prato: ${meal.ordem.map((o, i) => `${i ? '<span class="arrow">→</span> ' : ""}<b>${esc(o)}</b>`).join(" ")}</div>` : ""}
+      <p class="hint">Marmitas: arrefecer em menos de 2 horas, frigorífico a 5 °C, no máximo 3 a 4 dias, reaquecer até fumegar e só uma vez; arroz no frio na hora e em 24 horas.</p>
+    </div>`;
+    wrap.addEventListener("change", build);
+    wrap.addEventListener("click", (e) => {
+      if (e.target === wrap || e.target.closest("[data-no]")) { wrap.remove(); return; }
+      const d = e.target.closest("[data-dose]"); if (d) { doses = Math.max(1, Math.min(8, doses + (d.dataset.dose === "+" ? 1 : -1))); $("rcDoses").textContent = String(doses); build(); }
+    });
+    document.body.appendChild(wrap); build();
+  }
+  /** Nota livre sobre uma refeição: entra na memória e nos próximos planos. */
+  function openNote(dayName, idx) {
+    const meal = S.plan?.plan?.dias?.find((d) => d.dia === dayName)?.refeicoes?.[idx]; if (!meal) return;
+    const wrap = document.createElement("div"); wrap.className = "modal";
+    const prev = S.prefs.filter((p) => p.voto === 0 && p.key === mealKey(meal)).slice(-3);
+    wrap.innerHTML = `<div class="box" role="dialog" aria-modal="true">
+      <div class="row between"><h2>💬 ${esc(meal.nome)} · ${esc(dayName)}</h2><button type="button" class="btn ghost sm" data-no>Fechar</button></div>
+      <p class="small muted">O que mudavas? Fica na memória e entra nos próximos planos e nas trocas.</p>
+      ${prev.length ? `<ul class="list">${prev.map((p) => `<li><span class="small">${esc(p.nota)}</span><button type="button" class="btn ghost sm" data-delpref="${p.id}">remover</button></li>`).join("")}</ul>` : ""}
+      <textarea class="input" id="noteText" placeholder="Ex.: porção grande demais; faltou sal; prefiro peru em vez de frango; ficou pesado ao jantar" maxlength="240"></textarea>
+      <div class="row"><button type="button" class="btn" data-no>Cancelar</button><button type="button" class="btn primary" data-save>Guardar nota</button></div>
+    </div>`;
+    wrap.addEventListener("click", async (e) => {
+      if (e.target === wrap || e.target.closest("[data-no]")) { wrap.remove(); return; }
+      if (e.target.closest("[data-save]")) {
+        const nota = $("noteText").value.trim(); if (!nota) return;
+        S.prefs = [...S.prefs, { id: uid(), at: new Date().toISOString(), key: mealKey(meal), dia: dayName, refeicao: meal.nome, itens: (meal.itens || []).map((i) => `${i.alimento} ${i.quantidade}`.trim()).join(", "), voto: 0, nota }];
+        wrap.remove(); await savePrefs();
+      }
+    });
+    document.body.appendChild(wrap); $("noteText").focus();
+  }
   function guessGroup(f) {
     if (!f) return "";
     if (f.prot >= 10 && f.hc < 15 && !/iogurte|queijo|leite|skyr|requeij|kefir/.test(f.nome)) return "proteina";
@@ -2839,7 +2943,7 @@ Responde APENAS com JSON: {"lista":[{"corredor":"Talho","itens":[{"alimento":"pe
     const out = [];
     for (let i = n - 1; i >= 0; i--) {
       const d = addDays(localDate(), -i); const day = S.adherence[d]; if (!day) continue;
-      const items = Object.entries(day).map(([meal, v]) => `${meal}: ${v.status}${v.texto ? ` (${v.texto})` : ""}`);
+      const items = Object.entries(day).map(([meal, v]) => `${meal}: ${v.status}${v.texto ? ` (${v.texto})` : ""}${v.status === "parcial" && v.itens ? ` (só ${v.itens.join(", ")})` : ""}`);
       if (items.length) out.push({ data: d, refeicoes: items });
     }
     return out;
@@ -2877,7 +2981,7 @@ Responde APENAS com JSON: {"lista":[{"corredor":"Talho","itens":[{"alimento":"pe
     const mm = mealMacros(m);
     const macros = `${mm.kcal ? `${mm.kcal} kcal · ` : ""}${mm.proteina_g} g prot · ${mm.fibra_g} g fibra${mm.hidratos_g ? ` · ${mm.hidratos_g} g HC` : ""}${mm.computed ? "" : ' <span title="Valores estimados pelo assistente; itens sem correspondência na tabela">~</span>'}`;
     const pref = !compact && m._day !== undefined ? prefOf(m) : null;
-    const tools = !compact && m._day !== undefined ? `<div class="row tools" style="gap:4px"><button type="button" class="btn ghost sm" data-editmeal="${esc(m._day)}|${m._idx}">✎ Editar</button><button type="button" class="btn ghost sm" data-swapmeal="${esc(m._day)}|${m._idx}" title="Pedir outra refeição para este momento">⟳ Trocar</button><span class="likes"><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|1" aria-pressed="${pref?.voto === 1}" title="Gostei">👍</button><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|-1" aria-pressed="${pref?.voto === -1}" title="Não gostei">👎</button></span></div>` : "";
+    const tools = !compact && m._day !== undefined ? `<div class="row tools" style="gap:4px"><button type="button" class="btn ghost sm" data-editmeal="${esc(m._day)}|${m._idx}">✎ Editar</button><button type="button" class="btn ghost sm" data-swapmeal="${esc(m._day)}|${m._idx}" title="Pedir outra refeição para este momento">⟳ Trocar</button><button type="button" class="btn ghost sm" data-recipe="${esc(m._day)}|${m._idx}" title="Receita para cozinhar">🍳 Receita</button><span class="likes"><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|1" aria-pressed="${pref?.voto === 1}" title="Gostei">👍</button><button type="button" class="btn ghost sm" data-like="${esc(m._day)}|${m._idx}|-1" aria-pressed="${pref?.voto === -1}" title="Não gostei">👎</button><button type="button" class="btn ghost sm" data-note="${esc(m._day)}|${m._idx}" title="Nota para o plano" aria-pressed="${notesOf(m).length > 0}">💬${notesOf(m).length ? ` ${notesOf(m).length}` : ""}</button></span></div>` : "";
     const fam = m.familia ? `<span class="tag fam">em família</span>` : "";
     const base = !compact && m.base_comum ? `<div class="prep">🍲 ${esc(m.base_comum)}</div>` : "";
     const mesa = !compact && m.familia && m._day !== undefined ? mesaHtml(m._day, m.nome) : "";
@@ -2905,7 +3009,7 @@ Responde APENAS com JSON: {"lista":[{"corredor":"Talho","itens":[{"alimento":"pe
     if (!S.plan?.plan) { el.innerHTML = `<p class="muted small">Ainda não há plano. <a href="#" data-goto="plano">Gerar plano semanal</a>.</p>`; renderTodaySchedule(); return; }
     const meals = todayMeals(); const adh = todayAdherence();
     const extras = (S.plan.extras || []).filter((x) => x.date === localDate());
-    const one = (m) => { const st = adh[m.nome]?.status; const cls = st === "comi" ? "done" : st === "saltei" ? "skipped" : ""; const html = mealHtml(m, true).replace('<div class="meal">', `<div class="meal ${cls}">`); const extra = st === "outro" && adh[m.nome].texto ? `<div class="prep">↪ ${esc(adh[m.nome].texto)}</div>` : ""; return html.replace(/<\/div>$/, `${extra}<div class="adhrow">${adherenceButtons(m, true)}</div></div>`); };
+    const one = (m, i) => { const st = adh[m.nome]?.status; const cls = st === "comi" ? "done" : st === "parcial" ? "partial" : st === "saltei" ? "skipped" : ""; const html = mealHtml(m, true).replace('<div class="meal">', `<div class="meal ${cls}">`); const extra = st === "outro" && adh[m.nome].texto ? `<div class="prep">↪ ${esc(adh[m.nome].texto)}</div>` : st === "parcial" ? `<div class="prep">↪ comeu: ${esc((adh[m.nome].itens || []).join(", "))}</div>` : ""; const part = S.partialFor === m.nome ? partialHtml(m) : ""; const idx = (S.plan.plan.dias.find((x) => x.dia === todayDayName())?.refeicoes || []).indexOf(m); return html.replace(/<\/div>$/, `${extra}<div class="adhrow">${adherenceButtons(m, true)}<button type="button" class="btn sm" data-recipe="${esc(todayDayName())}|${idx}">🍳 Receita</button></div>${part}</div>`); };
     el.innerHTML = (meals.length ? meals.map(one).join("") : `<p class="muted small">Sem refeições para hoje.</p>`) +
       (extras.length ? `<div class="meal"><div class="head"><h3>Fora do plano</h3></div>${extras.map((x) => `<div class="extra"><span>${esc(x.descricao)}</span><span class="muted small num">${x.kcal ? `~${Math.round(x.kcal)} kcal` : ""}</span></div>`).join("")}</div>` : "");
     renderTodaySchedule();
@@ -3350,14 +3454,23 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   // Eventos
   // ============================================================
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday],[data-delpref],#retimeBtn");
+    const t = ev.target.closest("[data-pid],[data-view],[data-goto],[data-ml],[data-del],[data-range],[data-chip],[data-deltit],[data-delmed],[data-togglemed],[data-dellab],[data-day],[data-delbp],[data-deldoc],[data-delextra],[data-delrule],[data-delbody],[data-editbody],[data-editlab],[data-editbp],[data-sub],[data-attach],[data-editmeal],[data-sym],[data-adh],[data-like],[data-swapmeal],[data-regenday],[data-delpref],[data-recipe],[data-note],[data-psave],[data-pcancel],#retimeBtn");
     if (!t) return;
     if (t.dataset.pid) { switchProfile(t.dataset.pid); return; }
     if (t.dataset.view) { setView(t.dataset.view); return; }
     if (t.dataset.sub) { setSub(t.dataset.sub); return; }
     if (t.dataset.sym) { await setSymptom(t.dataset.sym, t.dataset.val); return; }
+    if (t.dataset.psave !== undefined) {
+      const box = t.closest(".partial"); const meal = todayMeals().find((m) => m.nome === t.dataset.psave); if (!meal) return;
+      const itens = [...box.querySelectorAll("[data-pitem]")].filter((c) => c.checked).map((c) => meal.itens[+c.dataset.pitem].alimento);
+      S.partialFor = null; await setAdherence(meal.nome, itens.length === meal.itens.length ? "comi" : itens.length === 0 ? "saltei" : "parcial", null, itens); return;
+    }
+    if (t.dataset.pcancel !== undefined) { S.partialFor = null; renderHome(); return; }
+    if (t.dataset.recipe) { const [d, i] = t.dataset.recipe.split("|"); openRecipe(d, +i); return; }
+    if (t.dataset.note) { const [d, i] = t.dataset.note.split("|"); openNote(d, +i); return; }
     if (t.dataset.adh) {
       const name = t.dataset.adh, st = t.dataset.st;
+      if (st === "parcial") { S.partialFor = S.partialFor === name ? null : name; renderHome(); return; }
       if (st === "outro") { S.otherFor = name; $("nextMealOther").hidden = false; $("otherText").value = todayAdherence()[name]?.texto || ""; $("otherText").focus(); return; }
       const cur = todayAdherence()[name]?.status;
       await setAdherence(name, cur === st ? null : st);
@@ -3537,7 +3650,7 @@ Responde APENAS com JSON válido: {"regras":["frase curta na 2.ª pessoa"],"gost
   renderQuickAdd("quickAdd1"); renderQuickAdd("quickAdd2"); initLabForm();
   { const dl = $("foodlist"); if (dl) dl.innerHTML = FOODS.map((f) => `<option value="${esc(f.nome)}">`).join(""); }
   // gancho para os testes automáticos (não usado pela app)
-  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, householdContext, familyIds, shoppingInput, mergeShopping };
+  window.NG_TEST = { findFood, gramsOf, mealMacros, dayMacros, prefsSummary, otherDinners, weekStats, distillMemory, undistilled: () => undistilled().length, buildTurns, fitTurns, planTargets, energyModel, labFlags, plateFlags, doctorFlags, tableConstraints, conditionsOf, latestLabsFor, matchMarker, bodyFieldOf, titrationInfo, biaPlausible, mealTimesOf, mealSlots, parseMealTimesFromNotes, retimePlan, sharedMealTime, eatenToday, sumQuantities, householdContext, familyIds, shoppingInput, mergeShopping };
   let saved = null; try { saved = localStorage.getItem("nutriglp.pid"); } catch {}
   S.pid = PROFILE_IDS.includes(saved) ? saved : PROFILE_IDS[0];
   renderAll();

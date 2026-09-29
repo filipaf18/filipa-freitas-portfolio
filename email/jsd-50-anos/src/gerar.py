@@ -128,7 +128,7 @@ def detalhes():
                 <tr>
                   <td align="center" style="padding:20px 8px; font-family:{FONT}; font-size:15px; line-height:26px; color:#3E352B; text-align:center;">
                     <strong style="color:#1B130C;">Sábado, 7&nbsp;de&nbsp;novembro de&nbsp;2026</strong>{ponto}19h00<br>
-                    <strong style="color:#1B130C;">Sunset House</strong>{ponto}<a href="{MAPA}" style="color:#3E352B; text-decoration:none;">Av. Visc. de Pindela 112, 4770-189&nbsp;Cruz</a><br>
+                    <strong style="color:#1B130C;">Sunset House</strong>{ponto}<a href="{MAPA}" style="color:#3E352B; text-decoration:none;">Av. Visc. de Pindela 112, 4770&#8209;189&nbsp;Cruz</a><br>
                     <strong style="color:#1B130C;">35&nbsp;€</strong> por pessoa{ponto}bar aberto
                   </td>
                 </tr>
@@ -196,7 +196,7 @@ inst_corpo = f'''
           <tr>
             <td class="px" style="padding:30px 40px 36px 40px; font-family:{FONT};">
               {bloco('Exmo.(a) Senhor(a),', 'font-size:16px; line-height:26px; color:#1B130C; font-weight:700;')}
-              {bloco('A Juventude Social Democrata de Vila Nova de Famalicão tem a honra de convidar V.&nbsp;Exa. para o <strong style="color:#1B130C;">Jantar Comemorativo do seu 50.º Aniversário</strong>, que terá lugar no dia <strong style="color:#1B130C;">7&nbsp;de&nbsp;novembro de&nbsp;2026, sábado, pelas&nbsp;19h00</strong>, na <strong style="color:#1B130C;">Sunset House</strong>, sita na Avenida Visconde de Pindela, n.º&nbsp;112, 4770-189&nbsp;Cruz.', topo=18)}
+              {bloco('A Juventude Social Democrata de Vila Nova de Famalicão tem a honra de convidar V.&nbsp;Exa. para o <strong style="color:#1B130C;">Jantar Comemorativo do seu 50.º Aniversário</strong>, que terá lugar no dia <strong style="color:#1B130C;">7&nbsp;de&nbsp;novembro de&nbsp;2026, sábado, pelas&nbsp;19h00</strong>, na <strong style="color:#1B130C;">Sunset House</strong>, sita na Avenida Visconde de Pindela, n.º&nbsp;112, 4770&#8209;189&nbsp;Cruz.', topo=18)}
               {bloco('Ao longo de cinco décadas, a JSD Famalicão tem sido uma escola de cidadania e de participação política, construída por gerações de jovens que acreditaram no serviço à comunidade. Será uma honra contar com a presença de V.&nbsp;Exa. na celebração deste percurso.', topo=16)}
               {bloco('Usarão da palavra representantes das estruturas da JSD e do PSD.', topo=16)}
               {bloco('A participação tem o valor de 35&nbsp;€ por pessoa. Agradecemos que a confirmação de presença seja feita através do formulário abaixo.', topo=16)}

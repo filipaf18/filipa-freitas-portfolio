@@ -20,7 +20,7 @@ def pagina(titulo, preheader, corpo, botao, notas, rodape_extra):
 </head>
 
 <!-- Largura total: o banner e as barras ocupam o ecrã todo; o texto fica numa coluna
-     de até 720 px (fundo branco dos dois lados, sem caixa nem margens cinzentas).
+     de até 1040 px (fundo branco dos dois lados, sem caixa nem margens cinzentas).
      Sem <style>: todas as medidas estão inline e servem telemóvel e computador,
      porque o Gmail descarta o <style> ao colar. O banner vai embutido em base64 (banner-largo.jpg). Gerado por src/gerar.py. -->
 
@@ -50,7 +50,7 @@ def pagina(titulo, preheader, corpo, botao, notas, rodape_extra):
     <!-- Conteúdo -->
     <tr>
       <td align="center" style="padding:0;">
-        <table role="presentation" width="720" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:720px;">
+        <table role="presentation" width="1040" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:1040px;">
 {corpo}
 
           <!-- Botão -->

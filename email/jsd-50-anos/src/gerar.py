@@ -115,6 +115,38 @@ def pagina(titulo, preheader, corpo, botao, notas, rodape_extra):
 def bloco(texto, estilo='font-size:16px; line-height:26px; color:#3E352B;', topo=0):
     return f'<div style="{estilo} margin-top:{topo}px;">{texto}</div>'
 
+MAPA = 'https://www.google.com/maps/search/?api=1&query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'
+
+def filete(largura=36, cor='#F86420'):
+    return (f'<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:22px auto;">'
+            f'<tr><td width="{largura}" height="2" bgcolor="{cor}" style="width:{largura}px; height:2px; background-color:{cor}; font-size:0; line-height:0;">&nbsp;</td></tr></table>')
+
+def detalhes(preco_legenda):
+    """Data, local e preço em registo de convite: centrado, só tipografia e filetes, sem caixas nem etiquetas."""
+    return f'''
+          <tr>
+            <td class="px" style="padding:8px 40px 40px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td height="1" bgcolor="#E4D9CB" style="height:1px; background-color:#E4D9CB; font-size:0; line-height:0;">&nbsp;</td></tr>
+                <tr>
+                  <td align="center" style="padding:36px 12px 38px 12px; font-family:{FONT}; text-align:center;">
+                    <div style="font-size:12px; line-height:16px; font-weight:700; letter-spacing:5px; color:#0B72B8; text-transform:uppercase;">Sábado</div>
+                    <div style="font-size:26px; line-height:34px; font-weight:300; color:#1B130C; margin-top:8px;">7&nbsp;de&nbsp;novembro de&nbsp;2026</div>
+                    <div style="font-size:15px; line-height:22px; font-weight:700; letter-spacing:3px; color:#3E352B; margin-top:6px;">19H00</div>
+                    {filete()}
+                    <div style="font-size:15px; line-height:22px; font-weight:700; letter-spacing:4px; color:#1B130C; text-transform:uppercase;">Sunset House</div>
+                    <div style="font-size:15px; line-height:24px; color:#6B6054; margin-top:6px;">Av. Visc. de Pindela 112<br>4770-189&nbsp;Cruz</div>
+                    <div style="font-size:12px; line-height:18px; margin-top:6px;"><a href="{MAPA}" style="color:#0B72B8; text-decoration:underline;">Ver no mapa</a></div>
+                    {filete()}
+                    <div style="font-size:26px; line-height:32px; font-weight:300; color:#1B130C;">35&nbsp;€ <span style="font-size:15px; line-height:22px; color:#6B6054;">por pessoa</span></div>
+                    <div style="font-size:12px; line-height:18px; font-weight:700; letter-spacing:3px; color:#6B6054; text-transform:uppercase; margin-top:6px;">{preco_legenda}</div>
+                  </td>
+                </tr>
+                <tr><td height="1" bgcolor="#E4D9CB" style="height:1px; background-color:#E4D9CB; font-size:0; line-height:0;">&nbsp;</td></tr>
+              </table>
+            </td>
+          </tr>'''
+
 # ---------------- Versão geral (militantes / antigos militantes) ----------------
 geral_corpo = f'''
           <tr>
@@ -140,7 +172,7 @@ geral_corpo = f'''
                 </tr>
               </table>
             </td>
-          </tr>'''
+          </tr>''' + detalhes('Bar aberto')
 
 geral_notas = f'''
           <tr>
@@ -172,12 +204,18 @@ inst_corpo = f'''
           </tr>
 
           <tr>
-            <td class="px" style="padding:30px 40px 36px 40px; font-family:{FONT};">
+            <td class="px" style="padding:30px 40px 30px 40px; font-family:{FONT};">
               {bloco('Exmo.(a) Senhor(a),', 'font-size:16px; line-height:26px; color:#1B130C; font-weight:700;')}
               {bloco('A Juventude Social Democrata de Vila Nova de Famalicão tem a honra de convidar V.&nbsp;Exa. para o <strong style="color:#1B130C;">Jantar Comemorativo do seu 50.º Aniversário</strong>.', topo=18)}
               {bloco('Ao longo de cinco décadas, a JSD Famalicão tem sido uma escola de cidadania e de participação política, construída por gerações de jovens que acreditaram no serviço à comunidade. Será uma honra contar com a presença de V.&nbsp;Exa. na celebração deste percurso.', topo=16)}
               {bloco('Usarão da palavra representantes das estruturas da JSD e do PSD.', topo=16)}
-              {bloco('Agradecemos que a confirmação de presença seja feita através do formulário abaixo.', topo=16)}
+            </td>
+          </tr>
+''' + detalhes('Bar aberto') + f'''
+
+          <tr>
+            <td class="px" style="padding:0 40px 36px 40px; font-family:{FONT};">
+              {bloco('Agradecemos que a confirmação de presença seja feita através do formulário abaixo.')}
               {bloco('Com os melhores cumprimentos,', 'font-size:16px; line-height:26px; color:#3E352B;', 28)}
               {bloco('Juventude Social Democrata de Vila Nova de Famalicão', 'font-size:16px; line-height:24px; color:#1B130C; font-weight:700;', 6)}
             </td>

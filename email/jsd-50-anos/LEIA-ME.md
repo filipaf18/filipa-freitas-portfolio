@@ -9,7 +9,7 @@ Duas versões, ambas em modo claro, de largura total e com o banner embutido (n�
 
 ## O que mudou
 
-- Data, hora, local e preço estão nas duas versões, num bloco de convite centrado (só tipografia e filetes finos, sem caixas nem etiquetas de formulário), com ligação «Ver no mapa». Na versão geral fica antes do botão; na institucional, entre o corpo da carta e a assinatura.
+- Data, hora, local e preço estão nas duas versões, em formato compacto. Na geral: três linhas centradas entre dois filetes finos, antes do botão. Na institucional: integrados no texto da carta, em registo formal («que terá lugar no dia…, sita na…», «A participação tem o valor de 35 € por pessoa.»).
 - Largura total no computador: o banner e as barras ocupam o ecrã todo; o texto fica numa coluna de até 720 px sobre fundo branco, sem caixa nem margens cinzentas. No telemóvel encolhe sozinho.
 - O banner passou a ser o original completo (com «Cinco décadas, uma identidade» dos dois lados), que funciona melhor a toda a largura.
 

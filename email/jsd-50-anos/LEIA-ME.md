@@ -10,7 +10,7 @@ Duas versões, ambas em modo claro, de largura total e com o banner embutido (n�
 ## O que mudou
 
 - Data, hora, local e preço estão nas duas versões, em formato compacto. Na geral: três linhas centradas entre dois filetes finos, antes do botão. Na institucional: integrados no texto da carta, em registo formal («que terá lugar no dia…, sita na…», «A participação tem o valor de 35 € por pessoa.»).
-- Telemóvel: o Gmail descarta o bloco `<style>` ao colar, por isso todas as medidas estão escritas em cada elemento e pensadas primeiro para o telemóvel (margens de 24 px, títulos de 26–28 px, botão numa só linha, espaços verticais mais curtos). Verificado a 320 e 360 px sem o `<style>`, com `src/simular-gmail-telemovel.py`.
+- Telemóvel: o Gmail descarta o bloco `<style>` ao colar, por isso tudo está inline. Cada bloco de texto é uma linha de tabela própria e os espaços são padding das células (sem `margin`, que se perde ou colapsa conforme o cliente), e não há larguras fixas em píxeis. Espaçamento mais folgado: 20–24 px entre parágrafos, 32–40 px entre secções, texto a 16/27 px. Verificado a 320 e 360 px sem o `<style>`, com `src/simular-gmail-telemovel.py`.
 - Largura total no computador: o banner e as barras ocupam o ecrã todo; o texto fica numa coluna de até 1040 px (quase toda a largura da área de leitura do Gmail) sobre fundo branco, sem caixa nem margens cinzentas. No telemóvel encolhe sozinho.
 - O banner passou a ser o original completo (com «Cinco décadas, uma identidade» dos dois lados), que funciona melhor a toda a largura.
 

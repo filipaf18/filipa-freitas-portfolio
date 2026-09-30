@@ -9,6 +9,20 @@
 
 Layout (igual nos dois): banner → cabeçalho centrado → saudação → 3 parágrafos → despedida e assinatura → mote **«Cinco Décadas. Uma Identidade.»** em destaque, alinhado com o texto → dados em quatro linhas centradas entre dois filetes finos (data · hora e local · morada · preço) → botão, ligação alternativa e nota → rodapé com o logo do evento. Gerados por `src/gerar_final.py` (textos no dicionário `CONVITES`).
 
+### Como enviar (importante)
+
+1. Abre **`copiar-convites.html`** no Chrome.
+2. Clica em **Copiar convite** no convite que queres enviar (geral ou institucional).
+3. No Gmail: **Nova mensagem** → clica no corpo → **Ctrl+V** (⌘+V no Mac). Destinatários em **Cco**. Envia primeiro um teste para ti e abre-o no iPhone e num Android.
+
+**Não abras o HTML e copies com Ctrl+A / Ctrl+C.** Ao copiar uma página, o Chrome converte as larguras fluidas em píxeis fixos iguais à largura da janela (ex.: 1400 px). O email chegava assim ao iPhone mais largo do que o ecrã: banner cortado, texto fora do ecrã e logo descentrado. Ver `preview-iphone-antes-agora.png`. Duas correções:
+- a página `copiar-convites.html` põe na área de transferência o HTML original de cada convite;
+- mesmo que alguém copie com Ctrl+C, as larguras fluidas estão agora só em atributos (`width="100%"`), que o Chrome não converte. Verificado: a 390 px (iPhone) o email ocupa 390 px e o logo fica centrado (antes: 1408 px, com o logo a 708 px).
+
+**Logo:** recortado simetricamente em torno do centro das letras «ANOS / JSD FAMALICÃO» (desvio 0 px) e centrado por uma tabela centrada, que não depende de `margin:auto`. Preparado por `src/preparar_logo.py`.
+
+**Limite do Gmail:** ao colar, o Gmail descarta o `<head>`. Perdem-se o `color-scheme: light only`, os tamanhos de letra maiores no telemóvel e a instrução para o iPhone não transformar datas e moradas em ligações. O email continua correto com as medidas escritas em cada elemento. Para enviar com o `<head>` intacto é preciso uma ferramenta que envie HTML completo, por exemplo Brevo, Mailchimp ou MailerLite.
+
 **Modo noturno.** O `<head>` declara `color-scheme: light only`. Os clientes que respeitam esta indicação mostram sempre a versão branca, mesmo com o telemóvel em modo noturno: Apple Mail/iOS Mail, Outlook para iOS/macOS e browsers com escurecimento automático. Testado com o escurecimento forçado do Chromium: o email fica pixel a pixel igual à versão clara (numa prova de controlo, uma versão sem esta indicação escurece). **As apps do Gmail aplicam sempre o seu próprio modo escuro e nenhum email o pode desligar.** Para esse caso, o logo passou a PNG **sem fundo** (`logo-50-anos.png`, já não aparece o quadrado branco) e as letras escuras do logo têm um contorno claro que só se nota sobre fundo escuro. Ver `preview-v7-geral-gmail-escuro.png` e `preview-v8-institucional-gmail-escuro.png`.
 
 **Inspeção feita:** HTML validado (0 erros; o `&` do link do mapa está escapado); etiquetas equilibradas; imagens com texto alternativo; ligações (`jsdfamalicao.pt/50-anos#inscricao`, `jsdfamalicao.pt`, Google Maps). Em 8 larguras (320, 360, 375, 390, 414, 768, 1024 e 1400 px), com e sem o bloco `<style>`: sem deslocamento horizontal, nenhum elemento a transbordar, todo o texto à esquerda na mesma margem, os filetes dos dados alinhados com o texto, os dados, o botão e o logo centrados (desvio 0 px) e o mote sempre em 2 linhas; os dados ficam em 4 linhas a partir de 360 px (a 320 px a morada passa para 2 linhas, depois da vírgula). Tamanho: cerca de 91 KB por ficheiro (abaixo dos 102 KB a partir dos quais o Gmail corta a mensagem).

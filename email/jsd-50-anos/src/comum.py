@@ -13,7 +13,7 @@ BANNER = base64.b64encode((AQUI / 'banner-largo.jpg').read_bytes()).decode()
 LOGO = base64.b64encode((AQUI / 'logo-50-anos.jpg').read_bytes()).decode()   # fundo #F8F8F8, igual ao do rodapé
 LOGO_PNG = base64.b64encode((AQUI / 'logo-50-anos.png').read_bytes()).decode()   # fundo transparente, contorno claro nas letras
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
-MAPA = 'https://www.google.com/maps/search/?api=1&query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'
+MAPA = 'https://www.google.com/maps/search/?api=1&amp;query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'   # já escapado para usar em href
 FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
 DEGRADE = 'linear-gradient(90deg,#0E87D9 0%,#1EBCE8 25%,#54CFC9 40%,#F8B451 60%,#F86420 100%)'
 
@@ -75,6 +75,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     # claro_forcado: pede aos clientes que respeitam «color-scheme» (Apple Mail/iOS Mail, Outlook para iOS/macOS…)
     # que mostrem sempre a versão clara, mesmo com o telemóvel em modo noturno.
     esquema = 'light only' if claro_forcado else 'light'
+    esquema_inline = ' color-scheme:light only;' if claro_forcado else ''
     css_claro = ('\n    :root {{ color-scheme:light only; supported-color-schemes:light only; }}'.replace('{{', '{').replace('}}', '}')
                  if claro_forcado else '')
     logo_src = f'data:image/png;base64,{LOGO_PNG}' if logo_png else f'data:image/jpeg;base64,{LOGO}'
@@ -85,11 +86,14 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="{esquema}">
   <meta name="supported-color-schemes" content="{esquema}">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <meta name="x-apple-disable-message-reformatting">
   <title>{titulo}</title>
   <style>
     /* Responsivo: em ecrãs até 600 px (telemóveis) a letra aumenta e o botão ocupa a largura toda.
        As medidas inline continuam a ser a base (computador, ou clientes que ignoram este bloco). */
     body {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }}{css_claro}
+    a[x-apple-data-detectors] {{ color:inherit !important; text-decoration:none !important; font-size:inherit !important; font-family:inherit !important; font-weight:inherit !important; line-height:inherit !important; }}
     @media only screen and (max-width:600px) {{
       .px          {{ padding-left:22px !important; padding-right:22px !important; }}
       .t-etiqueta  {{ font-size:13px !important; line-height:18px !important; }}
@@ -119,13 +123,13 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     &#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="width:100%; background-color:#FFFFFF;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;{esquema_inline}">
 
     <tr>
       <td bgcolor="#0A0701" style="background-color:#0A0701; font-size:0; line-height:0;">
         <a href="{LINK}" style="text-decoration:none;">
           <img src="data:image/jpeg;base64,{BANNER}" width="100%" alt="50 anos JSD Famalicão. Cinco décadas, uma identidade. 1976–2026."
-               style="display:block; width:100%; max-width:100%; height:auto; border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;">
+               style="display:block; max-width:100%; height:auto; border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;">
         </a>
       </td>
     </tr>
@@ -136,7 +140,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
 
     <tr>
       <td align="center" style="padding:0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:{largura}px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px;">
 {corpo}
         </table>
       </td>
@@ -149,7 +153,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     <tr>
       <td class="px" align="center" bgcolor="#F8F8F8" style="background-color:#F8F8F8; padding:36px {LADO}px 32px {LADO}px; font-family:{FONT}; text-align:center;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr><td align="center" style="font-size:0; line-height:0;"><img src="{logo_src}" width="170" alt="50 anos JSD Famalicão" style="display:block; margin:0 auto; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr>
+          <tr><td align="center" style="font-size:0; line-height:0;"><table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0;"><img src="{logo_src}" width="170" alt="50 anos JSD Famalicão" style="display:block; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr></table></td></tr>
           <tr><td class="t-rodape" align="center" style="padding-top:22px; font-family:{FONT}; font-size:12px; line-height:19px; color:#6B6054;">Juventude Social Democrata de Vila&nbsp;Nova de&nbsp;Famalicão<br><a href="https://jsdfamalicao.pt" style="color:{ESCURO}; text-decoration:underline;">jsdfamalicao.pt</a></td></tr>{rodape_extra}
         </table>
       </td>

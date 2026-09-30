@@ -16,7 +16,7 @@ from comum import *
 MUTED = '#6B6054'
 LARANJA_TEXTO = '#E2540F'
 PONTO = f'<span style="color:#F86420;">&nbsp;·&nbsp;</span>'
-MAPA_HREF = MAPA.replace('&', '&amp;')   # «&» escapado no atributo, como manda o HTML
+MAPA_HREF = MAPA                      # em comum.py o «&» já vem escapado como &amp;
 MAPA_LINK = f'<a href="{MAPA_HREF}" style="color:{MUTED}; text-decoration:none;">Av.&nbsp;Visc.&nbsp;de&nbsp;Pindela&nbsp;112, 4770&#8209;189&nbsp;Cruz</a>'
 
 # ------------------------------------------------------------------ textos (fornecidos pela JSD Famalicão)
@@ -88,7 +88,102 @@ def convite(t):
                   claro_forcado=True, logo_png=True, gerador='src/gerar_final.py')
 
 
+import json, re, html as _html
+
+gerados = {}
 for nome, t in CONVITES.items():
     html = convite(t)
     (AQUI / nome).write_text(html, encoding='utf-8')
+    gerados[nome] = html
     print(nome, len(html.encode('utf-8')), 'bytes')
+
+
+def texto_simples(doc):
+    """Versão em texto simples (para colar em sítios que não aceitam HTML)."""
+    corpo = re.sub(r'<!--.*?-->', '', doc, flags=re.S)                                   # comentários
+    corpo = re.sub(r'<(style|head)[^>]*>.*?</\1>', '', corpo, flags=re.S)
+    corpo = re.sub(r'<div style="display:none;.*?</div>', '', corpo, flags=re.S)        # texto de pré-visualização
+    corpo = re.sub(r'<br\s*/?>|</tr>|</p>', '\n', corpo)
+    corpo = _html.unescape(re.sub(r'<[^>]+>', '', corpo)).replace('\u00a0', ' ')
+    linhas = [re.sub(r'[ \t]+', ' ', l).strip() for l in corpo.splitlines()]
+    return re.sub(r'\n{3,}', '\n\n', '\n'.join(linhas)).strip()
+
+
+# ------------------------------------------------------------------ página auxiliar para copiar sem estragar o layout
+# Ao fazer Ctrl+A / Ctrl+C numa página aberta no Chrome, o browser converte as larguras fluidas em píxeis fixos
+# (a largura da janela). Esta página põe na área de transferência o HTML ORIGINAL de cada convite.
+def pagina_copiar():
+    dados = {n: {'html': h, 'texto': texto_simples(h)} for n, h in gerados.items()}
+    js = json.dumps(dados, ensure_ascii=False).replace('</', '<\\/')
+    cartoes = ''.join(f'''
+    <section class="cartao">
+      <h2>{rotulo}</h2>
+      <p class="ficheiro">{nome}</p>
+      <button type="button" data-convite="{nome}">Copiar convite</button>
+      <p class="estado" id="estado-{i}" aria-live="polite"></p>
+      <iframe title="Pré-visualização: {rotulo}" data-previa="{nome}" loading="lazy"></iframe>
+    </section>''' for i, (nome, rotulo) in enumerate([('v7-convite-geral.html', 'Convite geral (militantes)'),
+                                                         ('v8-convite-institucional.html', 'Convite institucional')]))
+    return f'''<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Copiar convites · 50 anos JSD Famalicão</title>
+  <style>
+    body {{ margin:0; background:#F6F3EE; color:#1B130C; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; }}
+    main {{ max-width:1100px; margin:0 auto; padding:32px 16px 48px; }}
+    h1 {{ font-size:24px; margin:0 0 8px; }}
+    ol {{ line-height:1.6; padding-left:20px; margin:0 0 24px; }}
+    .grelha {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:24px; }}
+    .cartao {{ background:#FFFFFF; border:1px solid #E4D9CB; border-radius:8px; padding:20px; }}
+    h2 {{ font-size:18px; margin:0; }}
+    .ficheiro {{ color:#6B6054; font-size:13px; margin:4px 0 14px; }}
+    button {{ font:inherit; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:14px; color:#1B130C; background:#F86420;
+              background-image:linear-gradient(90deg,#F8B451,#F86420); border:0; border-radius:4px; padding:14px 22px; cursor:pointer; width:100%; }}
+    button:focus-visible {{ outline:3px solid #0B72B8; outline-offset:2px; }}
+    .estado {{ min-height:20px; font-size:14px; color:#1E7A3C; margin:10px 0; }}
+    iframe {{ width:100%; height:640px; border:1px solid #E4D9CB; border-radius:6px; background:#FFFFFF; }}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Copiar convites · 50 anos JSD Famalicão</h1>
+  <ol>
+    <li>Clica em <strong>Copiar convite</strong> no convite que queres enviar.</li>
+    <li>No Gmail, abre uma <strong>Nova mensagem</strong>, clica no corpo e cola com <strong>Ctrl+V</strong> (⌘+V no Mac).</li>
+    <li>Põe os destinatários em <strong>Cco</strong> e envia primeiro um teste para ti (vê no iPhone e num Android).</li>
+  </ol>
+  <p>Não copies a página com Ctrl+A / Ctrl+C: o browser fixa as larguras em píxeis e o email fica desformatado no telemóvel.</p>
+  <div class="grelha">{cartoes}
+  </div>
+</main>
+<script>
+  const CONVITES = {js};
+  function copiar(nome, estado) {{
+    const c = CONVITES[nome];
+    let feito = false;
+    const aoCopiar = (e) => {{ e.clipboardData.setData('text/html', c.html); e.clipboardData.setData('text/plain', c.texto); e.preventDefault(); feito = true; }};
+    document.addEventListener('copy', aoCopiar, {{ once: true }});
+    try {{ document.execCommand('copy'); }} catch (_) {{}}
+    document.removeEventListener('copy', aoCopiar);
+    if (feito) {{ estado.textContent = 'Copiado. Agora cola no Gmail com Ctrl+V.'; return; }}
+    if (navigator.clipboard && window.ClipboardItem) {{
+      navigator.clipboard.write([new ClipboardItem({{ 'text/html': new Blob([c.html], {{ type: 'text/html' }}), 'text/plain': new Blob([c.texto], {{ type: 'text/plain' }}) }})])
+        .then(() => {{ estado.textContent = 'Copiado. Agora cola no Gmail com Ctrl+V.'; }})
+        .catch(() => {{ estado.textContent = 'Não foi possível copiar automaticamente neste browser. Usa o Chrome.'; }});
+    }} else {{
+      estado.textContent = 'Não foi possível copiar automaticamente neste browser. Usa o Chrome.';
+    }}
+  }}
+  document.querySelectorAll('button[data-convite]').forEach((b, i) => b.addEventListener('click', () => copiar(b.dataset.convite, document.getElementById('estado-' + i))));
+  document.querySelectorAll('iframe[data-previa]').forEach((f) => {{ f.srcdoc = CONVITES[f.dataset.previa].html; }});
+</script>
+</body>
+</html>
+'''
+
+
+(AQUI / 'copiar-convites.html').write_text(pagina_copiar(), encoding='utf-8')
+print('copiar-convites.html criado')

@@ -1,9 +1,8 @@
-"""Gera a v3 (convite geral, trata por «tu») e a v4 (convite institucional, «Estimado(a) convidado(a)») com o MESMO
-layout intermédio e texto curto. Os dados do evento vão numa faixa escura compacta (componente gráfica).
-
-Layout intermédio: cabeçalho e slogan centrados, texto alinhado à esquerda (sem ser uma carta
-formal nem ter a citação/blocos do convite geral) e dados em três colunas que ficam lado a lado
-no computador e se empilham sozinhas no telemóvel (sem depender do <style>).
+"""Gera, com o MESMO layout intermédio (cabeçalho centrado, texto à esquerda, mote a meio do texto):
+- v3 (geral, «tu») e v4 (institucional, «Estimado(a) convidado(a)»): dados do evento em linhas
+  tipográficas centradas antes do fecho;
+- v5 (geral) e v6 (institucional): data, hora, local e preço dentro do texto; o único elemento
+  gráfico a cortar o corpo é o mote «Cinco décadas. Uma identidade.».
 
 Uso: python3 src/gerar_v3_v4.py  (a partir de email/jsd-50-anos/)
 """
@@ -47,22 +46,32 @@ CONVITES = {
     ),
 }
 
+# v5 / v6: mesmos textos da v3 / v4, mas com data, hora, local e preço dentro do corpo do texto
+DATA = '<strong {f}>sábado, 7&nbsp;de&nbsp;novembro, às&nbsp;19h00</strong>'.format(f=FORTE)
+LOCAL = f'<a href="{MAPA}" style="color:{ESCURO}; font-weight:700; text-decoration:none;">Sunset&nbsp;House</a>'
+CONVITES['v5-convite-geral.html'] = dict(
+    CONVITES['v3-convite-geral.html'],
+    bloco_dados=False,
+    paragrafos=[
+        CONVITES['v3-convite-geral.html']['paragrafos'][0],
+        f'É essa identidade que queremos celebrar contigo no Jantar Comemorativo, no {DATA}, na {LOCAL}. Vão tomar da palavra representantes das estruturas da JSD e do PSD.',
+        f'A inscrição custa <strong {FORTE}>35&nbsp;€ por pessoa</strong>, com bar aberto. Se fizeste parte desta história, <strong {FORTE}>esta mesa também é tua</strong>.',
+    ],
+)
+CONVITES['v6-convite-institucional.html'] = dict(
+    CONVITES['v4-convite-institucional.html'],
+    bloco_dados=False,
+    paragrafos=[
+        CONVITES['v4-convite-institucional.html']['paragrafos'][0],
+        f'É essa identidade que queremos celebrar no Jantar Comemorativo para o qual temos o gosto de o(a) convidar, no {DATA}, na {LOCAL}. Usarão da palavra representantes das estruturas da JSD e do PSD.',
+        f'A participação tem o valor de <strong {FORTE}>35&nbsp;€ por pessoa</strong>, com bar aberto. Será uma honra contar com a sua presença.',
+    ],
+)
+
 # ------------------------------------------------------------------ layout intermédio (único)
 CSS = '''
       .t-lead      { font-size:26px !important; line-height:34px !important; }
       .t-dados-v   { font-size:14px !important; line-height:26px !important; letter-spacing:1px !important; }'''
-CLARO = '#CDBFAE'
-
-
-def celula(conteudo):
-    """Coluna fluida (inline-block): lado a lado no computador, empilhada no telemóvel."""
-    return f'''<div style="display:inline-block; width:100%; max-width:230px; vertical-align:middle;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-                    <td align="center" style="padding:10px 8px; font-family:{FONT}; text-align:center;">{conteudo}</td>
-                  </tr></table>
-                </div>'''
-
-
 def dados():
     """Dados do evento em três linhas centradas, só tipografia (sem caixa nem faixa)."""
     ponto = '<span style="color:#F86420;">&nbsp;·&nbsp;</span>'
@@ -82,11 +91,11 @@ def convite(t):
         cabecalho(),
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         linha(t['paragrafos'][0], 12, 0),
-        # slogan a meio do texto, como elemento gráfico; o 2.º parágrafo refere-se a ele
+        # mote a meio do texto, como elemento gráfico: o 1.º parágrafo introdu-lo e o seguinte retoma-o
         linha(f'Cinco décadas.<br><strong style="font-weight:800; color:{ESCURO};">Uma <span style="color:#E2540F;">identidade</span>.</strong>',
               30, 18, 'font-size:24px; line-height:32px; font-weight:300; color:#3E352B;', 'left', 't-lead'),
-        linha(t['paragrafos'][1], 12, 0),
-        dados(),
+        *[linha(p_, 12 if i == 0 else 16, 0) for i, p_ in enumerate(t['paragrafos'][1:])],
+        dados() if t.get('bloco_dados', True) else '',
         linha(t['fecho'], 28, 0),
         linha(t['assinatura'], 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
         botao(t['botao'], 28, 0, t['alternativa']),

@@ -1,7 +1,7 @@
 """Versões FINAIS do convite: v7 (geral) e v8 (institucional). Mesmo layout nos dois.
 
-Ordem: cabeçalho centrado → saudação → 3 parágrafos → despedida e assinatura → mote «Cinco Décadas.
-Uma Identidade.» em destaque (alinhado com o texto) → dados (data, hora, local, morada, preço) em linhas
+Ordem: cabeçalho centrado → saudação → 3 parágrafos → despedida e assinatura → mote «CINCO DÉCADAS /
+UMA IDENTIDADE» em maiúsculas com o degradê da marca (alinhado com o texto) → dados (data, hora, local, morada, preço) em linhas
 centradas entre dois filetes → botão, ligação alternativa e nota → rodapé com o logo (PNG transparente).
 
 Modo noturno: <meta name="color-scheme" content="light only"> e :root { color-scheme: light only }
@@ -14,7 +14,6 @@ Uso: python3 src/gerar_final.py  (a partir de email/jsd-50-anos/)
 from comum import *
 
 MUTED = '#6B6054'
-LARANJA_TEXTO = '#E2540F'
 PONTO = f'<span style="color:#F86420;">&nbsp;·&nbsp;</span>'
 MAPA_HREF = MAPA                      # em comum.py o «&» já vem escapado como &amp;
 MAPA_LINK = f'<a href="{MAPA_HREF}" style="color:{MUTED}; text-decoration:none;">Av.&nbsp;Visc.&nbsp;de&nbsp;Pindela&nbsp;112, 4770&#8209;189&nbsp;Cruz</a>'
@@ -55,9 +54,58 @@ CONVITES = {
 }
 ASSINATURA = 'Juventude Social Democrata de Vila Nova de&nbsp;Famalicão'
 
+# ------------------------------------------------------------------ mote em maiúsculas com o degradê da marca
+# Como no banner: «CINCO DÉCADAS» em regular e «UMA IDENTIDADE» a negrito, em maiúsculas espaçadas.
+# O texto em degradê do CSS (background-clip:text) não funciona no Gmail, por isso cada letra leva a sua
+# cor, tirada do degradê da marca (azul → turquesa → âmbar → laranja) na posição horizontal da letra.
+# As duas linhas partilham a mesma escala, como se o degradê pintasse o bloco. As cores claras do meio
+# são escurecidas só o necessário para terem contraste de 3:1 sobre branco (mínimo para texto grande).
+PARAGENS = [(0, '#0E87D9'), (.25, '#1EBCE8'), (.40, '#54CFC9'), (.60, '#F8B451'), (1, '#F86420')]
+LARGURA_LETRA = dict(zip('CINODÉASUMET ', [722, 278, 722, 778, 722, 667, 722, 667, 722, 833, 667, 611, 278]))  # Helvetica, /1000 em
+MOTE = [('CINCO DÉCADAS', 400), ('UMA IDENTIDADE', 800)]
+MOTE_PX, MOTE_ESPACO = 28, 1          # tamanho e espaçamento entre letras (px)
+
+
+def _luminancia(c):
+    f = lambda v: v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (f(v / 255) for v in c)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def cor_degrade(t, contraste=3.0):
+    """Cor do degradê da marca na posição t (0–1), escurecida até ter o contraste pedido sobre branco."""
+    for (t0, c0), (t1, c1) in zip(PARAGENS, PARAGENS[1:]):
+        if t <= t1:
+            u = (t - t0) / (t1 - t0)
+            a, b = (int(c0[i:i + 2], 16) for i in (1, 3, 5)), (int(c1[i:i + 2], 16) for i in (1, 3, 5))
+            c = [x + (y - x) * u for x, y in zip(a, b)]
+            break
+    k = 1.0
+    while 1.05 / (_luminancia([v * k for v in c]) + 0.05) < contraste:
+        k -= 0.005
+    return '#%02X%02X%02X' % tuple(round(v * k) for v in c)
+
+
+def mote():
+    """As duas linhas do mote, letra a letra com as cores do degradê."""
+    em = MOTE_ESPACO * 1000 / MOTE_PX
+    total = max(sum(LARGURA_LETRA[l] + em for l in txt) - em for txt, _ in MOTE)
+    linhas = []
+    for txt, peso in MOTE:
+        x, letras = 0, []
+        for l in txt:
+            w = LARGURA_LETRA[l]
+            letras.append('&nbsp;' if l == ' ' else f'<span style="color:{cor_degrade(min(1, (x + w / 2) / total))};">{l}</span>')
+            x += w + em
+        linhas.append(f'<span style="font-weight:{peso};">{"".join(letras)}</span>')
+    return linha('<br>'.join(linhas), 26, 0,
+                 f'font-size:{MOTE_PX}px; line-height:{MOTE_PX + 8}px; letter-spacing:{MOTE_ESPACO}px; color:#3E352B;',
+                 'left', 't-mote')
+
+
 # ------------------------------------------------------------------ responsivo (telemóvel)
 CSS = '''
-      .t-mote      { font-size:30px !important; line-height:38px !important; }'''
+      .t-mote      { font-size:28px !important; line-height:36px !important; }'''
 
 
 def dados():
@@ -78,8 +126,7 @@ def convite(t):
         linha(t['despedida'], 28, 0),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
         # mote depois da despedida e da assinatura: único elemento gráfico do texto, alinhado com ele
-        linha(f'Cinco Décadas.<br><strong style="font-weight:800; color:{ESCURO};">Uma <span style="color:{LARANJA_TEXTO};">Identidade</span>.</strong>',
-              26, 0, 'font-size:28px; line-height:36px; font-weight:300; color:#3E352B;', 'left', 't-mote'),
+        mote(),
         dados(),
         botao(t['botao'], 32, 0, t['alternativa'], baixo_ligacao=0),
         linha(t['nota'], 16, 44, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota'),

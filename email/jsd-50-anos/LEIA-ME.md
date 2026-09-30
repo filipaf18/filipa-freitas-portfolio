@@ -1,5 +1,24 @@
 # Convite · Jantar Comemorativo dos 50 anos da JSD Famalicão
 
+## ✅ Versões finais (a usar)
+
+| Ficheiro | Para quem | Saudação | Despedida | Botão |
+| --- | --- | --- | --- | --- |
+| `v7-convite-geral.html` | militantes (trata por «tu») | Caro(a) companheiro(a), | Até lá, | Inscrever-me |
+| `v8-convite-institucional.html` | convidados institucionais | Estimado(a) companheiro(a), | Com os melhores cumprimentos, | Confirmar presença |
+
+Layout (igual nos dois): banner → cabeçalho centrado → saudação → 3 parágrafos → mote **«Cinco Décadas. Uma Identidade.»** (único elemento gráfico no texto, alinhado com ele) → despedida e assinatura → **quadrado** com local, morada, data, hora e preço → botão, ligação alternativa e nota → rodapé com o logo do evento. Gerados por `src/gerar_final.py` (textos no dicionário `CONVITES`).
+
+**Modo noturno.** O `<head>` declara `color-scheme: light only`. Os clientes que respeitam esta indicação mostram sempre a versão branca, mesmo com o telemóvel em modo noturno: Apple Mail/iOS Mail, Outlook para iOS/macOS e browsers com escurecimento automático. Testado com o escurecimento forçado do Chromium: o email fica pixel a pixel igual à versão clara (numa prova de controlo, uma versão sem esta indicação escurece). **As apps do Gmail aplicam sempre o seu próprio modo escuro e nenhum email o pode desligar.** Para esse caso, o logo passou a PNG **sem fundo** (`logo-50-anos.png`, já não aparece o quadrado branco) e as letras escuras do logo têm um contorno claro que só se nota sobre fundo escuro. Ver `preview-v7-geral-gmail-escuro.png` e `preview-v8-institucional-gmail-escuro.png`.
+
+**Inspeção feita:** HTML validado (0 erros; o `&` do link do mapa está escapado); etiquetas equilibradas; imagens com texto alternativo; ligações (`jsdfamalicao.pt/50-anos#inscricao`, `jsdfamalicao.pt`, Google Maps). Em 8 larguras (320, 360, 375, 390, 414, 768, 1024 e 1400 px), com e sem o bloco `<style>`: sem deslocamento horizontal, nenhum elemento a transbordar, todo o texto à esquerda na mesma margem, o quadrado alinhado com o texto, o quadrado, o botão e o logo centrados (desvio 0 px), o mote sempre em 2 linhas e as linhas do quadrado a partir só em pontos limpos. Tamanho: cerca de 93 KB por ficheiro (abaixo dos 102 KB a partir dos quais o Gmail corta a mensagem).
+
+Pré-visualizações: `preview-v7-geral-*`, `preview-v8-institucional-*`.
+
+---
+
+## Histórico (versões anteriores, não usar)
+
 Duas versões, ambas em modo claro, de largura total e com o banner embutido (não dependem de endereços externos):
 
 - `convite-jantar-50-anos.html` — **geral** (militantes e antigos militantes), tom próximo, botão «Inscrever-me».
@@ -37,19 +56,11 @@ Textos em `CONVITES`, em `src/gerar_v3_v4.py`. Pré-visualizações: `preview-v3
 - Institucional: «…para o qual temos o gosto de o(a) convidar, no **sábado, 7 de novembro, às 19h00**, na **Sunset House**. […] A participação tem o valor de **35 € por pessoa**, com bar aberto.»
 - Gerados pelo mesmo `src/gerar_v3_v4.py`. Pré-visualizações: `preview-v5-geral-*` e `preview-v6-institucional-*`.
 
-## v7 (geral) e v8 (institucional) · mote no fim
-
-- `v7-convite-geral.html` e `v8-convite-institucional.html` — dados no texto (como na v5/v6) e o mote «Cinco décadas. Uma identidade.» no **fim**, como fecho assinado.
-- Ordem: cabeçalho → saudação → 2 parágrafos (data, hora, local, oradores e preço a negrito) → botão, ligação alternativa e nota → filete → frase que introduz o mote (termina em «…numa só frase:») → **mote** em destaque, alinhado com o texto → assinatura em maiúsculas espaçadas → rodapé com logo.
-- Geral: «Se fizeste parte desta história, esta mesa também é tua. Ao fim de meio século, o que nos une continua a caber numa só frase:»
-- Institucional: «Será uma honra contar com a sua presença para celebrarmos juntos meio século de pessoas, ideias e causas que continuam a caber numa só frase:» (o mote substitui o «Com os melhores cumprimentos»).
-- Gerados por `src/gerar_v3_v4.py` (`CONVITES_MOTE_NO_FIM`). Pré-visualizações: `preview-v7-geral-*` e `preview-v8-institucional-*`. As versões anteriores ficaram iguais.
-
 ## Como passar para o Gmail
 
 1. Abre o HTML no Chrome, `Ctrl/Cmd + A`, `Ctrl/Cmd + C`.
 2. Cola numa mensagem nova do Gmail, destinatários em **Cco**, e envia um teste para ti.
-3. Se o banner não aparecer: apaga a imagem partida, «Inserir fotografia» → `banner-largo.jpg` → **Em linha**.
+3. Se o banner ou o logo não aparecerem: apaga a imagem partida, «Inserir fotografia» → `banner-largo.jpg` (ou `logo-50-anos.png`) → **Em linha**.
 
 Nota: no Gmail a mensagem aparece sempre dentro da área de leitura; «largura total» é a largura dessa área.
 

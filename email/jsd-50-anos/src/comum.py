@@ -11,6 +11,7 @@ import base64, pathlib
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 BANNER = base64.b64encode((AQUI / 'banner-largo.jpg').read_bytes()).decode()
 LOGO = base64.b64encode((AQUI / 'logo-50-anos.jpg').read_bytes()).decode()   # fundo #F8F8F8, igual ao do rodapé
+LOGO_PNG = base64.b64encode((AQUI / 'logo-50-anos.png').read_bytes()).decode()   # fundo transparente, contorno claro nas letras
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
 MAPA = 'https://www.google.com/maps/search/?api=1&query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'
 FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
@@ -69,19 +70,26 @@ def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta liga
         14, baixo_ligacao, 'font-size:12px; line-height:19px; color:#6B6054;', 'center', 't-ligacao')
 
 
-def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra=''):
+def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', claro_forcado=False, logo_png=False,
+           gerador='src/gerar.py'):
+    # claro_forcado: pede aos clientes que respeitam «color-scheme» (Apple Mail/iOS Mail, Outlook para iOS/macOS…)
+    # que mostrem sempre a versão clara, mesmo com o telemóvel em modo noturno.
+    esquema = 'light only' if claro_forcado else 'light'
+    css_claro = ('\n    :root {{ color-scheme:light only; supported-color-schemes:light only; }}'.replace('{{', '{').replace('}}', '}')
+                 if claro_forcado else '')
+    logo_src = f'data:image/png;base64,{LOGO_PNG}' if logo_png else f'data:image/jpeg;base64,{LOGO}'
     return f'''<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light">
-  <meta name="supported-color-schemes" content="light">
+  <meta name="color-scheme" content="{esquema}">
+  <meta name="supported-color-schemes" content="{esquema}">
   <title>{titulo}</title>
   <style>
     /* Responsivo: em ecrãs até 600 px (telemóveis) a letra aumenta e o botão ocupa a largura toda.
        As medidas inline continuam a ser a base (computador, ou clientes que ignoram este bloco). */
-    body {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }}
+    body {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }}{css_claro}
     @media only screen and (max-width:600px) {{
       .px          {{ padding-left:22px !important; padding-right:22px !important; }}
       .t-etiqueta  {{ font-size:13px !important; line-height:18px !important; }}
@@ -101,7 +109,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra=''):
   </style>
 </head>
 
-<!-- Gerado por src/gerar.py. Banner e barras a toda a largura; texto numa coluna de até 1040 px.
+<!-- Gerado por {gerador}. Banner e barras a toda a largura; texto numa coluna de até 1040 px.
      Espaços feitos com padding de células; o <style> acima só aumenta a letra em ecrãs até 600 px. -->
 
 <body style="margin:0; padding:0; background-color:#FFFFFF;">
@@ -141,7 +149,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra=''):
     <tr>
       <td class="px" align="center" bgcolor="#F8F8F8" style="background-color:#F8F8F8; padding:36px {LADO}px 32px {LADO}px; font-family:{FONT}; text-align:center;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr><td align="center" style="font-size:0; line-height:0;"><img src="data:image/jpeg;base64,{LOGO}" width="170" alt="50 anos JSD Famalicão" style="display:block; margin:0 auto; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr>
+          <tr><td align="center" style="font-size:0; line-height:0;"><img src="{logo_src}" width="170" alt="50 anos JSD Famalicão" style="display:block; margin:0 auto; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr>
           <tr><td class="t-rodape" align="center" style="padding-top:22px; font-family:{FONT}; font-size:12px; line-height:19px; color:#6B6054;">Juventude Social Democrata de Vila&nbsp;Nova de&nbsp;Famalicão<br><a href="https://jsdfamalicao.pt" style="color:{ESCURO}; text-decoration:underline;">jsdfamalicao.pt</a></td></tr>{rodape_extra}
         </table>
       </td>

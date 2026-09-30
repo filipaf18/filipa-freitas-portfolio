@@ -26,7 +26,7 @@ Duas versões, ambas em modo claro, de largura total e com o banner embutido (n�
 - `v3-convite-geral.html` — convite **geral**, trata por «tu» («Caro(a) amigo(a)»).
 - `v4-convite-institucional.html` — convite **institucional**, ligeiramente formal: «Estimado(a) convidado(a)», «o(a) convidamos», «a sua presença» (sem «Exmo.» nem «V. Exa.»).
 
-Layout igual nos dois: cabeçalho centrado, slogan em destaque, saudação e dois parágrafos curtos, e os dados do evento em quatro linhas centradas em maiúsculas espaçadas, só tipografia, com um traço laranja por cima (sem caixa nem faixa). Depois fecho, botão, nota e rodapé com logo.
+Layout igual nos dois: cabeçalho centrado, saudação, 1.º parágrafo, o slogan «Cinco décadas. Uma identidade.» em destaque a meio do texto (o 2.º parágrafo refere-se a ele: «É esta identidade…» / «É sob este mote…»), 2.º parágrafo, e os dados do evento em três linhas centradas em maiúsculas espaçadas, só tipografia, com um traço laranja por cima (sem caixa nem faixa). Depois fecho, botão, nota e rodapé com logo.
 
 Textos em `CONVITES`, em `src/gerar_v3_v4.py`. Pré-visualizações: `preview-v3-geral-*` e `preview-v4-institucional-*`. A v2 ficou igual.
 

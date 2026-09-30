@@ -21,24 +21,14 @@ Duas versões, ambas em modo claro, de largura total e com o banner embutido (n�
 - Largura total no computador: o banner e as barras ocupam o ecrã todo; o texto fica numa coluna de até 1040 px (quase toda a largura da área de leitura do Gmail) sobre fundo branco, sem caixa nem margens cinzentas. No telemóvel encolhe sozinho.
 - O banner passou a ser o original completo (com «Cinco décadas, uma identidade» dos dois lados), que funciona melhor a toda a largura.
 
-## v3 (geral) e v4 (institucional) · layout e texto intermédios
+## v3 (geral) e v4 (institucional) · mesmo layout intermédio
 
-- `v3-convite-geral.html` — convite **geral**.
-- `v4-convite-institucional.html` — convite **institucional**.
+- `v3-convite-geral.html` — convite **geral**, trata por «tu».
+- `v4-convite-institucional.html` — convite **institucional**, trata por «V. Exa.».
 
-Os dois usam **o mesmo layout intermédio**: cabeçalho e slogan centrados, texto alinhado à esquerda, dados em três colunas (data · local · preço) que ficam lado a lado no computador e se empilham sozinhas no telemóvel, fecho, botão, notas e rodapé com logo. Não é uma carta formal nem tem a citação e os blocos do convite geral da v2.
+Layout igual nos dois: cabeçalho centrado, slogan em destaque («Uma **identidade**.» a laranja), saudação e dois parágrafos curtos, **faixa escura compacta com os dados** (07 em grande · NOV 2026 · SÁB 19H00 | SUNSET HOUSE + morada | 35 € · por pessoa · bar aberto), com a barra em degradê da marca por cima; no telemóvel as três partes empilham-se sozinhas. Depois fecho, botão, nota e rodapé com logo.
 
-O **texto-base também é intermédio** (trata por «você», sem «tu» nem «V. Exa.» no corpo) e é igual nos dois. Só muda:
-
-| | v3 · geral | v4 · institucional |
-| --- | --- | --- |
-| Saudação | Caro(a) amigo(a), | Exmo.(a) Senhor(a), |
-| Frase final do corpo | Se fez parte desta história, esta mesa também é sua. | Será uma honra contar com a presença de V. Exa. |
-| Botão | Inscrever-me | Confirmar presença |
-| Notas | inscrição individual e pagamento | confirmação pelo formulário |
-| Rodapé | linha para deixar de receber mensagens | — |
-
-Para mudar o texto comum, edita `BASE` em `src/gerar_v3_v4.py`; para mudar o que é próprio de cada convite, edita `CONVITES`. Pré-visualizações: `preview-v3-geral-*` e `preview-v4-institucional-*`. A v2 (`convite-jantar-50-anos*.html`) ficou igual.
+Textos em `CONVITES`, em `src/gerar_v3_v4.py`. Pré-visualizações: `preview-v3-geral-*` e `preview-v4-institucional-*`. A v2 ficou igual.
 
 ## Como passar para o Gmail
 

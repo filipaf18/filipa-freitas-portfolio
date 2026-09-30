@@ -11,25 +11,27 @@ VALOR = f'<strong {FORTE}>35&nbsp;€</strong>'
 
 LEMBRETES = {
     'v9-lembrete-geral.html': dict(
-        titulo='50 Anos JSD Famalicão · Lembrete de pagamento',
-        preheader='Um lembrete amigável sobre o pagamento da tua inscrição no Jantar Comemorativo.',
+        titulo='50 Anos JSD Famalicão · Pagamento da inscrição',
+        etiqueta='JANTAR COMEMORATIVO', cabeca='Garante o teu lugar',
+        preheader='Falta só o pagamento da tua inscrição no Jantar Comemorativo dos 50 anos da JSD Famalicão.',
         saudacao='Caro(a) companheiro(a),',
         paragrafos=[
             'Obrigado por te teres inscrito no Jantar Comemorativo dos 50&nbsp;anos da JSD&nbsp;Famalicão. Estamos muito contentes por contar contigo!',
-            f'Só um lembrete amigável: para garantires o teu lugar nesta noite, pedimos-te que faças o pagamento de {VALOR} por pessoa, através de transferência bancária para:',
+            f'Uma pequena nota: para garantires o teu lugar nesta noite, pedimos-te que faças o pagamento de {VALOR} por pessoa, através de transferência bancária para:',
         ],
-        comprovativo='Depois de fazeres a transferência, envia-nos o comprovativo em resposta a este email.',
+        comprovativo='Depois de fazeres a transferência, envia&#8209;nos o comprovativo em resposta a este email.',
         nota='Se já fizeste o pagamento, por favor ignora esta mensagem e obrigado! A inscrição é individual e fica válida depois de confirmado o pagamento.',
         despedida='Até lá,',
         rodape_extra=CONVITES['v7-convite-geral.html']['rodape_extra'].replace('este convite', 'esta mensagem'),
     ),
     'v10-lembrete-institucional.html': dict(
-        titulo='50 Anos JSD Famalicão · Lembrete de pagamento',
-        preheader='Um lembrete cordial sobre o pagamento da sua inscrição no Jantar Comemorativo.',
+        titulo='50 Anos JSD Famalicão · Pagamento da inscrição',
+        etiqueta='JANTAR COMEMORATIVO', cabeca='Garanta o seu lugar',
+        preheader='Falta só o pagamento da sua inscrição no Jantar Comemorativo dos 50 anos da JSD Famalicão.',
         saudacao='Estimado(a) companheiro(a),',
         paragrafos=[
             'Agradecemos a sua inscrição no Jantar Comemorativo dos 50&nbsp;anos da JSD&nbsp;Famalicão. Será uma honra contar consigo!',
-            f'Como lembrete cordial: para garantir o seu lugar nesta noite, pedimos-lhe que efetue o pagamento de {VALOR} por pessoa, através de transferência bancária para:',
+            f'Com todo o gosto, deixamos uma nota: para garantir o seu lugar nesta noite, pedimos-lhe que efetue o pagamento de {VALOR} por pessoa, através de transferência bancária para:',
         ],
         comprovativo='Após efetuar a transferência, agradecemos que nos envie o comprovativo em resposta a este email.',
         nota='Caso já tenha efetuado o pagamento, por favor desconsidere esta mensagem e obrigado! A inscrição é individual e fica válida depois de confirmado o pagamento.',
@@ -44,17 +46,17 @@ def caixa_iban():
     return filete(28, 0) + linha(
         f'<span style="font-size:12px; line-height:18px; font-weight:700; letter-spacing:4px; color:#0B72B8;">IBAN</span><br>'
         f'<span style="font-size:20px; line-height:32px; font-weight:800; letter-spacing:1px; color:{ESCURO};">{IBAN}</span>',
-        22, 22, 'font-size:16px; line-height:27px; color:#3E352B;', 'center', 't-lead') + filete()
+        22, 22, 'font-size:16px; line-height:27px; color:#3E352B;', 'left', 't-lead') + filete()
 
 
 def lembrete(t):
     corpo = ''.join([
-        cabecalho().replace('>CONVITE<', '>PAGAMENTO DA INSCRIÇÃO<').replace('Jantar Comemorativo', 'Um lembrete amigável'),
+        cabecalho().replace('>CONVITE<', f">{t['etiqueta']}<").replace('Jantar Comemorativo', t['cabeca']),
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
         caixa_iban(),
         linha(t['comprovativo'], 24, 0),
-        linha(t['nota'], 16, 0, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota'),
+        linha(t['nota'], 16, 0, f'font-size:13px; line-height:21px; color:{MUTED};', 'left', 't-nota'),
         linha(t['despedida'], 32, 0),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
         mote(),

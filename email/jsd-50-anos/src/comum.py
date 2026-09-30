@@ -12,6 +12,7 @@ import base64, pathlib
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 BANNER = base64.b64encode((AQUI / 'banner-largo.jpg').read_bytes()).decode()
 BANNER_FAIXA = base64.b64encode((AQUI / 'banner-faixa.jpg').read_bytes()).decode()   # margens laterais esbatidas para preto (para a faixa escura)
+BANNER_JANTAR = base64.b64encode((AQUI / 'banner-jantar.jpg').read_bytes()).decode()   # versões finais, 1200 × 400 (src/preparar_banner.py)
 LOGO = base64.b64encode((AQUI / 'logo-50-anos.jpg').read_bytes()).decode()   # fundo #F8F8F8, igual ao do rodapé
 LOGO_PNG = base64.b64encode((AQUI / 'logo-50-anos.png').read_bytes()).decode()   # fundo transparente, contorno claro nas letras
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
@@ -74,7 +75,7 @@ def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta liga
 
 
 def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', claro_forcado=False, logo_png=False,
-           gerador='src/gerar.py', banner_max=None, link_banner=LINK):
+           gerador='src/gerar.py', banner_max=None, link_banner=LINK, banner_coluna=False):
     # claro_forcado: pede aos clientes que respeitam «color-scheme» (Apple Mail/iOS Mail, Outlook para iOS/macOS…)
     # que mostrem sempre a versão clara, mesmo com o telemóvel em modo noturno.
     esquema = 'light only' if claro_forcado else 'light'
@@ -84,7 +85,35 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     logo_src = f'data:image/png;base64,{LOGO_PNG}' if logo_png else f'data:image/jpeg;base64,{LOGO}'
     alt_banner = '50 anos JSD Famalicão. Cinco décadas, uma identidade. 1976–2026.'
     estilo_img = (f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;')
-    if banner_max:
+    barra = f'''
+    <tr>
+      <td height="6" bgcolor="#F86420" style="height:6px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE};">&nbsp;</td>
+    </tr>'''
+    if banner_coluna:
+        # Versões finais: banner com a largura da coluna de texto (no máximo {largura} px), sem faixas laterais.
+        # No computador fica alinhado com a coluna; se a janela for mais larga, à volta fica o branco do email.
+        # No telemóvel ocupa a largura do ecrã. width numérico + max-width:100% sobrevive ao Ctrl+C e à colagem
+        # no Gmail. A barra com o degradê fica por baixo, com a mesma largura. O fundo da célula (a cor média
+        # do banner) só se vê se as imagens estiverem bloqueadas, por trás do texto alternativo.
+        bloco_banner = f'''    <tr>
+      <td align="center" style="padding:0; font-size:0; line-height:0;">
+        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">
+          <tr>
+            <td bgcolor="#554835" style="background-color:#554835; font-size:0; line-height:0;">
+              <a href="{link_banner}" style="text-decoration:none;">
+                <img src="data:image/jpeg;base64,{BANNER_JANTAR}" width="{largura}" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
+                     style="display:block; max-width:100%; height:auto; {estilo_img}">
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td height="6" bgcolor="#F86420" style="height:6px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE};">&nbsp;</td>
+          </tr>
+        </table>
+      </td>
+    </tr>'''
+        barra_topo, nota = '', f'Banner e barra de cima com a largura da coluna de texto (até {largura} px); barra de baixo e rodapé a toda a largura.'
+    elif banner_max:
         # Computador: banner com no máximo {banner_max} px, ao centro de uma faixa quase preta (as margens do banner
         # são #010101, por isso não se vê a junção). Telemóvel: ocupa a largura do ecrã (max-width:100%).
         # width numérico + max-width:100% sobrevive ao Ctrl+C do Chrome e à colagem no Gmail.
@@ -102,6 +131,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
         </table>
       </td>
     </tr>'''
+        barra_topo, nota = '\n' + barra, f'Banner e barras a toda a largura; texto numa coluna de até {largura} px.'
     else:
         bloco_banner = f'''    <tr>
       <td bgcolor="#0A0701" style="background-color:#0A0701; font-size:0; line-height:0;">
@@ -111,6 +141,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
         </a>
       </td>
     </tr>'''
+        barra_topo, nota = '\n' + barra, f'Banner e barras a toda a largura; texto numa coluna de até {largura} px.'
     return f'''<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
@@ -145,7 +176,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
   </style>
 </head>
 
-<!-- Gerado por {gerador}. Banner e barras a toda a largura; texto numa coluna de até 1040 px.
+<!-- Gerado por {gerador}. {nota}
      Espaços feitos com padding de células; o <style> acima só aumenta a letra em ecrãs até 600 px. -->
 
 <body style="margin:0; padding:0; background-color:#FFFFFF;">
@@ -157,11 +188,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;{esquema_inline}">
 
-{bloco_banner}
-
-    <tr>
-      <td height="6" bgcolor="#F86420" style="height:6px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE};">&nbsp;</td>
-    </tr>
+{bloco_banner}{barra_topo}
 
     <tr>
       <td align="center" style="padding:0;">
@@ -170,10 +197,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
         </table>
       </td>
     </tr>
-
-    <tr>
-      <td height="6" bgcolor="#F86420" style="height:6px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE};">&nbsp;</td>
-    </tr>
+{barra}
 
     <tr>
       <td class="px" align="center" bgcolor="#F8F8F8" style="background-color:#F8F8F8; padding:36px {LADO}px 32px {LADO}px; font-family:{FONT}; text-align:center;">

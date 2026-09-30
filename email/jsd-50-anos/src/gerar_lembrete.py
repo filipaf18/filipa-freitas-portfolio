@@ -62,6 +62,13 @@ def lembrete(t):
                   claro_forcado=True, logo_png=True, gerador='src/gerar_lembrete.py', banner_max=800)
 
 
+docs = {}
 for nome, t in LEMBRETES.items():
-    (AQUI / nome).write_text(lembrete(t), encoding='utf-8')
+    docs[nome] = lembrete(t)
+    (AQUI / nome).write_text(docs[nome], encoding='utf-8')
     print(nome)
+
+(AQUI / 'copiar-lembretes.html').write_text(pagina_copiar(
+    docs, [('v9-lembrete-geral.html', 'Lembrete geral (militantes)'), ('v10-lembrete-institucional.html', 'Lembrete institucional')],
+    'Copiar lembretes').replace('no convite que queres enviar', 'no lembrete que queres enviar'), encoding='utf-8')
+print('copiar-lembretes.html criado')

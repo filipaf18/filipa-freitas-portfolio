@@ -159,8 +159,9 @@ def texto_simples(doc):
 # ------------------------------------------------------------------ página auxiliar para copiar sem estragar o layout
 # Ao fazer Ctrl+A / Ctrl+C numa página aberta no Chrome, o browser converte as larguras fluidas em píxeis fixos
 # (a largura da janela). Esta página põe na área de transferência o HTML ORIGINAL de cada convite.
-def pagina_copiar():
-    dados = {n: {'html': h, 'texto': texto_simples(h)} for n, h in gerados.items()}
+def pagina_copiar(docs=None, itens=None, nome_pagina='Copiar convites'):
+    docs = docs or gerados
+    dados = {n: {'html': h, 'texto': texto_simples(h)} for n, h in docs.items()}
     js = json.dumps(dados, ensure_ascii=False).replace('</', '<\\/')
     cartoes = ''.join(f'''
     <section class="cartao">
@@ -169,7 +170,7 @@ def pagina_copiar():
       <button type="button" data-convite="{nome}">Copiar convite</button>
       <p class="estado" id="estado-{i}" aria-live="polite"></p>
       <iframe title="Pré-visualização: {rotulo}" data-previa="{nome}" loading="lazy"></iframe>
-    </section>''' for i, (nome, rotulo) in enumerate([('v7-convite-geral.html', 'Convite geral (militantes)'),
+    </section>''' for i, (nome, rotulo) in enumerate(itens or [('v7-convite-geral.html', 'Convite geral (militantes)'),
                                                          ('v8-convite-institucional.html', 'Convite institucional')]))
     return f'''<!DOCTYPE html>
 <html lang="pt-PT">
@@ -177,7 +178,7 @@ def pagina_copiar():
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
-  <title>Copiar convites · 50 anos JSD Famalicão</title>
+  <title>{nome_pagina} · 50 anos JSD Famalicão</title>
   <style>
     body {{ margin:0; background:#F6F3EE; color:#1B130C; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; }}
     main {{ max-width:1100px; margin:0 auto; padding:32px 16px 48px; }}
@@ -196,7 +197,7 @@ def pagina_copiar():
 </head>
 <body>
 <main>
-  <h1>Copiar convites · 50 anos JSD Famalicão</h1>
+  <h1>{nome_pagina} · 50 anos JSD Famalicão</h1>
   <ol>
     <li>Clica em <strong>Copiar convite</strong> no convite que queres enviar.</li>
     <li>No Gmail, abre uma <strong>Nova mensagem</strong>, clica no corpo e cola com <strong>Ctrl+V</strong> (⌘+V no Mac).</li>

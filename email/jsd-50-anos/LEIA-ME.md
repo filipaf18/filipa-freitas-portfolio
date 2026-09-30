@@ -22,22 +22,21 @@ Segue o convite (v7/v8) e o lembrete de pagamento (v9/v10). Como os anteriores, 
 
 Para copiar para o Gmail: **`copiar-confirmacoes.html`** (mesmo processo de `copiar-convites.html` e `copiar-lembretes.html`). Gerados por `src/gerar_confirmacao.py` (textos no dicionário `CONFIRMACOES`). Pré-visualizações: `preview-v11-confirmacao-geral-*` e `preview-v12-confirmacao-institucional-*`.
 
-Layout: o mesmo banner, barras, tipografia, mote e rodapé → «JANTAR COMEMORATIVO / INSCRIÇÃO CONFIRMADA» (mesma estrutura do cabeçalho do lembrete) → saudação e 2 parágrafos → data, hora e local entre dois filetes (o preço já não aparece) → **DRESS CODE** → botão «Ver o guia completo» → despedida, assinatura e mote. O email não diz «recebemos o teu pagamento»: a inscrição só fica confirmada depois do pagamento, mas assim o texto serve também para quem esteja isento.
+Layout: o mesmo banner, barras, tipografia, mote e rodapé → «JANTAR COMEMORATIVO / INSCRIÇÃO CONFIRMADA» (mesma estrutura do cabeçalho do lembrete) → saudação e 2 parágrafos → data, hora e local entre dois filetes (o preço já não aparece) → **DRESS CODE** (paleta, looks ilustrados, regras) → despedida, assinatura e mote. O email não diz «recebemos o teu pagamento»: a inscrição só fica confirmada depois do pagamento, mas assim o texto serve também para quem esteja isento.
 
-**Como o dress code entra no corpo do email (sem o deck):**
-- **Paleta desenhada com cores**, não com imagens: 5 tons base (castanho, bege, azul-marinho, preto, branco) e 2 apontamentos (laranja queimado, dourado), com os valores exatos do guia. São células de tabela: pesam quase 0 KB, não dependem de o cliente carregar imagens e leem-se em 320 px (mesmo sem o bloco `<style>`). Cada cor tem o nome escrito por baixo, por isso nada depende só da cor.
-- **4 looks para elas e 4 para eles**, cada um numa linha («**Vestido azul-marinho** + acessórios dourados»), e **3 regras** (conforto, tecidos nobres, equilíbrio). Só texto, empilhado numa coluna (colunas lado a lado não empilham no telemóvel quando o Gmail descarta o `<style>`).
-- Os 11 diapositivos do guia, com fotografias e mais combinações, ficam por detrás do botão **Ver o guia completo**.
+**Dress code «casual chique» no corpo do email** (sem o deck e sem ligação para o guia):
+- **Paleta desenhada com cores**: 5 tons base (castanho, bege, azul-marinho, preto, branco) e 2 apontamentos (laranja queimado, dourado), com os valores exatos do guia. São células de tabela, não imagens; cada cor tem o nome escrito por baixo, por isso nada depende só da cor.
+- **4 looks em ilustração**, 2 para elas e 2 para eles, lado a lado, com legenda e a nota «Exemplos ilustrativos, pensados para inspirar.»
+  - Elas: blazer castanho + blusa branca + calças bege de corte largo + clutch dourada; vestido midi azul-marinho + cinto, sapatos e argolas dourados.
+  - Eles (calças bege, camisa e blazer, com lenço de bolso numa cor de apontamento): blazer azul-marinho + lenço laranja queimado; blazer castanho + lenço dourado.
+- 3 regras (conforto, tecidos nobres, equilíbrio) e a frase «O essencial é sentir-te bem e celebrar connosco.»
 
-**Tamanho:** cerca de 96 KB (o convite v7 tem 88 KB; o Gmail corta a partir de ~102 KB). A indentação do HTML é comprimida no gerador para ganhar cerca de 2 KB. Verificado a 320, 360, 390 e 1400 px, com e sem `<style>`: sem deslocamento horizontal.
+**Ilustrações:** desenhadas em SVG por `src/ilustracoes_dresscode.py` e exportadas para `dresscode/*.png` (440 × 560 px, mostradas a 268 px: nítidas em ecrãs retina, cerca de 9 KB cada). Estilo de «quadro de roupa», sem rosto, nas cores da paleta. `dresscode/ilustracoes-folha.png` mostra as quatro juntas. Para mudar uma peça ou uma cor, edita esse script e corre `python3 src/ilustracoes_dresscode.py && python3 src/gerar_confirmacao.py`. **Se preferirem fotografias**: substituir os PNG de `dresscode/` por fotografias com 440 px de largura (mesmos nomes) e voltar a gerar; o layout aguenta a troca.
 
-**Alternativas** (em `confirmacao-opcoes/`, só no registo geral, comparadas em `comparacao-dresscode.png`):
-- `opcao-b-com-fotografias.html`: paleta + 4 fotografias do guia (2 elas, 2 eles). Bonita, mas pesa **150 KB**: o Gmail cortaria a mensagem e esconderia o fim do dress code. Só serve se as fotografias ficarem alojadas online (e nesse caso há clientes que não as mostram por omissão). As miniaturas estão em `dresscode/`.
-- `opcao-c-essencial-e-guia.html`: só a paleta, uma frase e o botão para o guia (92 KB, email curto).
+**Tamanho e Gmail:** o HTML sem imagens tem cerca de 23 KB; com banner, logo e as 4 ilustrações embutidos tem cerca de 144 KB. O limite de ~102 KB do Gmail aplica-se ao HTML da mensagem, e os convites anteriores já levam ~74 KB de imagens embutidas e chegam bem: o Gmail converte as imagens coladas em anexos embutidos. Mesmo assim, **envia um teste e confirma que a mensagem não aparece cortada** («[Mensagem cortada] Ver a mensagem completa»). Se cortar, publicar os PNG de `dresscode/` num endereço público e preencher `IMAGENS_URL` em `src/gerar_confirmacao.py`: o HTML passa a referir as ilustrações por endereço e fica leve. Verificado a 320, 360, 375, 390 e 1400 px, com e sem `<style>`: sem deslocamento horizontal.
 
 **A confirmar:**
-- **Endereço do guia**: `GUIA` em `src/gerar_confirmacao.py` está como `https://jsdfamalicao.pt/50-anos/dress-code`, um endereço **provisório**. Antes de enviar, publicar o deck nesse endereço (ou pôr o correto e voltar a gerar) ou tirar o botão.
-- Do guia **não copiei** «o jantar é numa quinta, ao ar livre» nem «jantar buffet», porque o convite só diz Sunset House e bar aberto. Se forem verdade, dizem-se numa linha. O guia também chama «Jantar de Aniversário» ao que o convite chama «Jantar Comemorativo»: no email usei a designação do convite.
+- Do guia **não copiei** «o jantar é numa quinta, ao ar livre» nem «jantar buffet», porque o convite só diz Sunset House e bar aberto. O guia também chama «Jantar de Aniversário» ao que o convite chama «Jantar Comemorativo»: no email usei a designação do convite.
 - **Modo escuro das apps do Gmail**: escurecem os emails por conta própria e podem alterar as cores da paleta (por exemplo, o branco). Não há forma de o impedir a partir do editor do Gmail (ver «Limite do Gmail» acima).
 
 ### Como enviar (importante)

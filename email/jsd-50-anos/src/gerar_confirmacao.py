@@ -1,13 +1,9 @@
-"""Terceiro email: confirmação da inscrição + dress code (em texto, dentro do corpo do email).
+"""Terceiro email: confirmação da inscrição + dress code «casual chique» (em texto e ilustrações, dentro do corpo do email).
 v11 (geral) e v12 (institucional). Mesma base visual dos convites v7/v8 e do lembrete v9/v10.
 
-Três formas de apresentar o dress code (variante):
-  a  paleta desenhada com cores + looks em texto + 3 regras  → v11 e v12  (RECOMENDADA)
-  b  paleta + 4 fotografias do guia                          → confirmacao-opcoes/opcao-b-com-fotografias.html
-  c  só o essencial: paleta + 1 frase + ligação ao guia      → confirmacao-opcoes/opcao-c-essencial-e-guia.html
-
-Porque é que a A não leva fotografias: o convite já tem ~90 KB e o Gmail corta a mensagem a partir de ~102 KB;
-cada fotografia do guia pesa 30–60 KB. A paleta é só cor (células de tabela): custo de bytes quase zero.
+Dress code: paleta desenhada com células de cor → 2 looks para elas e 2 para eles em ilustrações (dresscode/*.png,
+desenhadas por src/ilustracoes_dresscode.py) com legenda → nota «exemplos ilustrativos» → 3 regras → frase final.
+Sem fotografias e sem ligação para o guia completo.
 
 Uso: python3 src/gerar_confirmacao.py  (a partir de email/jsd-50-anos/)
 Nota: importar gerar_final volta a gerar v7/v8 e copiar-convites.html (saída idêntica).
@@ -15,10 +11,12 @@ Nota: importar gerar_final volta a gerar v7/v8 e copiar-convites.html (saída id
 import base64, re
 from gerar_final import *          # comum.py, mote(), MUTED, MAPA_LINK, ASSINATURA, pagina_copiar…
 
-# A CONFIRMAR: endereço onde o guia completo (os 11 diapositivos com fotografias) vai ficar publicado.
-GUIA = 'https://jsdfamalicao.pt/50-anos/dress-code'
-GUIA_TEXTO = 'jsdfamalicao.pt/50-anos/dress-code'
 SITE_50 = 'https://jsdfamalicao.pt/50-anos'     # o banner leva ao site (já não há nada para «inscrever»)
+
+# Por omissão as ilustrações vão embutidas no HTML (como o banner e o logo). Se, num envio de teste, o Gmail cortar a
+# mensagem ou as imagens não aparecerem, publicar os PNG de dresscode/ num endereço público e pôr aqui a pasta,
+# por exemplo 'https://jsdfamalicao.pt/50-anos/dresscode'. O HTML passa a referir as imagens por endereço (fica mais leve).
+IMAGENS_URL = None
 
 # ------------------------------------------------------------------ textos (registo geral e institucional)
 CONFIRMACOES = {
@@ -57,25 +55,21 @@ BASE = [('Castanho', 'chocolate', '#4A2C1D'), ('Bege', 'camel', '#B89574'), ('Az
 ACENTOS = [('Laranja', 'queimado', '#B1461F'), ('Dourado', 'ouro velho', '#B08A45')]
 BORDA_CLARA = '#DDD2C3'                # o off-white precisa de contorno sobre o fundo branco
 
-# ------------------------------------------------------------------ looks (do guia)
-ELAS = [('Vestido azul-marinho', ['acessórios dourados']),
-        ('Conjunto castanho', ['top bege', 'bolsa camel']),
-        ('Blusa off-white', ['calças bege', 'sapatos dourados']),
-        ('Vestido preto', ['pashmina laranja queimado', 'clutch dourada'])]
-ELES = [('Fato azul-marinho', ['camisa branca', 'gravata']),
-        ('Fato preto', ['gola alta']),
-        ('Blazer castanho', ['calças azuis', 'gola alta']),
-        ('Fato bege', ['camisa branca', 'sapatos castanhos'])]
-INTRO_ELAS = 'Vestidos longos e conjuntos de corte impecável, sempre com um acessório que acende o look.'
-INTRO_ELES = 'Fato ou blazer, com ou sem gravata. A gola alta é uma alternativa elegante.'
+# ------------------------------------------------------------------ looks (casual chique; ilustrações em dresscode/)
+INTRO_ELAS = 'Alfaiataria descontraída: calças de corte largo e blazer, ou um vestido midi, sempre com um toque de dourado.'
+INTRO_ELES = 'Calças beges, camisa e blazer, com um lenço de bolso numa das cores de apontamento.'
+# (ficheiro, nome, peças, texto alternativo)
+ELAS = [('elas-blazer-castanho', 'Blazer castanho', ['blusa branca', 'calças bege de corte largo', 'clutch dourada'],
+         'Blazer castanho com blusa branca, calças bege de corte largo, cinto e clutch dourados'),
+        ('elas-vestido-azul', 'Vestido midi azul-marinho', ['cinto dourado', 'sapatos e argolas dourados'],
+         'Vestido midi azul-marinho com cinto, sapatos, argolas e clutch dourados')]
+ELES = [('eles-blazer-azul', 'Blazer azul-marinho', ['camisa branca', 'calças bege', 'lenço laranja queimado'],
+         'Blazer azul-marinho com camisa branca, calças bege e lenço de bolso laranja queimado'),
+        ('eles-blazer-castanho', 'Blazer castanho', ['camisa branca', 'calças bege', 'lenço dourado'],
+         'Blazer castanho com camisa branca, calças bege e lenço de bolso dourado')]
 REGRAS = [('Conforto de inverno.', 'Tecidos mais quentes e camadas elegantes; um casaco ou um cachecol aquecem no final da noite.'),
           ('Tecidos nobres.', 'Seda, veludo, lã e caxemira elevam até o look mais simples.'),
           ('Equilíbrio.', 'Elegância sem exagero, à medida de um jantar entre amigos.')]
-
-FOTOS = [('elas-azul-marinho', 'Vestido azul-marinho', '+ acessórios dourados'),
-         ('elas-castanho', 'Conjunto castanho', '+ top bege + bolsa camel'),
-         ('eles-azul-marinho', 'Fato azul-marinho', '+ camisa branca + gravata'),
-         ('eles-blazer-castanho', 'Blazer castanho', '+ calças azuis + gola alta')]
 
 # ------------------------------------------------------------------ blocos
 CSS = '''
@@ -128,25 +122,18 @@ def paleta(legenda):
                              f'style="table-layout:fixed; font-family:{FONT}; font-size:11px; line-height:15px; color:{MUTED};">{linhas}</table>')
     base = tabela(f'<tr>{sep.join(base_t)}</tr><tr>{sep.join(base_r)}</tr>')
     acentos = tabela(f'<tr>{sep.join(ac_t)}{leg}</tr><tr>{sep.join(ac_r)}</tr>')
-    cel = lambda html, cima: (f'''
+    rotulo = lambda texto, cima: (f'<tr><td class="t-sub" style="padding-top:{cima}px; font-family:{FONT}; font-size:11px; line-height:16px; font-weight:700; '
+                                  f'letter-spacing:3px; color:{MUTED}; text-transform:uppercase; text-align:left;">{texto}</td></tr>')
+    # coluna de 560 px, a mesma das ilustrações: a secção fica toda alinhada no computador
+    return f'''
           <tr>
-            <td class="px" style="padding:{cima}px {LADO}px 0px {LADO}px;">
-              {html}
+            <td class="px" align="center" style="padding:0px {LADO}px 0px {LADO}px;">
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+                {rotulo('Tons base', 32)}<tr><td style="padding-top:12px;">{base}</td></tr>
+                {rotulo('Apontamentos', 28)}<tr><td style="padding-top:12px;">{acentos}</td></tr>
+              </table>
             </td>
-          </tr>''')
-    return (sub('Tons base', 32, 0, 'left') + cel(base, 12) +
-            sub('Apontamentos', 28, 0, 'left') + cel(acentos, 12))
-
-
-def look(nome, resto):
-    partes = ''.join(f'<span style="color:#F86420;"> +&nbsp;</span>{p}' for p in resto)
-    return f'<div style="padding-top:10px;"><strong {FORTE}>{nome}</strong>{partes}</div>'
-
-
-def looks(titulo, intro, itens):
-    return (sub(titulo, 40, 0) +
-            linha(intro, 10, 4, 'font-size:15px; line-height:24px; color:#6B6054;', 'center', 't-nota') +
-            linha(''.join(look(n, r) for n, r in itens), 0, 0, 'font-size:16px; line-height:25px; color:#3E352B;', 'center', 't-look'))
+          </tr>'''
 
 
 def regras():
@@ -155,19 +142,28 @@ def regras():
         0, 0, 'font-size:15px; line-height:24px; color:#3E352B;', 'center', 't-nota')
 
 
-def fotos(itens, cima):
-    """Duas fotografias lado a lado, com legenda. Limitadas a 480 px (as miniaturas têm 220 px de largura)."""
+def _src(ficheiro):
+    if IMAGENS_URL:
+        return f'{IMAGENS_URL.rstrip("/")}/{ficheiro}.png'
+    return 'data:image/png;base64,' + base64.b64encode((AQUI / 'dresscode' / f'{ficheiro}.png').read_bytes()).decode()
+
+
+def looks(titulo, intro, itens, cima):
+    """Título, frase de apresentação e 2 ilustrações lado a lado com legenda. Limitadas a 560 px de largura (2 × 268 px):
+    os PNG têm 440 px, por isso ficam nítidos mesmo em ecrãs retina. Duas colunas fixas (empilhar dependeria do <style>)."""
     cel = []
-    for ficheiro, nome, resto in itens:
-        b64 = base64.b64encode((AQUI / 'dresscode' / f'{ficheiro}.jpg').read_bytes()).decode()
+    for ficheiro, nome, pecas, alt in itens:
+        mais = ''.join(f'<span style="color:#F86420;"> +&nbsp;</span>{p}' if i else p for i, p in enumerate(pecas))
         cel.append(f'''<td width="48%" valign="top" align="center" style="width:48%; font-family:{FONT}; text-align:center;">
-                    <img src="data:image/jpeg;base64,{b64}" width="220" alt="{nome} {resto[2:]}" style="display:block; min-width:100%; max-width:100%; height:auto; border:0; border-radius:4px;">
-                    <span class="t-pal" style="display:block; padding-top:10px; font-size:13px; line-height:19px; color:{MUTED};"><strong style="color:{ESCURO};">{nome}</strong><br>{resto}</span>
+                    <img src="{_src(ficheiro)}" width="268" alt="{alt}" style="display:block; min-width:100%; max-width:100%; height:auto; border:0; border-radius:4px;">
+                    <span class="t-pal" style="display:block; padding-top:12px; font-size:14px; line-height:20px; font-weight:700; color:{ESCURO};">{nome}</span>
+                    <span class="t-pal" style="display:block; padding-top:3px; font-size:13px; line-height:20px; color:{MUTED};">{mais}</span>
                   </td>''')
-    return f'''
+    return (sub(titulo, cima, 0) +
+            linha(intro, 10, 4, 'font-size:15px; line-height:24px; color:#6B6054;', 'center', 't-nota') + f'''
           <tr>
-            <td class="px" align="center" style="padding:{cima}px {LADO}px 0px {LADO}px;">
-              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+            <td class="px" align="center" style="padding:14px {LADO}px 0px {LADO}px;">
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
                 <tr>
                   {cel[0]}
                   <td width="4%" style="width:4%; font-size:0; line-height:0;">&nbsp;</td>
@@ -175,33 +171,28 @@ def fotos(itens, cima):
                 </tr>
               </table>
             </td>
-          </tr>'''
+          </tr>''')
 
 
-def seccao_dresscode(t, variante):
+def seccao_dresscode(t):
     cab = (linha('DRESS CODE', 48, 0, ETIQUETA, 'center', 't-etiqueta') +
-           linha('Elegância, tradição e futuro', 14, 0,
+           linha('Casual chique', 14, 0,
                  f'font-size:22px; line-height:30px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-sec') +
-           linha('Tons clássicos e sofisticados, com apontamentos de cor para um toque de personalidade.', 14, 0, CORPO, 'center'))
-    pormenor = 'Num pormenor (um lenço, uma clutch, uma joia) ou numa única peça-chave.'
-    essencial = linha(t['essencial'], 44 if variante != 'b' else 40, 0,
-                      f'font-size:20px; line-height:30px; font-weight:300; color:{ESCURO};', 'center', 't-citacao')
-    if variante == 'a':
-        return cab + paleta(pormenor) + looks('Para elas', INTRO_ELAS, ELAS) + looks('Para eles', INTRO_ELES, ELES) + regras() + essencial
-    if variante == 'b':
-        return (cab + paleta(pormenor) + sub('Para elas', 44, 0) + fotos(FOTOS[:2], 14) +
-                sub('Para eles', 36, 0) + fotos(FOTOS[2:], 14) + essencial)
-    return cab + paleta('Um só apontamento de laranja queimado ou dourado é quanto basta.') + essencial
+           linha('Elegância descontraída, em tons clássicos e com apontamentos de cor para um toque de personalidade.', 14, 0, CORPO, 'center'))
+    return (cab + paleta('Num pormenor (um lenço, uma clutch, uma joia) ou numa única peça-chave.') +
+            looks('Para elas', INTRO_ELAS, ELAS, 44) + looks('Para eles', INTRO_ELES, ELES, 44) +
+            linha('Exemplos ilustrativos, pensados para inspirar.', 28, 0, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota') +
+            regras() +
+            linha(t['essencial'], 44, 0, f'font-size:20px; line-height:30px; font-weight:300; color:{ESCURO};', 'center', 't-citacao'))
 
 
-def confirmacao(t, variante='a'):
+def confirmacao(t):
     corpo = ''.join([
         cabecalho('JANTAR COMEMORATIVO', 'Inscrição confirmada'),
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
         dados_confirmacao(),
-        seccao_dresscode(t, variante),
-        botao('VER O GUIA COMPLETO', 32, 0, 'Com fotografias e mais combinações:', baixo_ligacao=0, link=GUIA, texto_link=GUIA_TEXTO),
+        seccao_dresscode(t),
         filete(44, 0),
         linha(t['despedida'], 32, 0),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
@@ -215,19 +206,13 @@ def confirmacao(t, variante='a'):
 
 
 FINAIS = {'v11-confirmacao-geral.html': 'geral', 'v12-confirmacao-institucional.html': 'institucional'}
-ALTERNATIVAS = {'confirmacao-opcoes/opcao-b-com-fotografias.html': 'b', 'confirmacao-opcoes/opcao-c-essencial-e-guia.html': 'c'}
 
 if __name__ == '__main__':
-    (AQUI / 'confirmacao-opcoes').mkdir(exist_ok=True)
     docs = {}
     for nome, registo in FINAIS.items():
         docs[nome] = confirmacao(CONFIRMACOES[registo])
         (AQUI / nome).write_text(docs[nome], encoding='utf-8')
         print(nome, len(docs[nome].encode('utf-8')), 'bytes')
-    for nome, variante in ALTERNATIVAS.items():          # alternativas para comparar (só no registo geral)
-        html = confirmacao(CONFIRMACOES['geral'], variante)
-        (AQUI / nome).write_text(html, encoding='utf-8')
-        print(nome, len(html.encode('utf-8')), 'bytes')
 
     (AQUI / 'copiar-confirmacoes.html').write_text(pagina_copiar(
         docs, [('v11-confirmacao-geral.html', 'Confirmação geral (militantes)'),

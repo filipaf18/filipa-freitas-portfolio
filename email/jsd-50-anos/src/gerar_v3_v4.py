@@ -2,7 +2,9 @@
 - v3 (geral, «tu») e v4 (institucional, «Estimado(a) convidado(a)»): dados do evento em linhas
   tipográficas centradas antes do fecho;
 - v5 (geral) e v6 (institucional): data, hora, local e preço dentro do texto; o único elemento
-  gráfico a cortar o corpo é o mote «Cinco décadas. Uma identidade.».
+  gráfico a cortar o corpo é o mote «Cinco décadas. Uma identidade.»;
+- v7 (geral) e v8 (institucional): dados no texto e o mote no FIM, como fecho assinado. Ordem:
+  texto → botão e nota → filete → frase que introduz o mote → mote → assinatura → rodapé.
 
 Uso: python3 src/gerar_v3_v4.py  (a partir de email/jsd-50-anos/)
 """
@@ -68,10 +70,35 @@ CONVITES['v6-convite-institucional.html'] = dict(
     ],
 )
 
+# v7 / v8: mote no fim. O último parágrafo introduz o mote, que fecha o email e é assinado logo a seguir.
+CONVITES_MOTE_NO_FIM = {
+    'v7-convite-geral.html': dict(
+        CONVITES['v3-convite-geral.html'],
+        paragrafos=[
+            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong> e queremos celebrá-los contigo no Jantar Comemorativo, no {DATA}, na {LOCAL}.',
+            f'Vão tomar da palavra representantes das estruturas da JSD e do PSD. A inscrição custa <strong {FORTE}>35&nbsp;€ por pessoa</strong>, com bar aberto.',
+        ],
+        intro_mote=f'Se fizeste parte desta história, <strong {FORTE}>esta mesa também é tua</strong>. Ao fim de meio século, o que nos une continua a caber numa só frase:',
+        assinatura='JSD Famalicão',
+    ),
+    'v8-convite-institucional.html': dict(
+        CONVITES['v4-convite-institucional.html'],
+        paragrafos=[
+            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. É com muito gosto que o(a) convidamos para o Jantar Comemorativo que assinala a data, no {DATA}, na {LOCAL}.',
+            f'Usarão da palavra representantes das estruturas da JSD e do PSD. A participação tem o valor de <strong {FORTE}>35&nbsp;€ por pessoa</strong>, com bar aberto.',
+        ],
+        intro_mote='Será uma honra contar com a sua presença para celebrarmos juntos meio século de pessoas, ideias e causas que continuam a caber numa só frase:',
+        assinatura='Juventude Social Democrata de Vila Nova de Famalicão',
+    ),
+}
+
 # ------------------------------------------------------------------ layout intermédio (único)
 CSS = '''
       .t-lead      { font-size:26px !important; line-height:34px !important; }
       .t-dados-v   { font-size:14px !important; line-height:26px !important; letter-spacing:1px !important; }'''
+CSS_MOTE_NO_FIM = CSS + '''
+      .t-mote      { font-size:30px !important; line-height:38px !important; }
+      .t-assina    { font-size:13px !important; line-height:20px !important; }'''
 def dados():
     """Dados do evento em três linhas centradas, só tipografia (sem caixa nem faixa)."""
     ponto = '<span style="color:#F86420;">&nbsp;·&nbsp;</span>'
@@ -104,6 +131,32 @@ def convite(t):
     ])
     return pagina(t['titulo'], t['preheader'], corpo, t['rodape_extra'], css_extra=CSS)
 
+
+def convite_mote_no_fim(t):
+    notas = ''.join(
+        linha(n, 18 if i == 0 else 10, 0, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota')
+        for i, n in enumerate(t['notas']))
+    corpo = ''.join([
+        cabecalho(),
+        linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
+        *[linha(p_, 12 if i == 0 else 16, 0) for i, p_ in enumerate(t['paragrafos'])],
+        botao(t['botao'], 32, 0, t['alternativa'], baixo_ligacao=0),
+        notas,
+        filete(32, 0),
+        # fecho: frase que introduz o mote, o mote em destaque e a assinatura
+        linha(t['intro_mote'], 32, 0),
+        linha(f'Cinco décadas.<br><strong style="font-weight:800; color:{ESCURO};">Uma <span style="color:#E2540F;">identidade</span>.</strong>',
+              22, 0, 'font-size:28px; line-height:36px; font-weight:300; color:#3E352B;', 'left', 't-mote'),
+        linha(t['assinatura'], 18, 48,
+              f'font-size:12px; line-height:19px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#0B72B8;', 'left', 't-assina'),
+    ])
+    return pagina(t['titulo'], t['preheader'], corpo, t['rodape_extra'], css_extra=CSS_MOTE_NO_FIM)
+
+
+for nome, t in CONVITES_MOTE_NO_FIM.items():
+    html = convite_mote_no_fim(t)
+    (AQUI / nome).write_text(html, encoding='utf-8')
+    print(nome, len(html), 'bytes')
 
 for nome, t in CONVITES.items():
     html = convite(t)

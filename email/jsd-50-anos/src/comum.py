@@ -52,7 +52,7 @@ def traco(cima=0, baixo=0):
           </tr>'''
 
 
-def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta ligação:'):
+def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta ligação:', baixo_ligacao=40):
     return f'''
           <tr>
             <td class="px" align="center" style="padding:{cima}px {LADO}px {baixo}px {LADO}px;">
@@ -66,7 +66,7 @@ def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta liga
             </td>
           </tr>''' + linha(
         f'{alternativa}<br><a href="{LINK}" style="color:#0B72B8; text-decoration:underline;">jsdfamalicao.pt/50-anos#inscricao</a>',
-        14, 40, 'font-size:12px; line-height:19px; color:#6B6054;', 'center', 't-ligacao')
+        14, baixo_ligacao, 'font-size:12px; line-height:19px; color:#6B6054;', 'center', 't-ligacao')
 
 
 def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra=''):

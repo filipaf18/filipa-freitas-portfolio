@@ -37,6 +37,14 @@ Textos em `CONVITES`, em `src/gerar_v3_v4.py`. Pré-visualizações: `preview-v3
 - Institucional: «…para o qual temos o gosto de o(a) convidar, no **sábado, 7 de novembro, às 19h00**, na **Sunset House**. […] A participação tem o valor de **35 € por pessoa**, com bar aberto.»
 - Gerados pelo mesmo `src/gerar_v3_v4.py`. Pré-visualizações: `preview-v5-geral-*` e `preview-v6-institucional-*`.
 
+## v7 (geral) e v8 (institucional) · mote no fim
+
+- `v7-convite-geral.html` e `v8-convite-institucional.html` — dados no texto (como na v5/v6) e o mote «Cinco décadas. Uma identidade.» no **fim**, como fecho assinado.
+- Ordem: cabeçalho → saudação → 2 parágrafos (data, hora, local, oradores e preço a negrito) → botão, ligação alternativa e nota → filete → frase que introduz o mote (termina em «…numa só frase:») → **mote** em destaque, alinhado com o texto → assinatura em maiúsculas espaçadas → rodapé com logo.
+- Geral: «Se fizeste parte desta história, esta mesa também é tua. Ao fim de meio século, o que nos une continua a caber numa só frase:»
+- Institucional: «Será uma honra contar com a sua presença para celebrarmos juntos meio século de pessoas, ideias e causas que continuam a caber numa só frase:» (o mote substitui o «Com os melhores cumprimentos»).
+- Gerados por `src/gerar_v3_v4.py` (`CONVITES_MOTE_NO_FIM`). Pré-visualizações: `preview-v7-geral-*` e `preview-v8-institucional-*`. As versões anteriores ficaram iguais.
+
 ## Como passar para o Gmail
 
 1. Abre o HTML no Chrome, `Ctrl/Cmd + A`, `Ctrl/Cmd + C`.

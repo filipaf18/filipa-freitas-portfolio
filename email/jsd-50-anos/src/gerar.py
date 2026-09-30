@@ -11,6 +11,7 @@ import base64, pathlib
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 BANNER = base64.b64encode((AQUI / 'banner-largo.jpg').read_bytes()).decode()
+LOGO = base64.b64encode((AQUI / 'logo-50-anos.jpg').read_bytes()).decode()   # fundo #F8F8F8, igual ao do rodapé
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
 MAPA = 'https://www.google.com/maps/search/?api=1&query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'
 FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
@@ -87,7 +88,7 @@ def pagina(titulo, preheader, corpo, rodape_extra):
       .t-etiqueta  {{ font-size:13px !important; line-height:18px !important; }}
       .t-titulo    {{ font-size:30px !important; line-height:37px !important; }}
       .t-subtitulo {{ font-size:14px !important; line-height:22px !important; }}
-      .t-lead      {{ font-size:22px !important; line-height:33px !important; }}
+      .t-lead      {{ font-size:24px !important; line-height:34px !important; }}
       .t-corpo     {{ font-size:18px !important; line-height:30px !important; }}
       .t-citacao   {{ font-size:20px !important; line-height:31px !important; }}
       .t-dados     {{ font-size:17px !important; line-height:31px !important; }}
@@ -95,7 +96,6 @@ def pagina(titulo, preheader, corpo, rodape_extra):
       .t-ligacao   {{ font-size:14px !important; line-height:22px !important; }}
       .t-rodape    {{ font-size:14px !important; line-height:22px !important; }}
       .t-rodape-p  {{ font-size:13px !important; line-height:20px !important; }}
-      .t-lema      {{ font-size:16px !important; line-height:24px !important; }}
       .btn-tabela  {{ width:100% !important; }}
       .btn         {{ display:block !important; padding:19px 12px !important; font-size:16px !important; }}
     }}
@@ -103,7 +103,7 @@ def pagina(titulo, preheader, corpo, rodape_extra):
 </head>
 
 <!-- Gerado por src/gerar.py. Banner e barras a toda a largura; texto numa coluna de até 1040 px.
-     Sem <style> e sem margens: todos os espaços são padding de células, para o Gmail (colar) e o telemóvel. -->
+     Espaços feitos com padding de células; o <style> acima só aumenta a letra em ecrãs até 600 px. -->
 
 <body style="margin:0; padding:0; background-color:#FFFFFF;">
 
@@ -140,12 +140,10 @@ def pagina(titulo, preheader, corpo, rodape_extra):
     </tr>
 
     <tr>
-      <td class="px" align="center" bgcolor="#F8F4EE" style="background-color:#F8F4EE; padding:40px {LADO}px 36px {LADO}px; font-family:{FONT}; text-align:center;">
+      <td class="px" align="center" bgcolor="#F8F8F8" style="background-color:#F8F8F8; padding:36px {LADO}px 32px {LADO}px; font-family:{FONT}; text-align:center;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr><td class="t-lema" align="center" style="font-family:{FONT}; font-size:15px; line-height:22px; font-weight:300; letter-spacing:2px; color:{ESCURO}; text-transform:uppercase;">Cinco décadas</td></tr>
-          <tr><td class="t-lema" align="center" style="font-family:{FONT}; font-size:15px; line-height:22px; font-weight:800; letter-spacing:2px; color:{ESCURO}; text-transform:uppercase;">Uma identidade</td></tr>
-          <tr><td align="center" style="padding-top:14px; font-family:{FONT}; font-size:34px; line-height:42px; font-weight:300; white-space:nowrap;"><span style="color:#0E7FD0;">1</span><span style="color:#0B8AC4;">9</span><span style="color:#0B93B0;">7</span><span style="color:#0E9A9A;">6</span><span style="color:#8C9A5A;">_</span><span style="color:#D67A0E;">2</span><span style="color:#E27512;">0</span><span style="color:#E5600F;">2</span><span style="color:#E2540F;">6</span></td></tr>
-          <tr><td class="t-rodape" align="center" style="padding-top:28px; font-family:{FONT}; font-size:12px; line-height:19px; color:#6B6054;">Juventude Social Democrata de Vila&nbsp;Nova de&nbsp;Famalicão<br><a href="https://jsdfamalicao.pt" style="color:{ESCURO}; text-decoration:underline;">jsdfamalicao.pt</a></td></tr>{rodape_extra}
+          <tr><td align="center" style="font-size:0; line-height:0;"><img src="data:image/jpeg;base64,{LOGO}" width="170" alt="50 anos JSD Famalicão" style="display:block; margin:0 auto; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr>
+          <tr><td class="t-rodape" align="center" style="padding-top:22px; font-family:{FONT}; font-size:12px; line-height:19px; color:#6B6054;">Juventude Social Democrata de Vila&nbsp;Nova de&nbsp;Famalicão<br><a href="https://jsdfamalicao.pt" style="color:{ESCURO}; text-decoration:underline;">jsdfamalicao.pt</a></td></tr>{rodape_extra}
         </table>
       </td>
     </tr>
@@ -158,6 +156,17 @@ def pagina(titulo, preheader, corpo, rodape_extra):
 
 
 ETIQUETA = f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:#0B72B8;'
+
+def cabecalho():
+    """Título centrado, igual nas duas versões."""
+    return ''.join([
+        linha('CONVITE', 44, 0, ETIQUETA, 'center', 't-etiqueta'),
+        linha('Jantar Comemorativo', 16, 0,
+              f'font-size:26px; line-height:33px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-titulo'),
+        linha('50.º Aniversário da JSD&nbsp;Famalicão', 10, 0,
+              f'font-size:13px; line-height:21px; font-weight:700; letter-spacing:2px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-subtitulo'),
+        traco(24, 0),
+    ])
 FORTE = f'style="color:{ESCURO};"'
 PONTO = '<span style="color:#F86420;">&nbsp;·&nbsp;</span>'
 
@@ -175,12 +184,10 @@ citacao = f'''
           </tr>'''
 
 geral_corpo = ''.join([
-    linha('CONVITE', 44, 0, ETIQUETA, 'left', 't-etiqueta'),
-    linha('Jantar<br><strong style="font-weight:800;">Comemorativo</strong>', 14, 0,
-          f'font-size:28px; line-height:35px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'left', 't-titulo'),
-    linha(f'Há datas que se assinalam.<br><strong style="font-weight:700; color:{ESCURO};">Há datas que se <span style="color:#E2540F;">celebram</span>.</strong>',
-          32, 0, 'font-size:20px; line-height:31px; font-weight:300; color:#3E352B;', 'left', 't-lead'),
-    linha(f'Em 2026, celebramos <strong {FORTE}>50 anos de JSD&nbsp;Famalicão</strong>. É este legado de pessoas e convicções que nos junta numa noite especial para assinalar cinco décadas de história.', 24),
+    cabecalho(),
+    linha(f'Cinco décadas.<br><strong style="font-weight:700; color:{ESCURO};">Uma identidade.</strong>',
+          28, 0, 'font-size:22px; line-height:32px; font-weight:300; color:#3E352B;', 'center', 't-lead'),
+    linha(f'Em 2026, celebramos <strong {FORTE}>50 anos de JSD&nbsp;Famalicão</strong>. É este legado de pessoas e convicções que nos junta numa noite especial para assinalar cinco décadas de história.', 32),
     linha('Vão tomar da palavra representantes das estruturas da JSD e do PSD.', 20),
     citacao,
     filete(),
@@ -203,15 +210,10 @@ geral_rodape = f'''
 
 # ---------------- Versão institucional ----------------
 inst_corpo = ''.join([
-    linha('CONVITE', 44, 0, ETIQUETA, 'center', 't-etiqueta'),
-    linha('Jantar Comemorativo', 16, 0,
-          f'font-size:26px; line-height:33px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-titulo'),
-    linha('50.º Aniversário da JSD&nbsp;Famalicão', 10, 0,
-          f'font-size:13px; line-height:21px; font-weight:700; letter-spacing:2px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-subtitulo'),
-    traco(24, 0),
+    cabecalho(),
     linha('Exmo.(a) Senhor(a),', 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
     linha(f'A Juventude Social Democrata de Vila Nova de Famalicão tem a honra de convidar V.&nbsp;Exa. para o <strong {FORTE}>Jantar Comemorativo do seu 50.º Aniversário</strong>, que terá lugar no dia <strong {FORTE}>7&nbsp;de&nbsp;novembro de&nbsp;2026, sábado, pelas&nbsp;19h00</strong>, na <strong {FORTE}>Sunset House</strong>, sita na Avenida Visconde de Pindela, n.º&nbsp;112, 4770&#8209;189&nbsp;Cruz.', 20),
-    linha('Ao longo de cinco décadas, a JSD Famalicão tem sido uma escola de cidadania e de participação política, construída por gerações de jovens que acreditaram no serviço à comunidade. Será uma honra contar com a presença de V.&nbsp;Exa. na celebração deste percurso.', 20),
+    linha(f'Sob o mote <strong {FORTE}>«Cinco décadas. Uma&nbsp;identidade»</strong>, celebramos um percurso em que a JSD Famalicão se afirmou como escola de cidadania e de participação política, construído por gerações de jovens que acreditaram no serviço à comunidade. Será uma honra contar com a presença de V.&nbsp;Exa. nesta celebração.', 20),
     linha('Usarão da palavra representantes das estruturas da JSD e do PSD.', 20),
     linha('A participação tem o valor de 35&nbsp;€ por pessoa. Agradecemos que a confirmação de presença seja feita através do formulário abaixo.', 20),
     linha('Com os melhores cumprimentos,', 32),
@@ -222,7 +224,7 @@ inst_corpo = ''.join([
 saidas = {
     'convite-jantar-50-anos.html': pagina(
         '50 Anos JSD Famalicão · Jantar Comemorativo',
-        'Há datas que se celebram. Se fizeste parte desta história, esta mesa também é tua.',
+        'Cinco décadas. Uma identidade. Se fizeste parte desta história, esta mesa também é tua.',
         geral_corpo, geral_rodape),
     'convite-jantar-50-anos-institucional.html': pagina(
         '50 Anos JSD Famalicão · Convite Institucional',

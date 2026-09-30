@@ -21,6 +21,21 @@ Duas versões, ambas em modo claro, de largura total e com o banner embutido (n�
 - Largura total no computador: o banner e as barras ocupam o ecrã todo; o texto fica numa coluna de até 1040 px (quase toda a largura da área de leitura do Gmail) sobre fundo branco, sem caixa nem margens cinzentas. No telemóvel encolhe sozinho.
 - O banner passou a ser o original completo (com «Cinco décadas, uma identidade» dos dois lados), que funciona melhor a toda a largura.
 
+## v3 e v4 · um só layout para os dois convites
+
+Layout intermédio (nem tão formal como a carta institucional, nem tão solto como o geral). Em cada versão, o convite geral e o institucional usam **exatamente o mesmo layout**; só muda o texto (saudação, parágrafos, fecho, botão e notas), definido em `TEXTOS` em `src/gerar_v3_v4.py`.
+
+| Ficheiro | Layout |
+| --- | --- |
+| `v3-convite-geral.html` / `v3-convite-institucional.html` | **v3 · cartão**: tudo centrado, como um convite impresso. Dados em linhas curtas entre dois filetes. |
+| `v4-convite-geral.html` / `v4-convite-institucional.html` | **v4 · carta com destaques**: cabeçalho centrado, texto alinhado à esquerda como uma carta, e dados em três colunas (data · local · preço) que ficam lado a lado no computador e se empilham sozinhas no telemóvel. |
+
+Ordem comum: cabeçalho → slogan «Cinco décadas. Uma identidade.» → saudação → 2 parágrafos → oradores → dados → fecho e assinatura → botão → notas → rodapé com logo.
+
+Textos: geral trata por «tu» («Caro(a) amigo(a)», «Contamos contigo.», «Inscrever-me»); institucional trata por «V. Exa.» («Exmo.(a) Senhor(a)», «Com os melhores cumprimentos», «Confirmar presença») e cita o slogan no corpo do texto. Pré-visualizações: `preview-v3-*` e `preview-v4-*`.
+
+Os ficheiros da v2 (`convite-jantar-50-anos*.html`, gerados por `src/gerar.py`) ficaram iguais. As peças comuns a todas as versões estão em `src/comum.py`.
+
 ## Como passar para o Gmail
 
 1. Abre o HTML no Chrome, `Ctrl/Cmd + A`, `Ctrl/Cmd + C`.

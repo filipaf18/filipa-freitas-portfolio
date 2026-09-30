@@ -55,25 +55,26 @@ def traco(cima=0, baixo=0):
           </tr>'''
 
 
-def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta ligação:', baixo_ligacao=40):
+def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta ligação:', baixo_ligacao=40,
+          link=LINK, texto_link='jsdfamalicao.pt/50-anos#inscricao'):
     return f'''
           <tr>
             <td class="px" align="center" style="padding:{cima}px {LADO}px {baixo}px {LADO}px;">
               <table class="btn-tabela" role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
                 <tr>
                   <td align="center" bgcolor="#F86420" style="background-color:#F86420; background-image:linear-gradient(90deg,#F8B451 0%,#F86420 100%); border-radius:4px;">
-                    <a class="btn" href="{LINK}" style="display:inline-block; padding:17px 34px; font-family:{FONT}; font-size:14px; line-height:20px; font-weight:800; letter-spacing:1.5px; white-space:nowrap; color:{ESCURO}; text-decoration:none;">{texto}</a>
+                    <a class="btn" href="{link}" style="display:inline-block; padding:17px 34px; font-family:{FONT}; font-size:14px; line-height:20px; font-weight:800; letter-spacing:1.5px; white-space:nowrap; color:{ESCURO}; text-decoration:none;">{texto}</a>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>''' + linha(
-        f'{alternativa}<br><a href="{LINK}" style="color:#0B72B8; text-decoration:underline;">jsdfamalicao.pt/50-anos#inscricao</a>',
+        f'{alternativa}<br><a href="{link}" style="color:#0B72B8; text-decoration:underline;">{texto_link}</a>',
         14, baixo_ligacao, 'font-size:12px; line-height:19px; color:#6B6054;', 'center', 't-ligacao')
 
 
 def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', claro_forcado=False, logo_png=False,
-           gerador='src/gerar.py', banner_max=None):
+           gerador='src/gerar.py', banner_max=None, link_banner=LINK):
     # claro_forcado: pede aos clientes que respeitam «color-scheme» (Apple Mail/iOS Mail, Outlook para iOS/macOS…)
     # que mostrem sempre a versão clara, mesmo com o telemóvel em modo noturno.
     esquema = 'light only' if claro_forcado else 'light'
@@ -92,7 +93,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
         <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{banner_max}px; margin:0 auto;">
           <tr>
             <td style="font-size:0; line-height:0;">
-              <a href="{LINK}" style="text-decoration:none;">
+              <a href="{link_banner}" style="text-decoration:none;">
                 <img src="data:image/jpeg;base64,{BANNER_FAIXA}" width="{banner_max}" alt="{alt_banner}"
                      style="display:block; max-width:100%; height:auto; {estilo_img}">
               </a>
@@ -104,7 +105,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     else:
         bloco_banner = f'''    <tr>
       <td bgcolor="#0A0701" style="background-color:#0A0701; font-size:0; line-height:0;">
-        <a href="{LINK}" style="text-decoration:none;">
+        <a href="{link_banner}" style="text-decoration:none;">
           <img src="data:image/jpeg;base64,{BANNER}" width="600" alt="{alt_banner}"
                style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
         </a>
@@ -192,11 +193,11 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
 
 ETIQUETA = f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:#0B72B8;'
 
-def cabecalho():
+def cabecalho(etiqueta='CONVITE', titulo='Jantar Comemorativo'):
     """Título centrado, igual nas duas versões."""
     return ''.join([
-        linha('CONVITE', 44, 0, ETIQUETA, 'center', 't-etiqueta'),
-        linha('Jantar Comemorativo', 16, 0,
+        linha(etiqueta, 44, 0, ETIQUETA, 'center', 't-etiqueta'),
+        linha(titulo, 16, 0,
               f'font-size:26px; line-height:33px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-titulo'),
         linha('50.º Aniversário da JSD&nbsp;Famalicão', 10, 0,
               f'font-size:13px; line-height:21px; font-weight:700; letter-spacing:2px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-subtitulo'),

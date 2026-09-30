@@ -11,6 +11,35 @@ Layout (igual nos dois): banner → cabeçalho centrado → saudação → 3 par
 
 **Mote:** como no banner, «CINCO DÉCADAS» em regular e «UMA IDENTIDADE» a negrito, em maiúsculas com letras ligeiramente espaçadas (28 px). O degradê da marca (azul → turquesa → âmbar → laranja) é aplicado letra a letra, porque o texto em degradê do CSS não funciona no Gmail. Cada letra leva a cor do degradê na sua posição horizontal, com a mesma escala nas duas linhas, como se o degradê pintasse o bloco. As cores claras do meio do degradê foram escurecidas só o necessário para se lerem sobre branco (contraste mínimo de 3:1). A linha mais larga, «UMA IDENTIDADE», mede cerca de 257 px e cabe num ecrã de 320 px. Para mudar o tamanho ou as cores, edita `MOTE_PX` ou `PARAGENS` em `src/gerar_final.py`.
 
+### 3.º email · Confirmação da inscrição + dress code (v11 e v12)
+
+Segue o convite (v7/v8) e o lembrete de pagamento (v9/v10). Como os anteriores, tem duas versões:
+
+| Ficheiro | Para quem | Saudação | Despedida |
+| --- | --- | --- | --- |
+| `v11-confirmacao-geral.html` | militantes (trata por «tu») | Caro(a) companheiro(a), | Até lá, |
+| `v12-confirmacao-institucional.html` | convidados institucionais | Estimado(a) companheiro(a), | Com os melhores cumprimentos, |
+
+Para copiar para o Gmail: **`copiar-confirmacoes.html`** (mesmo processo de `copiar-convites.html` e `copiar-lembretes.html`). Gerados por `src/gerar_confirmacao.py` (textos no dicionário `CONFIRMACOES`). Pré-visualizações: `preview-v11-confirmacao-geral-*` e `preview-v12-confirmacao-institucional-*`.
+
+Layout: o mesmo banner, barras, tipografia, mote e rodapé → «JANTAR COMEMORATIVO / INSCRIÇÃO CONFIRMADA» (mesma estrutura do cabeçalho do lembrete) → saudação e 2 parágrafos → data, hora e local entre dois filetes (o preço já não aparece) → **DRESS CODE** → botão «Ver o guia completo» → despedida, assinatura e mote. O email não diz «recebemos o teu pagamento»: a inscrição só fica confirmada depois do pagamento, mas assim o texto serve também para quem esteja isento.
+
+**Como o dress code entra no corpo do email (sem o deck):**
+- **Paleta desenhada com cores**, não com imagens: 5 tons base (castanho, bege, azul-marinho, preto, branco) e 2 apontamentos (laranja queimado, dourado), com os valores exatos do guia. São células de tabela: pesam quase 0 KB, não dependem de o cliente carregar imagens e leem-se em 320 px (mesmo sem o bloco `<style>`). Cada cor tem o nome escrito por baixo, por isso nada depende só da cor.
+- **4 looks para elas e 4 para eles**, cada um numa linha («**Vestido azul-marinho** + acessórios dourados»), e **3 regras** (conforto, tecidos nobres, equilíbrio). Só texto, empilhado numa coluna (colunas lado a lado não empilham no telemóvel quando o Gmail descarta o `<style>`).
+- Os 11 diapositivos do guia, com fotografias e mais combinações, ficam por detrás do botão **Ver o guia completo**.
+
+**Tamanho:** cerca de 96 KB (o convite v7 tem 88 KB; o Gmail corta a partir de ~102 KB). A indentação do HTML é comprimida no gerador para ganhar cerca de 2 KB. Verificado a 320, 360, 390 e 1400 px, com e sem `<style>`: sem deslocamento horizontal.
+
+**Alternativas** (em `confirmacao-opcoes/`, só no registo geral, comparadas em `comparacao-dresscode.png`):
+- `opcao-b-com-fotografias.html`: paleta + 4 fotografias do guia (2 elas, 2 eles). Bonita, mas pesa **150 KB**: o Gmail cortaria a mensagem e esconderia o fim do dress code. Só serve se as fotografias ficarem alojadas online (e nesse caso há clientes que não as mostram por omissão). As miniaturas estão em `dresscode/`.
+- `opcao-c-essencial-e-guia.html`: só a paleta, uma frase e o botão para o guia (92 KB, email curto).
+
+**A confirmar:**
+- **Endereço do guia**: `GUIA` em `src/gerar_confirmacao.py` está como `https://jsdfamalicao.pt/50-anos/dress-code`, um endereço **provisório**. Antes de enviar, publicar o deck nesse endereço (ou pôr o correto e voltar a gerar) ou tirar o botão.
+- Do guia **não copiei** «o jantar é numa quinta, ao ar livre» nem «jantar buffet», porque o convite só diz Sunset House e bar aberto. Se forem verdade, dizem-se numa linha. O guia também chama «Jantar de Aniversário» ao que o convite chama «Jantar Comemorativo»: no email usei a designação do convite.
+- **Modo escuro das apps do Gmail**: escurecem os emails por conta própria e podem alterar as cores da paleta (por exemplo, o branco). Não há forma de o impedir a partir do editor do Gmail (ver «Limite do Gmail» acima).
+
 ### Como enviar (importante)
 
 1. Abre **`copiar-convites.html`** no Chrome.

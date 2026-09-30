@@ -11,6 +11,7 @@ import base64, pathlib
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 BANNER = base64.b64encode((AQUI / 'banner-largo.jpg').read_bytes()).decode()
+BANNER_FAIXA = base64.b64encode((AQUI / 'banner-faixa.jpg').read_bytes()).decode()   # margens laterais esbatidas para preto (para a faixa escura)
 LOGO = base64.b64encode((AQUI / 'logo-50-anos.jpg').read_bytes()).decode()   # fundo #F8F8F8, igual ao do rodapé
 LOGO_PNG = base64.b64encode((AQUI / 'logo-50-anos.png').read_bytes()).decode()   # fundo transparente, contorno claro nas letras
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
@@ -72,7 +73,7 @@ def botao(texto, cima, baixo, alternativa='Se o botão não abrir, usa esta liga
 
 
 def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', claro_forcado=False, logo_png=False,
-           gerador='src/gerar.py'):
+           gerador='src/gerar.py', banner_max=None):
     # claro_forcado: pede aos clientes que respeitam «color-scheme» (Apple Mail/iOS Mail, Outlook para iOS/macOS…)
     # que mostrem sempre a versão clara, mesmo com o telemóvel em modo noturno.
     esquema = 'light only' if claro_forcado else 'light'
@@ -80,6 +81,35 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     css_claro = ('\n    :root {{ color-scheme:light only; supported-color-schemes:light only; }}'.replace('{{', '{').replace('}}', '}')
                  if claro_forcado else '')
     logo_src = f'data:image/png;base64,{LOGO_PNG}' if logo_png else f'data:image/jpeg;base64,{LOGO}'
+    alt_banner = '50 anos JSD Famalicão. Cinco décadas, uma identidade. 1976–2026.'
+    estilo_img = (f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;')
+    if banner_max:
+        # Computador: banner com no máximo {banner_max} px, ao centro de uma faixa quase preta (as margens do banner
+        # são #010101, por isso não se vê a junção). Telemóvel: ocupa a largura do ecrã (max-width:100%).
+        # width numérico + max-width:100% sobrevive ao Ctrl+C do Chrome e à colagem no Gmail.
+        bloco_banner = f'''    <tr>
+      <td align="center" bgcolor="#020101" style="background-color:#020101; font-size:0; line-height:0;">
+        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{banner_max}px; margin:0 auto;">
+          <tr>
+            <td style="font-size:0; line-height:0;">
+              <a href="{LINK}" style="text-decoration:none;">
+                <img src="data:image/jpeg;base64,{BANNER_FAIXA}" width="{banner_max}" alt="{alt_banner}"
+                     style="display:block; max-width:100%; height:auto; {estilo_img}">
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>'''
+    else:
+        bloco_banner = f'''    <tr>
+      <td bgcolor="#0A0701" style="background-color:#0A0701; font-size:0; line-height:0;">
+        <a href="{LINK}" style="text-decoration:none;">
+          <img src="data:image/jpeg;base64,{BANNER}" width="600" alt="{alt_banner}"
+               style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
+        </a>
+      </td>
+    </tr>'''
     return f'''<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
@@ -126,14 +156,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;{esquema_inline}">
 
-    <tr>
-      <td bgcolor="#0A0701" style="background-color:#0A0701; font-size:0; line-height:0;">
-        <a href="{LINK}" style="text-decoration:none;">
-          <img src="data:image/jpeg;base64,{BANNER}" width="600" alt="50 anos JSD Famalicão. Cinco décadas, uma identidade. 1976–2026."
-               style="display:block; min-width:100%; max-width:100%; height:auto; border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;">
-        </a>
-      </td>
-    </tr>
+{bloco_banner}
 
     <tr>
       <td height="6" bgcolor="#F86420" style="height:6px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE};">&nbsp;</td>

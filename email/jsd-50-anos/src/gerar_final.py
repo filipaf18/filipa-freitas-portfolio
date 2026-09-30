@@ -85,7 +85,7 @@ def convite(t):
         linha(t['nota'], 16, 44, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota'),
     ])
     return pagina(t['titulo'], t['preheader'], corpo, t['rodape_extra'], css_extra=CSS,
-                  claro_forcado=True, logo_png=True, gerador='src/gerar_final.py')
+                  claro_forcado=True, logo_png=True, gerador='src/gerar_final.py', banner_max=800)
 
 
 import json, re, html as _html

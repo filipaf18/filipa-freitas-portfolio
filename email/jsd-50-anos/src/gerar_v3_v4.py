@@ -1,4 +1,4 @@
-"""Gera a v3 (convite geral, trata por «tu») e a v4 (convite institucional, «V. Exa.») com o MESMO
+"""Gera a v3 (convite geral, trata por «tu») e a v4 (convite institucional, «Estimado(a) convidado(a)») com o MESMO
 layout intermédio e texto curto. Os dados do evento vão numa faixa escura compacta (componente gráfica).
 
 Layout intermédio: cabeçalho e slogan centrados, texto alinhado à esquerda (sem ser uma carta
@@ -12,7 +12,7 @@ from comum import *
 MUTED = '#6B6054'
 
 # ------------------------------------------------------------------ textos
-# Mesmo layout nos dois; texto curto. Geral trata por «tu», institucional por «V. Exa.».
+# Mesmo layout nos dois; texto curto. Geral trata por «tu», institucional ligeiramente formal («a sua presença»).
 CONVITES = {
     'v3-convite-geral.html': dict(
         titulo='50 Anos JSD Famalicão · Jantar Comemorativo',
@@ -32,11 +32,11 @@ CONVITES = {
     ),
     'v4-convite-institucional.html': dict(
         titulo='50 Anos JSD Famalicão · Convite Institucional',
-        preheader='Cinco décadas. Uma identidade. A JSD Famalicão convida V. Exa. para o Jantar Comemorativo do seu 50.º Aniversário.',
-        saudacao='Exmo.(a) Senhor(a),',
+        preheader='Cinco décadas. Uma identidade. A JSD Famalicão convida-o(a) para o Jantar Comemorativo do seu 50.º Aniversário.',
+        saudacao='Estimado(a) convidado(a),',
         paragrafos=[
-            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. É com muito gosto que convidamos V.&nbsp;Exa. para o Jantar Comemorativo que assinala a data.',
-            f'Sob o mote <strong {FORTE}>«Cinco décadas. Uma&nbsp;identidade»</strong>, celebraremos o legado de várias gerações. Usarão da palavra representantes das estruturas da JSD e do PSD.',
+            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. É com muito gosto que o(a) convidamos para o Jantar Comemorativo que assinala a data.',
+            f'Sob o mote <strong {FORTE}>«Cinco décadas. Uma&nbsp;identidade»</strong>, celebraremos o legado de várias gerações. Usarão da palavra representantes das estruturas da JSD e do PSD. Será uma honra contar com a sua presença.',
         ],
         fecho='Com os melhores cumprimentos,',
         assinatura='Juventude Social Democrata de Vila Nova de Famalicão',
@@ -49,7 +49,8 @@ CONVITES = {
 
 # ------------------------------------------------------------------ layout intermédio (único)
 CSS = '''
-      .t-lead      { font-size:26px !important; line-height:34px !important; }'''
+      .t-lead      { font-size:26px !important; line-height:34px !important; }
+      .t-dados-v   { font-size:14px !important; line-height:26px !important; letter-spacing:1px !important; }'''
 CLARO = '#CDBFAE'
 
 
@@ -63,31 +64,13 @@ def celula(conteudo):
 
 
 def dados():
-    data = f'''<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>
-                      <td style="padding-right:10px; font-family:{FONT}; font-size:44px; line-height:44px; font-weight:800; color:#F86420;">07</td>
-                      <td align="left" style="font-family:{FONT}; text-align:left;">
-                        <div style="font-size:14px; line-height:18px; font-weight:800; letter-spacing:2px; color:#FFFFFF;">NOV 2026</div>
-                        <div style="font-size:12px; line-height:18px; letter-spacing:1px; color:{CLARO};">SÁB · 19H00</div>
-                      </td></tr></table>'''
-    local = (f'<div style="font-size:14px; line-height:20px; font-weight:800; letter-spacing:2px; color:#FFFFFF;">SUNSET HOUSE</div>'
-             f'<a href="{MAPA}" style="font-size:12px; line-height:18px; color:{CLARO}; text-decoration:none;">Av. Visc. de Pindela 112<br>4770&#8209;189&nbsp;Cruz</a>')
-    preco = (f'<div style="font-size:30px; line-height:34px; font-weight:300; color:#FFFFFF;">35&nbsp;€</div>'
-             f'<div style="font-size:11px; line-height:16px; letter-spacing:2px; color:{CLARO};">POR PESSOA · BAR ABERTO</div>')
-    return f'''
-          <tr>
-            <td class="px" style="padding:32px {LADO}px 0 {LADO}px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#130D07" style="background-color:#130D07; border-radius:6px;">
-                <tr><td height="4" bgcolor="#F86420" style="height:4px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE}; border-radius:6px 6px 0 0;">&nbsp;</td></tr>
-                <tr>
-                  <td align="center" style="padding:14px 8px; font-size:0; line-height:0; text-align:center;">
-                {celula(data)}
-                {celula(local)}
-                {celula(preco)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>'''
+    """Dados do evento em três linhas centradas, só tipografia (sem caixa nem faixa)."""
+    ponto = '<span style="color:#F86420;">&nbsp;·&nbsp;</span>'
+    return traco(30, 0) + linha(
+        f'<span style="font-weight:700; color:{ESCURO};">Sábado,&nbsp;7&nbsp;de&nbsp;novembro{ponto}19h00</span><br>'
+        f'<a href="{MAPA}" style="color:#3E352B; text-decoration:none;">Sunset House<br>Av.&nbsp;Visc.&nbsp;de&nbsp;Pindela&nbsp;112, Cruz</a><br>'
+        f'35&nbsp;€ por pessoa{ponto}bar aberto',
+        14, 0, 'font-size:13px; line-height:24px; letter-spacing:1.5px; text-transform:uppercase; color:#3E352B;', 'center', 't-dados-v')
 
 
 def convite(t):

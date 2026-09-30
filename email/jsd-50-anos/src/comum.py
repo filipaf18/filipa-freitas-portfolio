@@ -4,7 +4,8 @@ Regras de construção, para sobreviver à colagem no Gmail e ao telemóvel:
 - sem <style>: tudo inline (o Gmail descarta o <style> ao colar);
 - cada bloco de texto é uma linha de tabela própria e os espaços são padding de <td>
   (nada de margin, que se perde ou colapsa conforme o cliente);
-- nenhuma largura fixa em píxeis nos atributos: só 100% e max-width.
+- larguras fluidas: tabelas com width="100%" (atributo); imagens com min-width/max-width:100% no style
+  e um width numérico de reserva (os clientes de email leem width="100%" numa imagem como 100 px).
 """
 import base64, pathlib
 
@@ -128,8 +129,8 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     <tr>
       <td bgcolor="#0A0701" style="background-color:#0A0701; font-size:0; line-height:0;">
         <a href="{LINK}" style="text-decoration:none;">
-          <img src="data:image/jpeg;base64,{BANNER}" width="100%" alt="50 anos JSD Famalicão. Cinco décadas, uma identidade. 1976–2026."
-               style="display:block; max-width:100%; height:auto; border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;">
+          <img src="data:image/jpeg;base64,{BANNER}" width="600" alt="50 anos JSD Famalicão. Cinco décadas, uma identidade. 1976–2026."
+               style="display:block; min-width:100%; max-width:100%; height:auto; border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;">
         </a>
       </td>
     </tr>

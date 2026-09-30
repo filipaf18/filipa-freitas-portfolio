@@ -17,9 +17,11 @@ Layout (igual nos dois): banner → cabeçalho centrado → saudação → 3 par
 
 **Não abras o HTML e copies com Ctrl+A / Ctrl+C.** Ao copiar uma página, o Chrome converte as larguras fluidas em píxeis fixos iguais à largura da janela (ex.: 1400 px). O email chegava assim ao iPhone mais largo do que o ecrã: banner cortado, texto fora do ecrã e logo descentrado. Ver `preview-iphone-antes-agora.png`. Duas correções:
 - a página `copiar-convites.html` põe na área de transferência o HTML original de cada convite;
-- mesmo que alguém copie com Ctrl+C, as larguras fluidas estão agora só em atributos (`width="100%"`), que o Chrome não converte. Verificado: a 390 px (iPhone) o email ocupa 390 px e o logo fica centrado (antes: 1408 px, com o logo a 708 px).
+- mesmo que alguém copie com Ctrl+C, as larguras fluidas já não são convertidas: as tabelas usam o atributo `width="100%"` e o banner usa `min-width:100%; max-width:100%`, com um `width="600"` numérico de reserva. Uma imagem com `width="100%"` no atributo aparecia com o tamanho errado depois de colada, porque os clientes de email leem esse valor como 100 px. Verificado: a 390 px (iPhone) o email ocupa 390 px e o logo fica centrado (antes: 1408 px, com o logo a 708 px).
 
 **Logo:** recortado simetricamente em torno do centro das letras «ANOS / JSD FAMALICÃO» (desvio 0 px) e centrado por uma tabela centrada, que não depende de `margin:auto`. Preparado por `src/preparar_logo.py`.
+
+**Imagem do banner:** 1200 × 500 px (proporção 12:5), JPG com cerca de 40 KB (`banner-largo.jpg`). Para a substituir, usa **1200 px de largura** (o dobro dos 600 px de referência, para ficar nítida nos ecrãs de alta resolução) e mantém o ficheiro abaixo de 60 KB, porque vai embutido no email. A altura pode ser outra: o HTML ajusta-se sozinho. Depois corre `python3 src/gerar_final.py`.
 
 **Limite do Gmail:** ao colar, o Gmail descarta o `<head>`. Perdem-se o `color-scheme: light only`, os tamanhos de letra maiores no telemóvel e a instrução para o iPhone não transformar datas e moradas em ligações. O email continua correto com as medidas escritas em cada elemento. Para enviar com o `<head>` intacto é preciso uma ferramenta que envie HTML completo, por exemplo Brevo, Mailchimp ou MailerLite.
 

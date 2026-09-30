@@ -12,25 +12,25 @@ VALOR = f'<strong {FORTE}>35&nbsp;€</strong>'
 LEMBRETES = {
     'v9-lembrete-geral.html': dict(
         titulo='50 Anos JSD Famalicão · Lembrete de pagamento',
-        preheader='Para garantires o teu lugar no Jantar Comemorativo, falta apenas o pagamento por transferência bancária.',
+        preheader='Um lembrete amigável sobre o pagamento da tua inscrição no Jantar Comemorativo.',
         saudacao='Caro(a) companheiro(a),',
         paragrafos=[
-            'Obrigado por te teres inscrito no Jantar Comemorativo dos 50&nbsp;anos da JSD&nbsp;Famalicão. Falta apenas um passo.',
-            f'Para garantires o teu lugar nesta noite, o pagamento de {VALOR} por pessoa deve ser feito através de transferência bancária para:',
+            'Obrigado por te teres inscrito no Jantar Comemorativo dos 50&nbsp;anos da JSD&nbsp;Famalicão. Estamos muito contentes por contar contigo!',
+            f'Só um lembrete amigável: para garantires o teu lugar nesta noite, pedimos-te que faças o pagamento de {VALOR} por pessoa, através de transferência bancária para:',
         ],
-        nota='A inscrição é individual e só fica válida depois de confirmado o pagamento.',
+        nota='Se já fizeste o pagamento, por favor ignora esta mensagem e obrigado! A inscrição é individual e fica válida depois de confirmado o pagamento.',
         despedida='Até lá,',
         rodape_extra=CONVITES['v7-convite-geral.html']['rodape_extra'].replace('este convite', 'esta mensagem'),
     ),
     'v10-lembrete-institucional.html': dict(
         titulo='50 Anos JSD Famalicão · Lembrete de pagamento',
-        preheader='Para garantir o seu lugar no Jantar Comemorativo, falta apenas o pagamento por transferência bancária.',
+        preheader='Um lembrete cordial sobre o pagamento da sua inscrição no Jantar Comemorativo.',
         saudacao='Estimado(a) companheiro(a),',
         paragrafos=[
-            'Agradecemos a sua inscrição no Jantar Comemorativo dos 50&nbsp;anos da JSD&nbsp;Famalicão. Falta apenas um passo.',
-            f'Para garantir o seu lugar nesta noite, o pagamento de {VALOR} por pessoa deve ser feito através de transferência bancária para:',
+            'Agradecemos a sua inscrição no Jantar Comemorativo dos 50&nbsp;anos da JSD&nbsp;Famalicão. Será uma honra contar consigo!',
+            f'Como lembrete cordial: para garantir o seu lugar nesta noite, pedimos-lhe que efetue o pagamento de {VALOR} por pessoa, através de transferência bancária para:',
         ],
-        nota='A inscrição é individual e só fica válida depois de confirmado o pagamento.',
+        nota='Caso já tenha efetuado o pagamento, por favor desconsidere esta mensagem e obrigado! A inscrição é individual e fica válida depois de confirmado o pagamento.',
         despedida='Com os melhores cumprimentos,',
         rodape_extra='',
     ),
@@ -47,7 +47,7 @@ def caixa_iban():
 
 def lembrete(t):
     corpo = ''.join([
-        cabecalho().replace('>CONVITE<', '>LEMBRETE<').replace('Jantar Comemorativo', 'Pagamento da inscrição'),
+        cabecalho().replace('>CONVITE<', '>PAGAMENTO DA INSCRIÇÃO<').replace('Jantar Comemorativo', 'Um lembrete amigável'),
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
         caixa_iban(),

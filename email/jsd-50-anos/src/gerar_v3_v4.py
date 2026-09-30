@@ -19,8 +19,8 @@ CONVITES = {
         preheader='Cinco décadas. Uma identidade. Junta-te a nós no Jantar Comemorativo dos 50 anos da JSD Famalicão.',
         saudacao='Caro(a) amigo(a),',
         paragrafos=[
-            f'Em 2026, a JSD Famalicão faz <strong {FORTE}>50&nbsp;anos</strong> e queremos celebrá-los com quem fez esta história.',
-            f'É esta identidade que queremos celebrar contigo. Junta-te a nós no Jantar Comemorativo, onde vão tomar da palavra representantes das estruturas da JSD e do PSD. Se fizeste parte desta história, <strong {FORTE}>esta mesa também é tua</strong>.',
+            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. Meio século de pessoas, ideias e causas que cabem numa só frase:',
+            f'É essa identidade que queremos celebrar contigo no Jantar Comemorativo, onde vão tomar da palavra representantes das estruturas da JSD e do PSD. Se fizeste parte desta história, <strong {FORTE}>esta mesa também é tua</strong>.',
         ],
         fecho='Contamos contigo!',
         assinatura='JSD Famalicão',
@@ -35,8 +35,8 @@ CONVITES = {
         preheader='Cinco décadas. Uma identidade. A JSD Famalicão convida-o(a) para o Jantar Comemorativo do seu 50.º Aniversário.',
         saudacao='Estimado(a) convidado(a),',
         paragrafos=[
-            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. É com muito gosto que o(a) convidamos para o Jantar Comemorativo que assinala a data.',
-            f'É sob este mote que celebraremos o legado de várias gerações. Usarão da palavra representantes das estruturas da JSD e do PSD. Será uma honra contar com a sua presença.',
+            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. Meio século de pessoas, ideias e causas que cabem numa só frase:',
+            f'É essa identidade que queremos celebrar no Jantar Comemorativo para o qual temos o gosto de o(a) convidar. Usarão da palavra representantes das estruturas da JSD e do PSD. Será uma honra contar com a sua presença.',
         ],
         fecho='Com os melhores cumprimentos,',
         assinatura='Juventude Social Democrata de Vila Nova de Famalicão',
@@ -84,7 +84,7 @@ def convite(t):
         linha(t['paragrafos'][0], 12, 0),
         # slogan a meio do texto, como elemento gráfico; o 2.º parágrafo refere-se a ele
         linha(f'Cinco décadas.<br><strong style="font-weight:800; color:{ESCURO};">Uma <span style="color:#E2540F;">identidade</span>.</strong>',
-              30, 18, 'font-size:24px; line-height:32px; font-weight:300; color:#3E352B;', 'center', 't-lead'),
+              30, 18, 'font-size:24px; line-height:32px; font-weight:300; color:#3E352B;', 'left', 't-lead'),
         linha(t['paragrafos'][1], 12, 0),
         dados(),
         linha(t['fecho'], 28, 0),

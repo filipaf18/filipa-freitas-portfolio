@@ -12,7 +12,7 @@ VALOR = f'<strong {FORTE}>35&nbsp;€</strong>'
 LEMBRETES = {
     'v9-lembrete-geral.html': dict(
         titulo='50 Anos JSD Famalicão · Pagamento da inscrição',
-        etiqueta='JANTAR COMEMORATIVO', cabeca='Garante o teu lugar',
+        etiqueta='PAGAMENTO DA INSCRIÇÃO',
         preheader='Falta só o pagamento da tua inscrição no Jantar Comemorativo dos 50 anos da JSD Famalicão.',
         saudacao='Caro(a) companheiro(a),',
         paragrafos=[
@@ -26,7 +26,7 @@ LEMBRETES = {
     ),
     'v10-lembrete-institucional.html': dict(
         titulo='50 Anos JSD Famalicão · Pagamento da inscrição',
-        etiqueta='JANTAR COMEMORATIVO', cabeca='Garanta o seu lugar',
+        etiqueta='PAGAMENTO DA INSCRIÇÃO',
         preheader='Falta só o pagamento da sua inscrição no Jantar Comemorativo dos 50 anos da JSD Famalicão.',
         saudacao='Estimado(a) companheiro(a),',
         paragrafos=[
@@ -51,7 +51,7 @@ def caixa_iban():
 
 def lembrete(t):
     corpo = ''.join([
-        cabecalho(t['etiqueta'], t['cabeca']),
+        cabecalho(t['etiqueta'], titulo=None, subtitulo=None),     # o banner já diz «Jantar Comemorativo · 50 Anos JSD Famalicão»
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
         caixa_iban(),
@@ -64,7 +64,7 @@ def lembrete(t):
         linha('', 0, 40),
     ])
     return pagina(t['titulo'], t['preheader'], corpo, t['rodape_extra'], css_extra=CSS,
-                  claro_forcado=True, logo_png=True, gerador='src/gerar_lembrete.py', banner_max=800)
+                  claro_forcado=True, logo_png=True, gerador='src/gerar_lembrete.py', banner_coluna=True, link_banner='https://jsdfamalicao.pt/50-anos')
 
 
 docs = {}

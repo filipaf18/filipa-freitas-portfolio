@@ -90,29 +90,20 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
       <td height="6" bgcolor="#F86420" style="height:6px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE};">&nbsp;</td>
     </tr>'''
     if banner_coluna:
-        # Versões finais: banner com a largura da coluna de texto (no máximo {largura} px), sem faixas laterais.
-        # No computador fica alinhado com a coluna; se a janela for mais larga, à volta fica o branco do email.
-        # No telemóvel ocupa a largura do ecrã. width numérico + max-width:100% sobrevive ao Ctrl+C e à colagem
-        # no Gmail. A barra com o degradê fica por baixo, com a mesma largura. O fundo da célula (a cor média
-        # do banner) só se vê se as imagens estiverem bloqueadas, por trás do texto alternativo.
+        # Versões finais: banner a toda a largura do email, sem faixas laterais (a imagem é 3:1, por isso
+        # fica baixo: 1400 px de largura → 467 px de altura). Telemóvel: igual, ocupa o ecrã.
+        # Largura: width numérico de reserva + min-width/max-width:100% (sobrevive ao Ctrl+C do Chrome e à
+        # colagem no Gmail; um width="100%" no atributo da imagem seria lido como 100 px).
+        # O fundo da célula (cor média do banner) só se vê se as imagens estiverem bloqueadas.
         bloco_banner = f'''    <tr>
-      <td align="center" style="padding:0; font-size:0; line-height:0;">
-        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">
-          <tr>
-            <td bgcolor="#554835" style="background-color:#554835; font-size:0; line-height:0;">
-              <a href="{link_banner}" style="text-decoration:none;">
-                <img src="data:image/jpeg;base64,{BANNER_JANTAR}" width="{largura}" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
-                     style="display:block; max-width:100%; height:auto; {estilo_img}">
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td height="6" bgcolor="#F86420" style="height:6px; font-size:0; line-height:0; background-color:#F86420; background-image:{DEGRADE};">&nbsp;</td>
-          </tr>
-        </table>
+      <td bgcolor="#554835" style="background-color:#554835; font-size:0; line-height:0;">
+        <a href="{link_banner}" style="text-decoration:none;">
+          <img src="data:image/jpeg;base64,{BANNER_JANTAR}" width="1200" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
+               style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
+        </a>
       </td>
     </tr>'''
-        barra_topo, nota = '', f'Banner e barra de cima com a largura da coluna de texto (até {largura} px); barra de baixo e rodapé a toda a largura.'
+        barra_topo, nota = '\n' + barra, f'Banner e barras a toda a largura; texto numa coluna de até {largura} px.'
     elif banner_max:
         # Computador: banner com no máximo {banner_max} px, ao centro de uma faixa quase preta (as margens do banner
         # são #010101, por isso não se vê a junção). Telemóvel: ocupa a largura do ecrã (max-width:100%).

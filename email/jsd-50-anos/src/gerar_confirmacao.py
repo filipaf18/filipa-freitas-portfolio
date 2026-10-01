@@ -2,12 +2,12 @@
 v11 (geral) e v12 (institucional). Mesma base visual dos convites v7/v8 e do lembrete v9/v10.
 
 Ordem: banner «Jantar Comemorativo» e «INSCRIÇÃO CONFIRMADA» (como «CONVITE» nos convites v7/v8) → saudação e 2 parágrafos → data, hora e local entre dois filetes →
-MAIS INFORMAÇÕES: imagem do dress code (dresscode/dresscode-casual-chic.jpg, fornecida) com a descrição em texto →
-AFTER PARTY no Classe Bar (logo dresscode/classe-bar-logo.png, preparado por src/preparar_logo_classe.py) →
-frase final, despedida, assinatura e mote.
+MAIS INFORMAÇÕES: só o mood board do dress code (dresscode/dresscode-casual-chic.jpg, fornecido), sem texto por baixo →
+AFTER PARTY no Classe Bar (logo dresscode/classe-bar-logo.png, preparado por src/preparar_logo_classe.py) e a frase da
+after party → «Cuidámos de cada pormenor…», despedida, assinatura e mote. Textos fornecidos pela JSD Famalicão.
 
-A imagem do dress code tem as etiquetas da paleta muito pequenas (14 px num ficheiro de 1600 px): num telemóvel não se
-leem. Por isso o texto por baixo repete a paleta por extenso, e o texto alternativo da imagem também.
+As etiquetas da paleta no mood board são muito pequenas (14 px num ficheiro de 1600 px) e não se leem num telemóvel;
+o texto alternativo da imagem traz a paleta por extenso (leitores de ecrã e imagens bloqueadas).
 
 Uso: python3 src/gerar_confirmacao.py  (a partir de email/jsd-50-anos/)
 Nota: importar gerar_final volta a gerar v7/v8 e copiar-convites.html (saída idêntica).
@@ -24,16 +24,17 @@ SITE_50 = 'https://jsdfamalicao.pt/50-anos'     # o banner leva ao site (já nã
 IMAGENS_URL = None
 
 # ------------------------------------------------------------------ textos (registo geral e institucional)
-INFO = 'Ficam aqui os dados do jantar e mais algumas informações: o dress code e a after party.'
 CONFIRMACOES = {
     'geral': dict(
         saudacao='Caro(a) companheiro(a),',
         paragrafos=[
-            f'A tua inscrição no Jantar Comemorativo dos <strong {FORTE}>50&nbsp;anos</strong> da JSD&nbsp;Famalicão está <strong {FORTE}>confirmada</strong>. '
-            'Já tens lugar garantido e contamos contigo!',
-            INFO,
+            f'Está confirmada a tua inscrição no Jantar Comemorativo dos <strong {FORTE}>50&nbsp;anos</strong> da JSD&nbsp;Famalicão. '
+            'Obrigado por quereres partilhar connosco uma noite tão especial.',
+            'Abaixo encontras os detalhes do jantar, o dress code e as informações da after party.',
         ],
-        essencial='O essencial é sentir-te bem e celebrar connosco.',
+        after_party=f'Se quiseres prolongar a noite, o <strong {FORTE}>Classe&nbsp;Bar</strong> espera-nos a partir das '
+                    f'<strong {FORTE}>01h30</strong>, com entrada gratuita para todos os convidados.',
+        fecho='Cuidámos de cada pormenor. Resta desfrutares da noite.',
         despedida='Até lá,',
         nota='Qualquer dúvida, responde a este email.',
         rodape_extra=f'''
@@ -43,11 +44,13 @@ CONFIRMACOES = {
     'institucional': dict(
         saudacao='Estimado(a) companheiro(a),',
         paragrafos=[
-            f'A sua inscrição no Jantar Comemorativo dos <strong {FORTE}>50&nbsp;anos</strong> da JSD&nbsp;Famalicão está <strong {FORTE}>confirmada</strong>. '
-            'Será uma honra contar consigo!',
-            INFO,
+            f'É com enorme satisfação que confirmamos a sua inscrição no Jantar Comemorativo dos <strong {FORTE}>50&nbsp;anos</strong> da JSD&nbsp;Famalicão. '
+            'Agradecemos que tenha escolhido partilhar connosco uma noite tão especial.',
+            'Encontrará abaixo os detalhes do jantar, bem como as indicações sobre o dress code e a after party.',
         ],
-        essencial='O essencial é sentir-se bem e celebrar connosco.',
+        after_party=f'Para quem desejar prolongar a noite, o <strong {FORTE}>Classe&nbsp;Bar</strong> acolherá os convidados a partir das '
+                    f'<strong {FORTE}>01h30</strong>, com entrada gratuita para os mesmos.',
+        fecho='Cuidámos de cada pormenor. Resta-lhe desfrutar da noite.',
         despedida='Com os melhores cumprimentos,',
         nota='Para qualquer esclarecimento, responda a este email.',
         rodape_extra='',
@@ -112,19 +115,12 @@ def logo_classe(cima):
 def informacoes(t):
     return ''.join([
         linha(sem_rasto('MAIS INFORMAÇÕES'), 48, 0, ETIQUETA, 'center', 't-etiqueta'),
-        # dress code: a imagem traz o título; por baixo, o texto (a paleta lê-se mal na imagem em telemóvel)
-        imagem_dresscode(24),
-        linha('Elegância descontraída, em tons clássicos e com apontamentos de cor para um toque de personalidade.', 24, 0, CORPO, 'center'),
-        linha(f'<strong {FORTE}>Tons base:</strong> castanho, bege, azul-marinho, preto e branco.<br>'
-              f'<strong {FORTE}>Apontamentos de cor:</strong> laranja queimado e dourado.',
-              12, 0, f'font-size:14px; line-height:24px; color:{MUTED};', 'center', 't-nota'),
-        # after party
+        imagem_dresscode(24),                         # só o mood board, sem texto por baixo
         filete(44, 0),
         sub('After party', 40, 0),
         logo_classe(16),
-        linha(f'A noite continua no <strong {FORTE}>Classe&nbsp;Bar</strong>, a partir das <strong {FORTE}>01h30</strong>.<br>'
-              'Entrada gratuita para todos os participantes.', 16, 0, CORPO, 'center'),
-        linha(t['essencial'], 44, 0, f'font-size:20px; line-height:30px; font-weight:300; color:{ESCURO};', 'center', 't-citacao'),
+        linha(t['after_party'], 16, 0, CORPO, 'center'),
+        linha(t['fecho'], 44, 0, f'font-size:20px; line-height:30px; font-weight:300; color:{ESCURO};', 'center', 't-citacao'),
     ])
 
 

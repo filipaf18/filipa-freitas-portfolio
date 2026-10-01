@@ -34,7 +34,7 @@ CONVITES = {
         alternativa='Se o botão não abrir, usa esta ligação:',
         nota='A inscrição é individual e só fica válida depois de confirmado o pagamento.',
         rodape_extra=f'''
-          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:#7A6F62;">Recebes este convite por fazeres parte da história da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>''',
+          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:#7A6F62; text-align:center;">Recebes este convite por fazeres parte da história da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>''',
     ),
     'v8-convite-institucional.html': dict(
         titulo='50 Anos JSD Famalicão · Convite',
@@ -95,7 +95,7 @@ def mote():
         x, letras = 0, []
         for l in txt:
             w = LARGURA_LETRA[l]
-            letras.append('&nbsp;' if l == ' ' else f'<span style="color:{cor_degrade(min(1, (x + w / 2) / total))};">{l}</span>')
+            letras.append(' ' if l == ' ' else f'<span style="color:{cor_degrade(min(1, (x + w / 2) / total))};">{l}</span>')
             x += w + em
         linhas.append(f'<span style="font-weight:{peso};">{"".join(letras)}</span>')
     return linha('<br>'.join(linhas), 26, 0,

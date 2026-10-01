@@ -31,7 +31,7 @@ CONFIRMACOES = {
         despedida='Até lá,',
         nota='Qualquer dúvida, responde a este email.',
         rodape_extra=f'''
-          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:#7A6F62;">Recebes este email por te teres inscrito no Jantar Comemorativo dos 50 anos da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>''',
+          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:#7A6F62; text-align:center;">Recebes este email por te teres inscrito no Jantar Comemorativo dos 50 anos da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>''',
         preheader='A tua inscrição está confirmada. Sábado, 7 de novembro, 19h00, Sunset House. Aqui tens o dress code.',
     ),
     'institucional': dict(
@@ -83,7 +83,7 @@ CSS = '''
 
 def sub(texto, cima, baixo=0, alinhar='center'):
     """Subtítulo pequeno, em maiúsculas espaçadas."""
-    return linha(texto, cima, baixo, f'font-size:11px; line-height:16px; font-weight:700; letter-spacing:3px; color:{MUTED}; text-transform:uppercase;',
+    return linha(sem_rasto(texto) if alinhar == 'center' else texto, cima, baixo, f'font-size:11px; line-height:16px; font-weight:700; letter-spacing:3px; color:{MUTED}; text-transform:uppercase;',
                  alinhar, 't-sub')
 
 
@@ -100,7 +100,7 @@ def _cor(cor, nome, sub_):
     borda = f' border:1px solid {BORDA_CLARA};' if cor == '#F7F2EA' else ''
     tile = (f'<td width="18%" height="56" bgcolor="{cor}" style="width:18%; height:56px; background-color:{cor}; border-radius:4px;{borda} '
             f'font-size:0; line-height:0;">&nbsp;</td>')
-    rotulo = (f'<td width="18%" valign="top" align="center" style="width:18%; padding-top:8px;">'
+    rotulo = (f'<td width="18%" valign="top" align="center" style="width:18%; padding-top:8px; text-align:center; word-break:break-word;">'
               f'<strong style="color:{ESCURO};">{nome}</strong><br>{sub_}</td>')
     return tile, rotulo
 
@@ -128,7 +128,7 @@ def paleta(legenda):
     return f'''
           <tr>
             <td class="px" align="center" style="padding:0px {LADO}px 0px {LADO}px;">
-              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; margin:0 auto;">
                 {rotulo('Tons base', 32)}<tr><td style="padding-top:12px;">{base}</td></tr>
                 {rotulo('Apontamentos', 28)}<tr><td style="padding-top:12px;">{acentos}</td></tr>
               </table>
@@ -163,7 +163,7 @@ def looks(titulo, intro, itens, cima):
             linha(intro, 10, 4, 'font-size:15px; line-height:24px; color:#6B6054;', 'center', 't-nota') + f'''
           <tr>
             <td class="px" align="center" style="padding:14px {LADO}px 0px {LADO}px;">
-              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; margin:0 auto;">
                 <tr>
                   {cel[0]}
                   <td width="4%" style="width:4%; font-size:0; line-height:0;">&nbsp;</td>
@@ -175,8 +175,8 @@ def looks(titulo, intro, itens, cima):
 
 
 def seccao_dresscode(t):
-    cab = (linha('DRESS CODE', 48, 0, ETIQUETA, 'center', 't-etiqueta') +
-           linha('Casual chique', 14, 0,
+    cab = (linha(sem_rasto('DRESS CODE'), 48, 0, ETIQUETA, 'center', 't-etiqueta') +
+           linha(sem_rasto('Casual chique'), 14, 0,
                  f'font-size:22px; line-height:30px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-sec') +
            linha('Elegância descontraída, em tons clássicos e com apontamentos de cor para um toque de personalidade.', 14, 0, CORPO, 'center'))
     return (cab + paleta('Num pormenor (um lenço, uma clutch, uma joia) ou numa única peça-chave.') +

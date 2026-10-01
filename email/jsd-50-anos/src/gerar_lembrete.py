@@ -45,13 +45,13 @@ def caixa_iban():
     """IBAN em destaque, entre dois filetes, escrito sem espaços para se poder copiar e colar."""
     return filete(28, 0) + linha(
         f'<span style="font-size:12px; line-height:18px; font-weight:700; letter-spacing:4px; color:#0B72B8;">IBAN</span><br>'
-        f'<span style="font-size:20px; line-height:32px; font-weight:800; letter-spacing:1px; color:{ESCURO};">{IBAN}</span>',
+        f'<span style="font-size:18px; line-height:32px; font-weight:800; letter-spacing:0.5px; color:{ESCURO}; word-break:break-all;">{IBAN}</span>',
         22, 22, 'font-size:16px; line-height:27px; color:#3E352B;', 'left', 't-lead') + filete()
 
 
 def lembrete(t):
     corpo = ''.join([
-        cabecalho().replace('>CONVITE<', f">{t['etiqueta']}<").replace('Jantar Comemorativo', t['cabeca']),
+        cabecalho(t['etiqueta'], t['cabeca']),
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
         caixa_iban(),

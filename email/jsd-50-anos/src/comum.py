@@ -217,16 +217,17 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
 
 ETIQUETA = f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:#0B72B8;'
 
-def cabecalho(etiqueta='CONVITE', titulo='Jantar Comemorativo'):
-    """Título centrado, igual nas duas versões."""
-    return ''.join([
-        linha(etiqueta, 44, 0, ETIQUETA, 'center', 't-etiqueta'),
-        linha(titulo, 16, 0,
-              f'font-size:26px; line-height:33px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-titulo'),
-        linha('50.º Aniversário da JSD&nbsp;Famalicão', 10, 0,
-              f'font-size:13px; line-height:21px; font-weight:700; letter-spacing:2px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-subtitulo'),
-        traco(24, 0),
-    ])
+def cabecalho(etiqueta='CONVITE', titulo='Jantar Comemorativo', subtitulo='50 Anos JSD'):
+    """Título centrado, igual nas duas versões. «titulo» e «subtitulo» a None omitem essa linha
+    (nos convites finais o banner já diz «Jantar Comemorativo · 50 Anos JSD Famalicão»)."""
+    linhas = [linha(etiqueta, 44, 0, ETIQUETA, 'center', 't-etiqueta')]
+    if titulo:
+        linhas.append(linha(titulo, 16, 0,
+              f'font-size:26px; line-height:33px; font-weight:300; letter-spacing:0.5px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-titulo'))
+    if subtitulo:
+        linhas.append(linha(subtitulo, 10, 0,
+              f'font-size:13px; line-height:21px; font-weight:700; letter-spacing:2px; color:{ESCURO}; text-transform:uppercase;', 'center', 't-subtitulo'))
+    return ''.join(linhas + [traco(24, 0)])
 FORTE = f'style="color:{ESCURO};"'
 PONTO = '<span style="color:#F86420;">&nbsp;·&nbsp;</span>'
 

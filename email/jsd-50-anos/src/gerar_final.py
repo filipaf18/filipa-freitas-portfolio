@@ -25,9 +25,9 @@ CONVITES = {
         preheader='Cinco Décadas. Uma Identidade. Vem celebrar connosco os 50 anos da JSD Famalicão.',
         saudacao='Caro(a) companheiro(a),',
         paragrafos=[
-            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. Queremos assinalar esta data num Jantar Comemorativo que reúne várias gerações de militantes.',
+            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>, e há datas que só fazem sentido quando partilhadas. Vem juntar-te a várias gerações de militantes num Jantar Comemorativo feito de reencontros e de memórias.',
             'No decurso do evento, usarão da palavra representantes das estruturas da JSD e do PSD.',
-            'Se fazes parte desta história, vem celebrar connosco meio século de pessoas, ideias e causas. Contamos contigo!',
+            'Se fazes parte desta história, vem celebrar connosco meio século de pessoas, ideias e causas. Sem ti, não será igual. Contamos contigo!',
         ],
         despedida='Até lá,',
         botao='INSCREVER-ME',
@@ -41,9 +41,9 @@ CONVITES = {
         preheader='Cinco Décadas. Uma Identidade. A JSD Famalicão convida-o(a) para o Jantar Comemorativo dos seus 50 anos.',
         saudacao='Estimado(a) companheiro(a),',
         paragrafos=[
-            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. É com muito gosto que o(a) convidamos para o Jantar Comemorativo que assinala a data e reúne várias gerações de militantes.',
+            f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>, e há datas que só fazem sentido quando partilhadas. É com muito gosto que o(a) convidamos para o Jantar Comemorativo, que reunirá várias gerações de militantes num serão de reencontros e de memórias.',
             'No decurso do evento, usarão da palavra representantes das estruturas da JSD e do PSD.',
-            'Será uma honra contar com a sua presença para celebrarmos juntos meio século de pessoas, ideias e causas.',
+            'Contamos consigo para celebrarmos juntos meio século de pessoas, ideias e causas. Sem a sua presença, não será igual.',
         ],
         despedida='Com os melhores cumprimentos,',
         botao='CONFIRMAR PRESENÇA',
@@ -120,7 +120,7 @@ def dados():
 
 def convite(t):
     corpo = ''.join([
-        cabecalho(),
+        cabecalho(titulo=None, subtitulo=None),     # o banner já diz «Jantar Comemorativo · 50 Anos JSD Famalicão»
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
         linha(t['despedida'], 28, 0),

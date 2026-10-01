@@ -7,7 +7,7 @@
 | `v7-convite-geral.html` | militantes (trata por «tu») | Caro(a) companheiro(a), | Até lá, | Inscrever-me |
 | `v8-convite-institucional.html` | convidados institucionais | Estimado(a) companheiro(a), | Com os melhores cumprimentos, | Confirmar presença |
 
-Layout (igual nos dois): banner «Jantar Comemorativo» com a largura da coluna de texto → cabeçalho centrado → saudação → 3 parágrafos → despedida e assinatura → mote **«CINCO DÉCADAS / UMA IDENTIDADE»** em maiúsculas e com o degradê da marca, alinhado com o texto → dados em quatro linhas centradas entre dois filetes finos (data · hora e local · morada · preço) → botão, ligação alternativa e nota → rodapé com o logo do evento. Gerados por `src/gerar_final.py` (textos no dicionário `CONVITES`).
+Layout (igual nos dois): banner «Jantar Comemorativo» com a largura da coluna de texto → só «CONVITE» e o traço laranja (o banner já diz «Jantar Comemorativo · 50 Anos JSD Famalicão», por isso o título deixou de se repetir) → saudação → 3 parágrafos → despedida e assinatura → mote **«CINCO DÉCADAS / UMA IDENTIDADE»** em maiúsculas e com o degradê da marca, alinhado com o texto → dados em quatro linhas centradas entre dois filetes finos (data · hora e local · morada · preço) → botão, ligação alternativa e nota → rodapé com o logo do evento. Gerados por `src/gerar_final.py` (textos no dicionário `CONVITES`).
 
 **Mote:** como no banner, «CINCO DÉCADAS» em regular e «UMA IDENTIDADE» a negrito, em maiúsculas com letras ligeiramente espaçadas (28 px). O degradê da marca (azul → turquesa → âmbar → laranja) é aplicado letra a letra, porque o texto em degradê do CSS não funciona no Gmail. Cada letra leva a cor do degradê na sua posição horizontal, com a mesma escala nas duas linhas, como se o degradê pintasse o bloco. As cores claras do meio do degradê foram escurecidas só o necessário para se lerem sobre branco (contraste mínimo de 3:1). A linha mais larga, «UMA IDENTIDADE», mede cerca de 257 px e cabe num ecrã de 320 px. Para mudar o tamanho ou as cores, edita `MOTE_PX` ou `PARAGENS` em `src/gerar_final.py`.
 
@@ -75,7 +75,7 @@ Duas versões, ambas em modo claro, de largura total e com o banner embutido (n�
 
 ## O que mudou
 
-- Cabeçalho igual e centrado nas duas versões: «Convite», «Jantar Comemorativo», «50.º Aniversário da JSD Famalicão» e um traço laranja.
+- Cabeçalho igual e centrado nas duas versões: «Convite», «Jantar Comemorativo», «50 Anos JSD» e um traço laranja.
 - Slogan «Cinco décadas. Uma identidade.»: na geral substitui «Há datas que se assinalam…» (centrado, logo abaixo do título); na institucional entra no corpo da carta («Sob o mote «Cinco décadas. Uma identidade», celebramos um percurso…»).
 - Rodapé com o logo do evento, centrado, seguido do nome da JSD Famalicão e do site. Saíram do rodapé o lema e o «1976_2026», que já estão no banner e no cabeçalho.
 - Alinhamento verificado a 320, 360, 375 e 1400 px: todo o texto alinhado à esquerda começa na mesma margem e os blocos centrados (títulos, slogan, dados, botão, logo) estão no eixo da página.

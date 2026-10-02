@@ -35,7 +35,7 @@ class Folha {
 }
 
 function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, rolante = false, semente = null, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [], omitirParte = null, modificarParte = {}, extraCodigo = [] }) {
-  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, marcas: [], registos: [], htmls: Object.assign({}, HTML) };
+  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, pausas: [], gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, marcas: [], registos: [], htmls: Object.assign({}, HTML) };
   e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
     SpreadsheetApp: {
@@ -44,7 +44,7 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
         if (!f) throw new Error('endereço desconhecido: ' + url);
         return { getName: () => f.ficheiro, getSheets: () => [f] };
       },
-      getUi: () => { if (!ecra) throw new Error('sem ecrã (acionador)'); return { alert: m => e.alertas.push(m), createMenu: () => { const m = { addItem: () => m, addSeparator: () => m, addToUi: () => {} }; return m; } }; },
+      getUi: () => { if (!ecra) throw new Error('sem ecrã (acionador)'); return { alert: m => e.alertas.push(m), createMenu: () => { const m = { addItem: (t, f) => { (e.menu = e.menu || []).push([t, f]); return m; }, addSeparator: () => m, addToUi: () => {} }; return m; } }; },
     },
     MailApp: {
       getRemainingDailyQuota: () => quotaMentirosa ? 1000 : rolante ? e.quota - e.marcas.filter(t => t > e.agora - 24 * 3600000).length : e.quota - e.usados,
@@ -58,7 +58,7 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
       },
     },
     HtmlService: { createHtmlOutputFromFile: nome => { if (!(nome in e.htmls)) throw new Error('No HTML file named ' + nome); return { getContent: () => e.htmls[nome] }; } },
-    Utilities: { sleep: () => { e.sleeps++; }, formatDate: () => '01/10/2026 09:00' },
+    Utilities: { sleep: ms => { e.sleeps++; e.pausas.push(ms); }, formatDate: () => '01/10/2026 09:00' },
     Session: { getScriptTimeZone: () => 'Europe/Lisbon', getEffectiveUser: () => ({ getEmail: () => 'jsd@exemplo.pt' }) },
     LockService: { getScriptLock: () => ({ tryLock: () => !e.travaOcupada, releaseLock: () => {} }) },
     ScriptApp: {
@@ -104,7 +104,7 @@ ok(e.folhaGeral.estados().filter(s => s === '').length === 50, 'as 50 que faltam
 ok(!e.folhaGeral.estados().some(s => /^Erro/.test(s)), 'nenhuma linha deve ficar com «Erro»');
 ok(e.folhaGeral.estados().filter(s => /^Enviado a /.test(s)).length === 100, '100 linhas «Enviado a …»');
 ok(/quota diária/.test(e.alertas[0]) && /50 pessoas/.test(e.alertas[0]), 'o resumo diz que a quota acabou e quantas faltam');
-ok(e.sleeps === 99, 'pausa de 1 s entre envios no envio manual (não depois do último)');
+ok(e.sleeps === 99 && e.pausas.every(ms => ms === 10000), 'pausa de 10 s entre envios no envio manual (não depois do último)');
 
 titulo('2. no dia seguinte (quota renovada) envia só as 50 que faltam, sem duplicados');
 e.usados = 0;
@@ -560,6 +560,48 @@ titulo('25. o envio automático só conclui quando as listas acabaram de facto; 
   // j) reativar limpa avisos e falhas antigas
   x = arranca({ geral: pessoas(2, 'g'), institucional: [] }); x.props.ultimoErro = 'velho'; x.props.aviso = 'velho'; x.props.pausaAte = String(x.agora + 1e9); x.correr('ativarEnvioAutomatico()');
   ok(!x.props.ultimoErro && !x.props.aviso && !x.props.pausaAte, 'j) «Ativar envio automático» limpa erros, avisos e pausas antigas');
+}
+
+// ------------------------------------------------------------------ 26. envio manual: 10 s entre emails, e «Enviar só o próximo»
+titulo('26. envio manual: 10 segundos entre emails, e botões para enviar só o próximo (1 a 1)');
+{
+  const comTempo = x => {          // o relógio anda: 10 s de pausa e 1,5 s por cada email enviado
+    const envia = x.c.MailApp.sendEmail;
+    x.c.Utilities.sleep = ms => { x.agora += ms; x.sleeps++; x.pausas.push(ms); };
+    x.c.MailApp.sendEmail = (...a) => { x.agora += 1500; return envia(...a); };
+    return x;
+  };
+  let x = comTempo(ambiente({ geral: pessoas(300, 'g'), institucional: [], quota: 1000 }));
+  const t0 = x.agora; x.correr('enviarConvites()');
+  const duracao = x.agora - t0;
+  ok(x.enviados.length >= 25 && x.enviados.length <= 30, `lote manual com 10 s entre emails: ${x.enviados.length} emails por clique (cerca de 25 a 30)`);
+  ok(duracao <= 5 * MIN + 15000 && duracao < 6 * MIN, `acaba antes dos 6 minutos da Google (${Math.round(duracao / 1000)} s)`);
+  ok(/Parou ao fim de 5 minutos/.test(x.alertas[0]) && /Faltam \d+/.test(x.alertas[0]), 'a mensagem diz que parou aos 5 minutos e quantos faltam');
+  const antes = x.enviados.length; x.correr('enviarConvites()');
+  ok(x.enviados.length > antes && unicos(x.registos.map(r => r.to)), 'o clique seguinte continua de onde parou, sem repetir ninguém');
+
+  x = ambiente({ geral: pessoas(3, 'g'), institucional: [], emailsDeTeste: ['a@exemplo.pt', 'b@exemplo.pt'] }); x.correr('enviarTeste()');
+  ok(x.enviados.length === 8 && x.pausas.every(ms => ms === 1000), 'os emails de teste mantêm 1 s de pausa (não levam os 10 s)');
+
+  // menu: todos os itens apontam para funções que existem, incluindo os dois novos
+  x = ambiente({}); x.correr('onOpen()');
+  const itens = x.menu || [];
+  ok(itens.some(i => i[1] === 'enviarUmGeral') && itens.some(i => i[1] === 'enviarUmInstitucional'), 'o menu tem «Enviar só o próximo» para a geral e para a institucional');
+  ok(itens.length >= 8 && itens.every(i => x.correr(`typeof ${i[1]}`) === 'function'), `os ${itens.length} itens do menu apontam todos para funções que existem`);
+
+  // enviar só o próximo, a cada clique
+  x = ambiente({ geral: [...pessoas(1, 'i'), ...pessoas(4, 'g')], institucional: pessoas(2, 'i') });   // g0 = i0 está na institucional
+  x.correr('enviarUmGeral()');
+  ok(x.enviados.length === 1 && x.enviados[0].to === 'g0@exemplo.pt' && x.folhaGeral.estados()[0].startsWith('Ignorado') && /^Enviado a/.test(x.folhaGeral.estados()[1]), 'geral: salta (e marca) quem já está na institucional e envia só à próxima pessoa');
+  ok(/Enviou 1 email nesta ronda/.test(x.alertas[0]) && /Parou no limite pedido\. Faltam 3/.test(x.alertas[0]) && x.pausas.length === 0, 'mensagem no singular, sem pausas, com os que faltam');
+  x.correr('enviarUmGeral()'); x.correr('enviarUmGeral()');
+  ok(x.enviados.length === 3 && unicos(x.enviados.map(m => m.to)), 'cada clique envia uma pessoa nova (3 cliques, 3 emails diferentes)');
+  x.correr('enviarUmInstitucional()');
+  ok(x.enviados.length === 4 && /Estimado/.test(x.enviados[3].htmlBody) && x.enviados[3].to === 'i0@exemplo.pt', 'institucional: usa o convite institucional e a 1.ª da lista');
+  x = ambiente({ geral: pessoas(3, 'g'), institucional: [], quota: 0 }); x.correr('enviarUmGeral()');
+  ok(x.enviados.length === 0 && /quota diária/.test(x.alertas[0]) && x.folhaGeral.estados().every(s => s === ''), 'sem quota: não envia nem marca ninguém');
+  x = ambiente({ geral: pessoas(3, 'g'), institucional: [], quota: 8, reserva: 10, horasSemReserva: 72, inicioDosEnvios: '2026-09-20 10:00' }); x.correr('enviarUmGeral()');
+  ok(x.enviados.length === 0, 'depois das 72 horas, com 8 de quota e 10 de reserva, não envia (a reserva também vale para 1 a 1)');
 }
 
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);

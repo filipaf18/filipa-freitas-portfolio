@@ -21,7 +21,8 @@ var HORAS_SEM_RESERVA = 72;                      // nas primeiras horas de envio
 var INICIO_DOS_ENVIOS = '';                      // quando começaram os envios. '' = quando este script enviar o 1.º convite. Ex.: '2026-10-02 12:00'
 var EMAILS_DE_TESTE = [];                        // para onde vão os emails de teste; vazio = a conta que corre o script. Ex.: ['eu@gmail.com', 'eu@icloud.com']
 var LIMITE_POR_RONDA = 0;                        // máximo de emails por clique em «Enviar Lote» (0 = sem limite: só a quota e o tempo)
-var PAUSA_MS = 1000;                             // pausa entre emails no envio manual em lote
+var PAUSA_MS = 10000;                            // pausa entre emails no envio manual em lote (10 s: cerca de 25 a 30 emails por clique em 5 minutos)
+var PAUSA_TESTE_MS = 1000;                       // pausa entre os emails de teste
 var INTERVALO_MIN_S = 60;                        // envio automático: intervalo entre emails, sorteado entre estes dois valores (segundos)
 var INTERVALO_MAX_S = 120;                       // o acionador corre de minuto a minuto, por isso o intervalo real é de 1 ou 2 minutos
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
@@ -36,6 +37,8 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('✉️ Envio de Convites')
       .addItem('Enviar Lote - Convite Geral', 'enviarConvites')
       .addItem('Enviar Lote - Institucional', 'enviarConvitesInstitucionais')
+      .addItem('Enviar só o próximo (1 email) - Geral', 'enviarUmGeral')
+      .addItem('Enviar só o próximo (1 email) - Institucional', 'enviarUmInstitucional')
       .addSeparator()
       .addItem('Diagnosticar (se algo não funciona)', 'diagnosticar')
       .addItem('Enviar emails de teste para mim', 'enviarTeste')
@@ -81,12 +84,9 @@ function diagnosticar() {
   diagnostico();
 }
 
-/** Nomes todos em maiúsculas ou todos em minúsculas passam a «Maria da Silva»; os restantes ficam como estão. */
-function nomeProprio_(nome) {
-  if (nome !== nome.toUpperCase() && nome !== nome.toLowerCase()) return nome;
-  var particulas = { de: 1, da: 1, do: 1, dos: 1, das: 1, e: 1 };
-  return nome.toLowerCase().split(/\s+/).map(function (p, k) {
-    if (k > 0 && particulas[p]) return p;
-    return p.replace(/(^|[-'])([a-zà-ÿ])/g, function (m, a, b) { return a + b.toUpperCase(); });
-  }).join(' ');
+function verQuota() {
+  avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje (o limite renova-se passadas cerca de 24 horas).\n'
+        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
+                           : 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n')
+        + 'Conta: ' + Session.getEffectiveUser().getEmail());
 }

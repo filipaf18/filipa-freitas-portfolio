@@ -17,6 +17,10 @@ function porEnviar_(estado) {
   return estado === '' || /^Erro: .*(too many times|limit exceeded)/i.test(estado);
 }
 
+function erroDeQuota_(e) {
+  return /too many times|limit exceeded|quota|daily limit|limit reached/i.test(String(e && e.message));
+}
+
 function emailValido_(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -35,6 +39,14 @@ function trocar_(texto, de, para) {
 function registarInicioEnvio_() {
   var props = PropertiesService.getScriptProperties();
   if (!props.getProperty('inicioEnvio')) props.setProperty('inicioEnvio', String(Date.now()));
+}
+
+/** Reserva em vigor: zero nas primeiras HORAS_SEM_RESERVA depois do 1.º convite enviado, RESERVA_QUOTA depois. */
+function reservaAtual_() {
+  if (HORAS_SEM_RESERVA <= 0) return RESERVA_QUOTA;
+  var inicio = inicioEnvio_();
+  if (!inicio || Date.now() - inicio < HORAS_SEM_RESERVA * 3600000) return 0;   // ainda não enviou nenhum, ou está nas primeiras horas
+  return RESERVA_QUOTA;
 }
 
 /** Rótulo de uma lista para mostrar ao utilizador: nome do ficheiro e do separador (para ele confirmar que é a lista certa). */

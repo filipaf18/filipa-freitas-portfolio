@@ -19,7 +19,8 @@ var HORAS_SEM_RESERVA = 72;                      // nas primeiras horas de envio
 var INICIO_DOS_ENVIOS = '';                      // quando começaram os envios. '' = quando este script enviar o 1.º convite. Ex.: '2026-10-02 12:00'
 var EMAILS_DE_TESTE = [];                        // para onde vão os emails de teste; vazio = a conta que corre o script. Ex.: ['eu@gmail.com', 'eu@icloud.com']
 var LIMITE_POR_RONDA = 0;                        // máximo de emails por clique em «Enviar Lote» (0 = sem limite: só a quota e o tempo)
-var PAUSA_MS = 1000;                             // pausa entre emails no envio manual em lote
+var PAUSA_MS = 10000;                            // pausa entre emails no envio manual em lote (10 s: cerca de 25 a 30 emails por clique em 5 minutos)
+var PAUSA_TESTE_MS = 1000;                       // pausa entre os emails de teste
 var INTERVALO_MIN_S = 60;                        // envio automático: intervalo entre emails, sorteado entre estes dois valores (segundos)
 var INTERVALO_MAX_S = 120;                       // o acionador corre de minuto a minuto, por isso o intervalo real é de 1 ou 2 minutos
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
@@ -33,6 +34,8 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('✉️ Envio de Convites')
       .addItem('Enviar Lote - Convite Geral', 'enviarConvites')
       .addItem('Enviar Lote - Institucional', 'enviarConvitesInstitucionais')
+      .addItem('Enviar só o próximo (1 email) - Geral', 'enviarUmGeral')
+      .addItem('Enviar só o próximo (1 email) - Institucional', 'enviarUmInstitucional')
       .addSeparator()
       .addItem('Diagnosticar (se algo não funciona)', 'diagnosticar')
       .addItem('Enviar emails de teste para mim', 'enviarTeste')
@@ -51,6 +54,15 @@ function enviarConvites() {
 
 function enviarConvitesInstitucionais() {
   executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}); });
+}
+
+/** Um email de cada vez, a cada clique: a próxima pessoa por enviar da lista. */
+function enviarUmGeral() {
+  executar_(function () { return processarEnvios(folhaGeral_(), 'convite', emailsInstitucionais_(), 1); });
+}
+
+function enviarUmInstitucional() {
+  executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}, 1); });
 }
 
 /** Partes do código (ficheiros Parte2.gs a ParteN.gs) que não estão no projeto. Com o código num só ficheiro, nenhuma. */
@@ -313,7 +325,7 @@ function resumo_(res) {
     return 'Enviados ' + res.enviados + ' emails de teste para ' + res.destinos.join(', ') + ' (convite geral e institucional, feminino e masculino).\n'
          + 'Não alteram as listas. Confere o nome, o género («Cara»/«Caro»), as imagens e o aspeto no Gmail (web e app) e no iPhone.';
   }
-  var t = 'Enviou ' + res.enviados + ' emails nesta ronda.';
+  var t = 'Enviou ' + res.enviados + (res.enviados === 1 ? ' email' : ' emails') + ' nesta ronda.';
   if (res.ignorados) t += '\n' + res.ignorados + ' ignorados (email repetido ou já na lista institucional): ficam marcados «Ignorado».';
   if (res.erros) t += '\n' + res.erros + ' com erro (ver a coluna «Estado»).';
   if (res.paragem === 'quota') {
@@ -321,7 +333,7 @@ function resumo_(res) {
        + '. As ' + res.pendentes + ' pessoas que faltam NÃO foram marcadas com erro: ficam para a próxima ronda, '
        + 'passadas cerca de 24 horas (ou deixa o envio automático ativo).';
   } else if (res.paragem === 'ronda') {
-    t += '\n\nPausa de segurança (limite por ronda). Faltam ' + res.pendentes + '. Volta a clicar daqui a uns minutos.';
+    t += '\n\nParou no limite pedido. Faltam ' + res.pendentes + '. Volta a clicar quando quiseres enviar mais.';
   } else if (res.paragem === 'tempo') {
     t += '\n\nParou ao fim de 5 minutos (limite da Google por execução). Faltam ' + res.pendentes + '. Volta a clicar.';
   } else if (res.paragem === 'falha') {
@@ -406,7 +418,7 @@ function enviarTeste() {
         var html = personalizar_(HtmlService.createHtmlOutputFromFile(casos[c][0]).getContent(), casos[c][0], casos[c][1], casos[c][2]);
         MailApp.sendEmail({ to: destinos[d], subject: '[TESTE] ' + ASSUNTO, body: textoSimples_(html), htmlBody: html, name: NOME_REMETENTE });
         enviados++;
-        Utilities.sleep(PAUSA_MS);
+        Utilities.sleep(PAUSA_TESTE_MS);
       }
     }
     return { teste: true, enviados: enviados, destinos: destinos };

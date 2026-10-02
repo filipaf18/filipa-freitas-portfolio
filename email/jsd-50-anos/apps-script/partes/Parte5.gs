@@ -2,8 +2,8 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_5 = true;
 
-function erroDeQuota_(e) {
-  return /too many times|limit exceeded|quota|daily limit|limit reached/i.test(String(e && e.message));
+function enviarUmInstitucional() {
+  executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}, 1); });
 }
 
 // ---------------------------------------------------------------- personalização (igual à versão anterior)
@@ -53,7 +53,7 @@ function enviarTeste() {
         var html = personalizar_(HtmlService.createHtmlOutputFromFile(casos[c][0]).getContent(), casos[c][0], casos[c][1], casos[c][2]);
         MailApp.sendEmail({ to: destinos[d], subject: '[TESTE] ' + ASSUNTO, body: textoSimples_(html), htmlBody: html, name: NOME_REMETENTE });
         enviados++;
-        Utilities.sleep(PAUSA_MS);
+        Utilities.sleep(PAUSA_TESTE_MS);
       }
     }
     return { teste: true, enviados: enviados, destinos: destinos };

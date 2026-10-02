@@ -2,6 +2,11 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_7 = true;
 
+/** Um email de cada vez, a cada clique: a próxima pessoa por enviar da lista. */
+function enviarUmGeral() {
+  executar_(function () { return processarEnvios(folhaGeral_(), 'convite', emailsInstitucionais_(), 1); });
+}
+
 /** Emails da lista institucional (para não lhes enviar também o convite geral). Vazio se estiver desligado. */
 function emailsInstitucionais_() {
   if (!EXCLUIR_INSTITUCIONAIS_DA_GERAL) return {};
@@ -17,6 +22,16 @@ function mapaEmails_(dados) {
     if (e !== '') mapa[e] = true;
   }
   return mapa;
+}
+
+/** Nomes todos em maiúsculas ou todos em minúsculas passam a «Maria da Silva»; os restantes ficam como estão. */
+function nomeProprio_(nome) {
+  if (nome !== nome.toUpperCase() && nome !== nome.toLowerCase()) return nome;
+  var particulas = { de: 1, da: 1, do: 1, dos: 1, das: 1, e: 1 };
+  return nome.toLowerCase().split(/\s+/).map(function (p, k) {
+    if (k > 0 && particulas[p]) return p;
+    return p.replace(/(^|[-'])([a-zà-ÿ])/g, function (m, a, b) { return a + b.toUpperCase(); });
+  }).join(' ');
 }
 
 /** Versão em texto simples do HTML (a outra parte do email, para quem não vê HTML). */
@@ -42,13 +57,6 @@ function avisar_(mensagem) {
   }
 }
 
-function verQuota() {
-  avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje (o limite renova-se passadas cerca de 24 horas).\n'
-        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
-                           : 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n')
-        + 'Conta: ' + Session.getEffectiveUser().getEmail());
-}
-
 /** Quando começaram os envios de convites, em ms: INICIO_DOS_ENVIOS, ou o momento em que este script enviou o 1.º; 0 se ainda não. */
 function inicioEnvio_() {
   if (INICIO_DOS_ENVIOS) {
@@ -56,14 +64,6 @@ function inicioEnvio_() {
     if (!isNaN(d.getTime())) return d.getTime();
   }
   return Number(PropertiesService.getScriptProperties().getProperty('inicioEnvio')) || 0;
-}
-
-/** Reserva em vigor: zero nas primeiras HORAS_SEM_RESERVA depois do 1.º convite enviado, RESERVA_QUOTA depois. */
-function reservaAtual_() {
-  if (HORAS_SEM_RESERVA <= 0) return RESERVA_QUOTA;
-  var inicio = inicioEnvio_();
-  if (!inicio || Date.now() - inicio < HORAS_SEM_RESERVA * 3600000) return 0;   // ainda não enviou nenhum, ou está nas primeiras horas
-  return RESERVA_QUOTA;
 }
 
 /** Quantos emails foram enviados nas últimas 24 horas, pelas horas escritas no estado («Enviado a dd/MM/aaaa HH:mm»). */

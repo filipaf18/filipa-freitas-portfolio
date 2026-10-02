@@ -16,11 +16,12 @@ const titulo = t => console.log('\n' + t);
 
 class Folha {
   static leituras = 0;
-  constructor(pessoas, ficheiro = '', separador = 'Folha1') { this.linhas = pessoas.map(p => [p[0], p[1], p[2] || '', p[3] || '']); this.ficheiro = ficheiro; this.separador = separador; }
+  constructor(pessoas, ficheiro = '', separador = 'Folha1') { this.linhas = pessoas.map(p => [p[0], p[1], p[2] || '', p[3] || '']); this.ficheiro = ficheiro; this.separador = separador; this.cabecalho = ['Nome', 'Email', 'Género', 'Email Enviado?']; }
   getName() { return this.separador; }
   getLastRow() { Folha.leituras++; return this.linhas.length + 1; }
   getRange(r, c, nr, nc) {
     const f = this;
+    if (r === 1) return { getValues: () => [f.cabecalho.slice(c - 1, c - 1 + nc)] };
     return {
       getValues: () => f.linhas.slice(r - 2, r - 2 + nr).map(l => l.slice(c - 1, c - 1 + nc)),
       setValue: v => { f.linhas[r - 2][c - 1] = v; },
@@ -30,7 +31,7 @@ class Folha {
 }
 
 function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [] }) {
-  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {} };
+  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, htmls: Object.assign({}, HTML) };
   e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
     SpreadsheetApp: {
@@ -49,7 +50,7 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
         e.usados++; e.enviados.push(typeof m === 'string' ? { to: m, subject: assunto, body: texto } : m);
       },
     },
-    HtmlService: { createHtmlOutputFromFile: nome => ({ getContent: () => HTML[nome] }) },
+    HtmlService: { createHtmlOutputFromFile: nome => { if (!(nome in e.htmls)) throw new Error('No HTML file named ' + nome); return { getContent: () => e.htmls[nome] }; } },
     Utilities: { sleep: () => { e.sleeps++; }, formatDate: () => '01/10/2026 09:00' },
     Session: { getScriptTimeZone: () => 'Europe/Lisbon', getEffectiveUser: () => ({ getEmail: () => 'jsd@exemplo.pt' }) },
     LockService: { getScriptLock: () => ({ tryLock: () => !e.travaOcupada, releaseLock: () => {} }) },
@@ -383,6 +384,27 @@ e = ambiente({ quota: 100 }); e.correr('enviarTeste()');
 ok(e.enviados.length === 4 && e.enviados.every(m => m.to === 'jsd@exemplo.pt'), 'sem endereços configurados: envia para a própria conta');
 e = ambiente({ quota: 100, emailsDeTeste: ['a@x.pt', 'b@x.pt', 'c@x.pt'] }); e.usados = 92; e.correr('enviarTeste()');
 ok(e.enviados.length === 0 && /não chega para 12/.test(e.alertas[0]), 'sem quota para tantos testes: avisa e não envia');
+
+// ------------------------------------------------------------------ 22. diagnóstico
+titulo('22. diagnostico(): diz o que falta no projeto, sem enviar nada');
+e = ambiente({ geral: pessoas(1894, 'g'), institucional: pessoas(100, 'i'), quota: 100 });
+e.correr('diagnostico()');
+const dg = e.alertas[0];
+ok(/Tudo em ordem/.test(dg) && !/✘/.test(dg), 'projeto certo: tudo em ordem');
+ok(/✔ Ficheiro HTML «convite» .*imagens por endereço/.test(dg) && /✔ Ficheiro HTML «convite_institucional»/.test(dg), 'os dois HTML conferidos');
+ok(/Institucional «Convidados 50 anos» \(separador «Folha1»\), 100 linhas; cabeçalho «Nome \| Email \| Género \| Email Enviado\?»/.test(dg) && /Geral «Militantes Base» .*1894 linhas/.test(dg), 'listas e cabeçalho: ' + dg.split('\n').filter(l => /Lista|Institucional|Geral/.test(l)).join(' / ').slice(0, 160));
+ok(/Envio automático desativado/.test(dg) && e.enviados.length === 0, 'estado do envio automático; não envia nada');
+e.correr('ativarEnvioAutomatico()'); e.alertas.length = 0; e.correr('diagnostico()');
+ok(/✔ Envio automático ativo/.test(e.alertas[0]), 'envio automático ativo');
+
+const diag = (alterar, esperado, nome) => { const x = ambiente({ geral: pessoas(3, 'g'), institucional: pessoas(2, 'i') }); alterar(x); x.correr('diagnostico()'); ok(esperado.test(x.alertas[0]) && /✘/.test(x.alertas[0]) && /problema\(s\)/.test(x.alertas[0]), nome + ': ' + x.alertas[0].split('\n').filter(l => /✘/.test(l)).join(' / ').slice(0, 140)); return x; };
+diag(x => { delete x.htmls.convite_institucional; }, /✘ Falta o ficheiro HTML «convite_institucional»/, 'falta um ficheiro HTML');
+diag(x => { x.htmls.convite = x.htmls.convite.replace('https://jsdfamalicao.pt/convite/capa-evento-email.png', 'data:image/png;base64,AAAA').replace(/https:\/\/jsdfamalicao\.pt\/convite\/[^"]+/g, 'data:image/png;base64,AAAA'); }, /✘ Ficheiro HTML «convite»: traz imagens embutidas/, 'HTML antigo com imagens embutidas');
+diag(x => { x.htmls.convite = x.htmls.convite.replace('Caro(a) companheiro(a),', 'Caro(a),'); }, /não tem «Caro\(a\) companheiro\(a\),»/, 'HTML sem a saudação onde entra o nome');
+diag(x => { x.c.URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL'; }, /✘ Falta o URL da lista \(URL_FOLHA_GERAL\)/, 'endereço por preencher');
+diag(x => { x.c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/GERAL222_SEM_ACESSO/edit'; x.folhaGeral = null; x.c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/OUTRA999/edit'; }, /✘ Lista Geral: não consegui abrir/, 'lista sem acesso ou endereço errado');
+diag(x => { x.folhaInst.cabecalho = ['Email', 'Nome', 'Género', 'Estado']; }, /✘ Institucional .*o cabeçalho devia ser/, 'colunas trocadas na lista');
+diag(x => { x.c.URL_FOLHA_GERAL = x.c.URL_FOLHA_INSTITUCIONAL; }, /MESMO ficheiro/, 'as duas listas no mesmo ficheiro');
 
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);
 process.exit(erros ? 1 : 0);

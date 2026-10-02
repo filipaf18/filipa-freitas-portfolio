@@ -1,4 +1,9 @@
 /**
+ * ATENÇÃO: este ficheiro SUBSTITUI todo o código antigo. Cola-o em «Código.gs» (apagando o que lá estava) e não deixes
+ * outro ficheiro .gs com as mesmas funções (onOpen, enviarConvites, processarEnvios…): o Apps Script não avisa, o último
+ * ficheiro a carregar sobrepõe-se em silêncio e o resultado é uma mistura do código antigo com o novo.
+ * Se algo não funcionar, corre «Diagnosticar» no menu: diz o que falta no projeto (ficheiros HTML, acessos às listas…).
+ *
  * Envio dos convites a partir da folha de cálculo, DENTRO do limite diário de envio da Google.
  * Versão corrigida do script «Envio de Convites»: mesmas listas, mesmas saudações e adaptação de género.
  *
@@ -58,6 +63,7 @@ function onOpen() {
       .addItem('Enviar Lote - Convite Geral', 'enviarConvites')
       .addItem('Enviar Lote - Institucional', 'enviarConvitesInstitucionais')
       .addSeparator()
+      .addItem('Diagnosticar (se algo não funciona)', 'diagnostico')
       .addItem('Enviar emails de teste para mim', 'enviarTeste')
       .addItem('Verificar as listas (antes de enviar)', 'verificarListas')
       .addItem('Ver progresso (quantos faltam e quantos dias)', 'verProgresso')
@@ -395,6 +401,56 @@ function enviarTeste() {
     }
     return { teste: true, enviados: enviados, destinos: destinos };
   });
+}
+
+/**
+ * Confere o projeto e diz o que falha, sem enviar nada: conta e quota, os dois ficheiros HTML (existem? têm as imagens do
+ * site e a saudação onde o nome entra?), o acesso às duas listas e o cabeçalho, e o envio automático.
+ */
+function diagnostico() {
+  var linhas = [], problemas = 0;
+  var ok = function (t) { linhas.push('✔ ' + t); };
+  var mau = function (t) { linhas.push('✘ ' + t); problemas++; };
+
+  try {
+    ok('Conta: ' + Session.getEffectiveUser().getEmail() + ' · ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje.');
+  } catch (e) { mau('Não consegui ler a quota (falta autorizar o envio de emails?): ' + e.message); }
+
+  var modelos = [['convite', 'Caro(a) companheiro(a),'], ['convite_institucional', 'Estimado(a) companheiro(a),']];
+  for (var m = 0; m < modelos.length; m++) {
+    try {
+      var html = HtmlService.createHtmlOutputFromFile(modelos[m][0]).getContent();
+      var avisos = [];
+      if (html.indexOf('data:image') !== -1) avisos.push('traz imagens embutidas (versão antiga): o Gmail não as mostra, usa o HTML novo');
+      if (html.indexOf('https://jsdfamalicao.pt/convite/') === -1) avisos.push('não refere as imagens do site');
+      if (html.indexOf(modelos[m][1]) === -1) avisos.push('não tem «' + modelos[m][1] + '»: o nome não entra na saudação');
+      if (avisos.length) mau('Ficheiro HTML «' + modelos[m][0] + '»: ' + avisos.join('; ') + '.');
+      else ok('Ficheiro HTML «' + modelos[m][0] + '» (' + Math.round(html.length / 1024) + ' KB): imagens por endereço e saudação com «' + modelos[m][1] + '».');
+    } catch (e) {
+      mau('Falta o ficheiro HTML «' + modelos[m][0] + '» no projeto (no editor: + → HTML, com este nome exato, e cola lá o HTML do convite).');
+    }
+  }
+
+  var enderecosOk = true;
+  try { validarUrls_(); ok('Endereços das duas listas preenchidos e diferentes.'); } catch (e) { enderecosOk = false; mau(e.message); }
+  if (enderecosOk) {
+    var listas = [['Institucional', URL_FOLHA_INSTITUCIONAL], ['Geral', URL_FOLHA_GERAL]];
+    for (var l = 0; l < listas.length; l++) {
+      try {
+        var folha = SpreadsheetApp.openByUrl(listas[l][1]).getSheets()[0];
+        var cab = folha.getRange(1, 1, 1, 4).getValues()[0].map(function (c) { return texto_(c); });
+        var rotulo = listas[l][0] + ' ' + nomeDaLista_(listas[l][1], folha) + ', ' + Math.max(0, folha.getLastRow() - 1) + ' linhas';
+        if (/nome/i.test(cab[0]) && /mail/i.test(cab[1]) && /g[eé]nero|sexo/i.test(cab[2])) ok(rotulo + '; cabeçalho «' + cab.join(' | ') + '».');
+        else mau(rotulo + ': o cabeçalho devia ser «Nome | Email | Género | estado» nas colunas A a D e é «' + cab.join(' | ') + '».');
+      } catch (e) {
+        mau('Lista ' + listas[l][0] + ': não consegui abrir (endereço errado, ou a conta ' + Session.getEffectiveUser().getEmail() + ' não tem acesso): ' + e.message);
+      }
+    }
+  }
+
+  var ativos = ScriptApp.getProjectTriggers().filter(function (g) { return g.getHandlerFunction() === 'envioAutomatico'; }).length;
+  linhas.push((ativos ? '✔ Envio automático ativo.' : '• Envio automático desativado (ativa-o no menu quando quiseres começar).'));
+  avisar_(linhas.join('\n') + '\n\n' + (problemas ? problemas + ' problema(s) assinalado(s) com ✘.' : 'Tudo em ordem.'));
 }
 
 /** Rótulo de uma lista para mostrar ao utilizador: nome do ficheiro e do separador (para ele confirmar que é a lista certa). */

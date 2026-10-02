@@ -12,7 +12,7 @@ o texto alternativo da imagem traz a paleta por extenso (leitores de ecrã e ima
 Uso: python3 src/gerar_confirmacao.py  (a partir de email/jsd-50-anos/)
 Nota: importar gerar_final volta a gerar v7/v8 e copiar-convites.html (saída idêntica).
 """
-import base64, re
+import base64, json, re
 from gerar_final import *          # comum.py, mote(), MUTED, MAPA_LINK, ASSINATURA, pagina_copiar…
 
 SITE_50 = 'https://jsdfamalicao.pt/50-anos'     # o banner leva ao site (já não há nada para «inscrever»)
@@ -133,6 +133,94 @@ def confirmacao(t):
     return re.sub(r'\n[ \t]+', '\n', html)
 
 
+def pagina_copiar_um(rotulo, html):
+    """Página para ligar a partir do Excel: ao abrir, copia o email para a área de transferência (para colar no Gmail com Ctrl+V).
+    Chrome e Edge deixam copiar ao abrir (separador ativo); Firefox e Safari, ou um browser sem foco, exigem um clique: a página
+    mostra então um botão grande e também copia com um clique em qualquer sítio. Copia o HTML ORIGINAL (não a página
+    desenhada), como a copiar-confirmacoes.html: copiar a página com Ctrl+A / Ctrl+C estraga as larguras no telemóvel."""
+    dados = json.dumps({'html': html, 'texto': texto_simples(html)}, ensure_ascii=False).replace('</', '<\\/')
+    return f'''<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Copiar · {rotulo} · 50 anos JSD Famalicão</title>
+  <style>
+    body {{ margin:0; background:#F6F3EE; color:#1B130C; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; }}
+    main {{ max-width:760px; margin:0 auto; padding:32px 16px 48px; }}
+    .etiqueta {{ margin:0 0 8px; font-size:12px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:#0B72B8; }}
+    h1 {{ margin:0 0 10px; font-size:30px; line-height:38px; font-weight:300; }}
+    h1.ok {{ color:#1E7A3C; }}
+    p {{ margin:0 0 14px; font-size:17px; line-height:27px; color:#3E352B; }}
+    button {{ font:inherit; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; font-size:16px; color:#1B130C; background:#F86420;
+              background-image:linear-gradient(90deg,#F8B451,#F86420); border:0; border-radius:4px; padding:20px 26px; cursor:pointer; width:100%; margin:6px 0 18px; }}
+    button:focus-visible {{ outline:3px solid #0B72B8; outline-offset:2px; }}
+    ol {{ margin:0 0 24px; padding-left:22px; line-height:1.7; font-size:16px; color:#3E352B; }}
+    iframe {{ width:100%; height:720px; border:1px solid #E4D9CB; border-radius:6px; background:#FFFFFF; }}
+    [hidden] {{ display:none !important; }}
+  </style>
+</head>
+<body>
+<main>
+  <p class="etiqueta">{rotulo}</p>
+  <h1 id="titulo">A copiar o email…</h1>
+  <p id="texto" aria-live="polite">Se nada acontecer em dois segundos, clica no botão.</p>
+  <button type="button" id="botao" hidden>Copiar o email</button>
+  <ol>
+    <li>Abre o Gmail e clica em <strong>Nova mensagem</strong>.</li>
+    <li>Clica no corpo da mensagem e cola com <strong>Ctrl+V</strong> (⌘+V no Mac).</li>
+    <li>Põe o destinatário (em <strong>Cco</strong>, se forem vários) e envia primeiro um teste para ti.</li>
+  </ol>
+  <noscript><p>Ativa o JavaScript para copiar o email.</p></noscript>
+  <iframe id="previa" title="Pré-visualização do email"></iframe>
+</main>
+<script>
+  const E = {dados};
+  const titulo = document.getElementById('titulo'), texto = document.getElementById('texto'), botao = document.getElementById('botao');
+  let feito = false;
+  function copiar() {{
+    if (feito) return Promise.resolve(true);
+    let ok = false;
+    // 1.º: o HTML original, pelo evento de cópia (exige um clique em alguns browsers)
+    const aoCopiar = (e) => {{ e.clipboardData.setData('text/html', E.html); e.clipboardData.setData('text/plain', E.texto); e.preventDefault(); ok = true; }};
+    document.addEventListener('copy', aoCopiar, {{ once: true }});
+    try {{ document.execCommand('copy'); }} catch (_) {{}}
+    document.removeEventListener('copy', aoCopiar);
+    if (ok) return Promise.resolve(true);
+    // 2.º: API da área de transferência (Chrome e Edge deixam, sem clique, quando o separador está ativo)
+    if (navigator.clipboard && window.ClipboardItem) {{
+      return navigator.clipboard.write([new ClipboardItem({{ 'text/html': new Blob([E.html], {{ type: 'text/html' }}), 'text/plain': new Blob([E.texto], {{ type: 'text/plain' }}) }})])
+        .then(() => true).catch(() => false);
+    }}
+    return Promise.resolve(false);
+  }}
+  function tentar() {{
+    copiar().then((ok) => {{
+      if (ok && !feito) {{
+        feito = true;
+        titulo.textContent = '✓ Email copiado'; titulo.className = 'ok';
+        texto.textContent = 'Já está na área de transferência. Vai ao Gmail e cola na mensagem (passos abaixo).';
+        botao.hidden = true;
+      }} else if (!ok && !feito) {{
+        titulo.textContent = 'Clica para copiar';
+        texto.textContent = 'O browser pede um clique para copiar. Clica no botão (ou em qualquer sítio desta página).';
+        botao.hidden = false;
+      }}
+    }});
+  }}
+  botao.addEventListener('click', tentar);
+  document.addEventListener('click', tentar);                      // um clique em qualquer sítio também serve
+  window.addEventListener('focus', tentar);                        // o browser só ganha foco depois de abrir a página
+  document.addEventListener('visibilitychange', () => {{ if (!document.hidden) tentar(); }});
+  document.getElementById('previa').srcdoc = E.html;
+  tentar();
+</script>
+</body>
+</html>
+'''
+
+
 FINAIS = {'v11-confirmacao-geral.html': 'geral', 'v12-confirmacao-institucional.html': 'institucional'}
 
 if __name__ == '__main__':
@@ -147,3 +235,9 @@ if __name__ == '__main__':
                ('v12-confirmacao-institucional.html', 'Confirmação institucional')],
         'Copiar confirmações').replace('no convite que queres enviar', 'na confirmação que queres enviar'), encoding='utf-8')
     print('copiar-confirmacoes.html criado')
+
+    # uma página por email, para ligar a partir do Excel (copia ao abrir)
+    for nome, rotulo, ficheiro in [('v11-confirmacao-geral.html', 'Confirmação · militantes (geral)', 'copiar-confirmacao-geral.html'),
+                                   ('v12-confirmacao-institucional.html', 'Confirmação · institucional', 'copiar-confirmacao-institucional.html')]:
+        (AQUI / ficheiro).write_text(pagina_copiar_um(rotulo, docs[nome]), encoding='utf-8')
+        print(ficheiro, 'criado')

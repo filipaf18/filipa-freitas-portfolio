@@ -36,6 +36,15 @@ Layout: o banner «Jantar Comemorativo» a toda a largura, as barras, a tipograf
 - A «after party» assume-se na madrugada de 7 para 8 de novembro (01h30 depois do jantar de sábado); o email não indica a data, só a hora.
 - **Modo escuro das apps do Gmail**: escurecem os emails por conta própria; o logo do Classe (transparente) fica bem, mas não há forma de impedir que o Gmail altere outros elementos (ver «Limite do Gmail» acima).
 
+### Link no Excel que copia o email (v11 e v12)
+
+`copiar-confirmacao-geral.html` e `copiar-confirmacao-institucional.html` são páginas autónomas (uma por email, ~35 KB): **ao abrirem, copiam o email para a área de transferência** e mostram «✓ Email copiado». Depois é só ir ao Gmail, **Nova mensagem**, clicar no corpo e colar com Ctrl+V. Copiam o HTML original (verificado: as tabelas fluidas e o `<style>` chegam intactos), não a página desenhada. Geradas por `src/gerar_confirmacao.py`. As imagens do email vão por endereço (ver «Imagens por endereço»): têm de estar publicadas para aparecerem no Gmail.
+
+- **Chrome e Edge:** copiam sozinhos ao abrir, se o separador estiver ativo. **Firefox e Safari** (ou um browser que ainda não ganhou o foco) exigem um clique: a página mostra então «Clica para copiar» com um botão grande, e um clique em qualquer sítio também serve.
+- **No Excel (computador), sem alojar nada:** guardar os dois ficheiros na mesma pasta do Excel. Na célula, `Ctrl+K` → «Ficheiro ou página Web existente» → escolher o ficheiro. Ou por fórmula, com o caminho relativo ao Excel (em Excel em português a função chama-se `HIPERLIGAÇÃO` e o separador é `;`): `=HIPERLIGAÇÃO("copiar-confirmacao-geral.html";"Copiar confirmação")`. Com uma coluna do tipo de convidado (C): `=HIPERLIGAÇÃO(SE(C2="Institucional";"copiar-confirmacao-institucional.html";"copiar-confirmacao-geral.html");"Copiar confirmação")`. O Excel pode avisar que as hiperligações podem ser prejudiciais: **Sim**.
+- **Excel Online, Google Sheets ou telemóvel:** não abrem ficheiros do computador. Carregar os dois HTML para o site (por exemplo ao lado das imagens, em `https://jsdfamalicao.pt/convite/`) e usar o endereço completo na mesma fórmula. Não levam dados pessoais (os emails são iguais para todos).
+- **Opcional, abrir já o Gmail com o destinatário e o assunto** (e-mail do convidado na coluna D): `=HIPERLIGAÇÃO("https://mail.google.com/mail/?view=cm&fs=1&to="&D2&"&su=Inscri%C3%A7%C3%A3o%20confirmada%20-%20Jantar%20Comemorativo%2050%20anos%20JSD%20Famalic%C3%A3o";"Abrir Gmail")`. O corpo não se pode pré-preencher com HTML, por isso o email vem do outro link (colar com Ctrl+V).
+
 ### Como enviar (importante)
 
 1. Abre **`copiar-convites.html`** no Chrome.

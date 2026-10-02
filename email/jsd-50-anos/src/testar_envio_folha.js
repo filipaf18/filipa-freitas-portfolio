@@ -15,7 +15,7 @@ const HTML = {
   convite_institucional: fs.readFileSync(path.join(aqui, 'v8-convite-institucional.html'), 'utf8'),
 };
 let erros = 0, n = 0;
-const ok = (c, m) => { n++; if (!c) { erros++; console.log('  FALHA:', m); } };
+const ok = (c, m) => { n++; if (!c) { erros++; console.log('  FALHA:', m); } else if (process.env.VERBOSO) console.log('  ok:', m); };
 const titulo = t => console.log('\n' + t);
 
 class Folha {
@@ -34,8 +34,8 @@ class Folha {
   estados() { return this.linhas.map(l => l[3]); }
 }
 
-function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [], omitirParte = null, modificarParte = {}, extraCodigo = [] }) {
-  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, htmls: Object.assign({}, HTML) };
+function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, rolante = false, semente = null, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [], omitirParte = null, modificarParte = {}, extraCodigo = [] }) {
+  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, marcas: [], registos: [], htmls: Object.assign({}, HTML) };
   e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
     SpreadsheetApp: {
@@ -47,11 +47,14 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
       getUi: () => { if (!ecra) throw new Error('sem ecrã (acionador)'); return { alert: m => e.alertas.push(m), createMenu: () => { const m = { addItem: () => m, addSeparator: () => m, addToUi: () => {} }; return m; } }; },
     },
     MailApp: {
-      getRemainingDailyQuota: () => quotaMentirosa ? 1000 : e.quota - e.usados,
+      getRemainingDailyQuota: () => quotaMentirosa ? 1000 : rolante ? e.quota - e.marcas.filter(t => t > e.agora - 24 * 3600000).length : e.quota - e.usados,
       sendEmail: (m, assunto, texto) => {
-        if (e.usados >= e.quota || (falhaAposEnvios !== null && e.enviados.length >= falhaAposEnvios))
+        const restante = rolante ? e.quota - e.marcas.filter(t => t > e.agora - 24 * 3600000).length : e.quota - e.usados;
+        if (restante <= 0 || (falhaAposEnvios !== null && e.enviados.length >= falhaAposEnvios))
           throw new Error('Service invoked too many times for one day: email.');
-        e.usados++; e.enviados.push(typeof m === 'string' ? { to: m, subject: assunto, body: texto } : m);
+        e.usados++; e.marcas.push(e.agora);
+        e.enviados.push(typeof m === 'string' ? { to: m, subject: assunto, body: texto } : m);
+        e.registos.push({ to: typeof m === 'string' ? m : m.to, t: e.agora, restante: restante - 1 });
       },
     },
     HtmlService: { createHtmlOutputFromFile: nome => { if (!(nome in e.htmls)) throw new Error('No HTML file named ' + nome); return { getContent: () => e.htmls[nome] }; } },
@@ -59,14 +62,14 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
     Session: { getScriptTimeZone: () => 'Europe/Lisbon', getEffectiveUser: () => ({ getEmail: () => 'jsd@exemplo.pt' }) },
     LockService: { getScriptLock: () => ({ tryLock: () => !e.travaOcupada, releaseLock: () => {} }) },
     ScriptApp: {
-      newTrigger: fn => { const g = { fn, horas: null }; const b = { timeBased: () => b, everyHours: h => { g.horas = h; return b; }, create: () => { e.gatilhos.push(g); } }; return b; },
+      newTrigger: fn => { const g = { fn, horas: null, minutos: null }; const b = { timeBased: () => b, everyHours: h => { g.horas = h; return b; }, everyMinutes: m => { g.minutos = m; return b; }, create: () => { e.gatilhos.push(g); } }; return b; },
       getProjectTriggers: () => e.gatilhos.map(g => ({ getHandlerFunction: () => g.fn, _g: g })),
       deleteTrigger: t => { e.gatilhos = e.gatilhos.filter(g => g !== t._g); },
     },
     Logger: { log: m => e.logs.push(m) },
     Date: class extends Date { getHours() { return e.hora; } static now() { return e.agora; } },   // hora e relógio controlados pelo teste
-    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in e.props ? e.props[k] : null), setProperty: (k, v) => { e.props[k] = String(v); } }) },
-    Math, String, RegExp, Error, Object, Array, JSON,
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in e.props ? e.props[k] : null), setProperty: (k, v) => { e.props[k] = String(v); }, deleteProperty: k => { delete e.props[k]; } }) },
+    Math: semente === null ? Math : Object.assign(Object.create(Math), { random: mulberry32(semente) }), String, RegExp, Error, Object, Array, JSON,
   };
   vm.createContext(c);
   if (modoPartes) {
@@ -85,6 +88,10 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
   e.c = c; e.correr = js => vm.runInContext(js, c);
   return e;
 }
+const H = 3600 * 1000, MIN = 60 * 1000;
+const mulberry32 = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+/** Corre o acionador de minuto a minuto: avança o relógio um minuto de cada vez (e a hora do dia) até «parar()» ou ao fim. */
+const minutos = (e, n, parar) => { for (let i = 0; i < n; i++) { e.agora += MIN; e.hora = new Date(e.agora).getUTCHours(); e.correr('envioAutomatico()'); if (parar && parar()) return i + 1; } return n; };
 const pessoas = (k, prefixo = 'p', g = 'masculino') => Array.from({ length: k }, (_, i) => [`${prefixo}${i} Silva Santos`, `${prefixo}${i}@exemplo.pt`, g]);
 const unicos = a => new Set(a).size === a.length;
 
@@ -97,7 +104,7 @@ ok(e.folhaGeral.estados().filter(s => s === '').length === 50, 'as 50 que faltam
 ok(!e.folhaGeral.estados().some(s => /^Erro/.test(s)), 'nenhuma linha deve ficar com «Erro»');
 ok(e.folhaGeral.estados().filter(s => /^Enviado a /.test(s)).length === 100, '100 linhas «Enviado a …»');
 ok(/quota diária/.test(e.alertas[0]) && /50 pessoas/.test(e.alertas[0]), 'o resumo diz que a quota acabou e quantas faltam');
-ok(e.sleeps === 100, 'pausa entre envios');
+ok(e.sleeps === 99, 'pausa de 1 s entre envios no envio manual (não depois do último)');
 
 titulo('2. no dia seguinte (quota renovada) envia só as 50 que faltam, sem duplicados');
 e.usados = 0;
@@ -220,62 +227,88 @@ e.correr('enviarConvites()');
 ok(e.enviados.length === 1, 'repetido de uma linha com erro definitivo ainda é tentado');
 
 // ------------------------------------------------------------------ 12. envio automático
-titulo('12. envio automático: horário, institucional primeiro, sem quota nem lê as folhas, desliga-se no fim');
-e = ambiente({ geral: pessoas(10, 'g'), institucional: pessoas(5, 'i'), quota: 100 });
+titulo('12. envio automático: um email de cada vez, 1 a 2 minutos de intervalo, das 8h às 22h, institucional primeiro');
+e = ambiente({ geral: pessoas(10, 'g'), institucional: pessoas(5, 'i'), quota: 100, semente: 1, rolante: true });
 e.correr('ativarEnvioAutomatico()'); e.correr('ativarEnvioAutomatico()');
-ok(e.gatilhos.length === 1 && e.gatilhos[0].fn === 'envioAutomatico' && e.gatilhos[0].horas === 1, 'um só acionador, de hora a hora (ativar duas vezes não duplica)');
-e.hora = 3; e.correr('envioAutomatico()');
-ok(e.enviados.length === 0, 'às 3h da manhã não envia');
-e.hora = 21; e.correr('envioAutomatico()');
-ok(e.enviados.length === 0, 'às 21h já não envia');
-e.hora = 10; e.usados = 100; Folha.leituras = 0; e.correr('envioAutomatico()');
-ok(e.enviados.length === 0 && Folha.leituras === 0, 'sem quota: não envia e nem lê as folhas');
-e.usados = 0; e.correr('envioAutomatico()');
-const convites = e.enviados.filter(m => m.to !== 'jsd@exemplo.pt');
-ok(convites.length === 15 && convites.slice(0, 5).every(m => m.to.startsWith('i')) && convites.slice(5).every(m => m.to.startsWith('g')), 'institucional primeiro, geral a seguir');
-ok(e.gatilhos.length === 0, 'tudo enviado: o acionador desliga-se');
+ok(e.gatilhos.length === 1 && e.gatilhos[0].fn === 'envioAutomatico' && e.gatilhos[0].minutos === 1, 'um só acionador, de minuto a minuto (ativar duas vezes não duplica)');
+ok(e.props.acionador === 'minuto', 'regista que o acionador é o de minuto a minuto');
+for (const h of [3, 7, 22, 23]) { e.hora = h; e.correr('envioAutomatico()'); }
+ok(e.enviados.length === 0, 'às 3h, 7h, 22h e 23h não envia');
+e.hora = 8; e.correr('envioAutomatico()');
+ok(e.enviados.length === 1 && e.enviados[0].to === 'i0@exemplo.pt', 'às 8h envia um só email, o 1.º institucional');
+e.correr('envioAutomatico()');
+ok(e.enviados.length === 1, 'sem passar o intervalo não envia o 2.º');
+e.hora = 21; minutos(e, 400, () => e.gatilhos.length === 0);                     // 400 minutos a partir das 10h (UTC), horas simuladas
+const conv12 = e.registos.filter(r => r.to !== 'jsd@exemplo.pt');
+ok(conv12.length === 15 && conv12.slice(0, 5).every(r => r.to.startsWith('i')) && conv12.slice(5).every(r => r.to.startsWith('g')), `institucional primeiro, geral a seguir (${conv12.length} emails)`);
+const gaps12 = conv12.slice(1).map((r, k) => r.t - conv12[k].t).filter(g => g < 30 * MIN);
+ok(gaps12.length >= 10 && gaps12.every(g => g === MIN || g === 2 * MIN) && gaps12.includes(MIN) && gaps12.includes(2 * MIN), `intervalos de 1 ou 2 minutos, ambos aparecem: ${[...new Set(gaps12)].map(g => g / MIN + ' min').join(', ')}`);
+ok(e.gatilhos.length === 0 && !('acionador' in e.props), 'tudo enviado: o acionador desliga-se');
 const resumo = e.enviados.filter(m => /concluído/.test(m.subject || ''));
 ok(resumo.length === 1 && resumo[0].to === 'jsd@exemplo.pt' && /Institucional: 5 enviados/.test(resumo[0].body) && /Geral: 10 enviados/.test(resumo[0].body), 'resumo final para a própria conta com as contagens');
 
-e = ambiente({ geral: pessoas(50, 'g'), institucional: pessoas(10, 'i'), quota: 30, reserva: 5 });
-e.correr('ativarEnvioAutomatico()'); e.correr('envioAutomatico()');
-ok(e.enviados.length === 25 && e.enviados.filter(m => m.to.startsWith('i')).length === 10, `quota 30, reserva 5: 10 institucionais + 15 gerais; foram ${e.enviados.length}`);
+// só envia entre as 8h e as 22h, e sem parar
+e = ambiente({ geral: pessoas(2000, 'g'), quota: 5000, semente: 5, rolante: true, reserva: 0 });
+e.agora = Date.UTC(2026, 9, 3, 0, 0); e.correr('ativarEnvioAutomatico()');
+minutos(e, 24 * 60);
+const horas = e.registos.map(r => new Date(r.t).getUTCHours());
+ok(Math.min(...horas) === 8 && Math.max(...horas) === 21, `só envia entre as 8h e as 22h (primeira às ${Math.min(...horas)}h, última às ${Math.max(...horas)}h)`);
+ok(e.registos.length > 500 && e.registos.length < 640, `durante as 14 horas envia sem parar: ${e.registos.length} emails (a cerca de 1,5 minutos cada)`);
+const gapsDia = e.registos.slice(1).map((r, k) => r.t - e.registos[k].t);
+ok(gapsDia.every(g => g === MIN || g === 2 * MIN), 'sem falhas nem pausas: todos os intervalos de 1 ou 2 minutos');
+
+// quota: não assume nenhum valor, lê o que a Google deixar; reserva sempre por usar; retoma quando a Google a liberta
+e = ambiente({ geral: pessoas(40, 'g'), quota: 12, rolante: true, semente: 2, reserva: 4 });
+e.agora = Date.UTC(2026, 9, 3, 8, 0); e.correr('ativarEnvioAutomatico()'); minutos(e, 300);
+ok(e.registos.length === 8 && e.registos.at(-1).restante === 4, `quota 12 com reserva 4: envia 8 e deixa 4 por usar (enviou ${e.registos.length}, restam ${e.registos.at(-1).restante})`);
+Folha.leituras = 0; minutos(e, 120);
+ok(e.registos.length === 8 && Folha.leituras === 0, 'sem quota: não envia e nem lê as folhas');
+minutos(e, 24 * 60);
+ok(e.registos.length === 16, `a Google liberta a quota passadas 24 horas: retoma sozinho (${e.registos.length} emails)`);
 ok(e.gatilhos.length === 1, 'continua ativo');
 
-// ------------------------------------------------------------------ 13. o teu caso: 74 de 100 institucionais enviados, 1894 gerais, 100 por dia
-titulo('13. o caso real: 26 institucionais por enviar (74 já enviados) e 1894 gerais, a 100 por dia');
-function simular(reserva, repetidos = false) {
-  const inst = pessoas(100, 'i').map((p, k) => k < 74 ? [p[0], p[1], p[2], 'Enviado a 30/09/2026 12:00'] : p);
+// ------------------------------------------------------------------ 13. o teu caso: 74 de 100 institucionais enviados, 1894 gerais
+titulo('13. o caso real: 26 institucionais por enviar (74 já enviados ontem) e 1894 gerais, um email de cada vez');
+function simularReal({ reserva, horasSemReserva, quotaTotal = 100, repetidos = false, maxDias = 40 }) {
+  const inst = pessoas(100, 'i').map((p, k) => k < 74 ? [p[0], p[1], p[2], 'Enviado a 02/10/2026'] : p);
   const ger = pessoas(1894, 'g');
   if (repetidos) { for (let k = 0; k < 40; k++) ger[k][1] = `i${k}@exemplo.pt`; for (let k = 40; k < 50; k++) ger[k][1] = ger[k - 40 + 100][1]; }
-  const ee = ambiente({ geral: ger, institucional: inst, quota: 100, reserva });
+  const ee = ambiente({ geral: ger, institucional: inst, quota: quotaTotal, reserva, horasSemReserva, rolante: true, semente: 7 });
+  ee.agora = Date.UTC(2026, 9, 3, 7, 0);
+  for (let k = 0; k < 74; k++) ee.marcas.push(Date.UTC(2026, 9, 2, 12, 0));       // os 74 de ontem ainda contam na quota da conta
   ee.correr('ativarEnvioAutomatico()');
-  let dias = 0;
-  while (ee.gatilhos.length && dias < 60) { ee.usados = 0; dias++; ee.correr('envioAutomatico()'); }
-  return { ee, dias };
+  const m = minutos(ee, maxDias * 1440, () => ee.gatilhos.length === 0);
+  return { ee, dias: m / 1440, conv: ee.registos.filter(r => r.to !== 'jsd@exemplo.pt') };
 }
-let sim = simular(0);
-ok(sim.dias === 20, `sem reserva: ${sim.dias} dias (esperava 20)`);
+let sim = simularReal({ reserva: 10, horasSemReserva: 72 });
+ok(sim.dias > 19 && sim.dias < 24, `quota de 100, 72 h sem reserva e depois reserva de 10: ${sim.dias.toFixed(1)} dias`);
 ok(sim.ee.folhaInst.estados().every(s => /^Enviado a /.test(s)) && sim.ee.folhaGeral.estados().every(s => /^Enviado a /.test(s)), 'todas as 1894 + 26 enviadas');
-const dest = sim.ee.enviados.map(m => m.to).filter(t => t !== 'jsd@exemplo.pt');
-ok(dest.length === 1920 && unicos(dest), `1920 emails, ninguém repetido (${dest.length})`);
-ok(sim.ee.enviados.slice(0, 26).every(m => m.to.startsWith('i')), 'o 1.º dia começa pelos 26 institucionais');
-ok(sim.ee.enviados.slice(26, 100).every(m => m.to.startsWith('g')), '…e preenche o resto do 1.º dia (74) com gerais');
-sim = simular(10);
-ok(sim.dias === 22, `com reserva de 10 (90 por dia): ${sim.dias} dias (esperava 22)`);
-ok(sim.ee.enviados.slice(0, 26).every(m => m.to.startsWith('i')) && sim.ee.enviados.slice(26, 90).every(m => m.to.startsWith('g')) && sim.ee.enviados.length >= 90, 'o 1.º dia: 26 institucionais + 64 gerais');
-sim = simular(20);
-ok(sim.dias === 24, `com reserva de 20: ${sim.dias} dias (esperava 24)`);
-sim = simular(0, true);
-ok(sim.dias === 19, `com 40 gerais que já são institucionais e 10 repetidos: ${sim.dias} dias (esperava 19)`);
-ok(sim.ee.folhaGeral.estados().filter(s => /^Ignorado/.test(s)).length === 50, '50 ignorados (40 institucionais + 10 repetidos)');
+ok(sim.conv.length === 1920 && unicos(sim.conv.map(r => r.to)), `1920 emails, ninguém repetido (${sim.conv.length})`);
+ok(sim.conv.slice(0, 26).every(r => r.to.startsWith('i')) && sim.conv.slice(26, 60).every(r => r.to.startsWith('g')), 'começa pelos 26 institucionais, depois os gerais');
+ok(sim.conv.every(r => { const h = new Date(r.t).getUTCHours(); return h >= 8 && h < 22; }), 'nenhum envio fora das 8h às 22h');
+const gs = sim.conv.slice(1).map((r, k) => r.t - sim.conv[k].t).filter(g => g < 60 * MIN);
+ok(gs.length > 1500 && gs.every(g => g === MIN || g === 2 * MIN), `ritmo de 1 ou 2 minutos (${gs.length} intervalos conferidos)`);
+const depois72 = sim.conv.filter(r => r.t - sim.conv[0].t >= 72 * H);
+ok(depois72.length > 1000 && depois72.every(r => r.restante >= 10), 'passadas as 72 horas, a reserva de 10 nunca é tocada');
+const antes72 = sim.conv.filter(r => r.t - sim.conv[0].t < 72 * H);
+ok(antes72.some(r => r.restante < 10), 'nas primeiras 72 horas a quota é usada toda');
+sim = simularReal({ reserva: 10, horasSemReserva: 72, repetidos: true });
+ok(sim.ee.folhaGeral.estados().filter(s => /^Ignorado/.test(s)).length === 50 && sim.conv.length === 1870, `40 gerais já institucionais + 10 repetidos ignorados: ${sim.conv.length} emails`);
 
 // ------------------------------------------------------------------ 14. verProgresso e verQuota
 titulo('14. verProgresso e verQuota');
 e = ambiente({ institucional: pessoas(100, 'i').map((p, k) => k < 74 ? [p[0], p[1], p[2], 'Enviado a x'] : p), geral: pessoas(1894, 'g'), quota: 100, reserva: 10 });
 e.correr('verProgresso()');
 ok(/Institucional «Convidados 50 anos» \(separador «Folha1»\):\n\s+74 enviados · 26 por enviar/.test(e.alertas[0]) && /Geral «Militantes Base» \(separador «Folha1»\):\n\s+0 enviados · 1894 por enviar/.test(e.alertas[0]), 'contagens por lista: ' + e.alertas[0].split('\n').slice(0, 4).join(' | '));
-ok(/Faltam 1920 emails/.test(e.alertas[0]) && /22 dias/.test(e.alertas[0]), 'estimativa de 22 dias com reserva de 10: ' + e.alertas[0].split('\n').pop());
+ok(/Faltam 1920 emails\. Nas últimas 24 horas foram enviados 0\. Ainda não há envios que cheguem para estimar/.test(e.alertas[0]), 'sem envios recentes: não estima nada nem assume uma quota: ' + e.alertas[0].split('\n').pop());
+const fmt = t => { const d = new Date(t), p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const T0 = Date.UTC(2026, 9, 3, 10, 0);
+e = ambiente({ institucional: pessoas(100, 'i').map((p, k) => k < 50 ? [p[0], p[1], p[2], 'Enviado a ' + fmt(T0 - 2 * H)] : p), geral: pessoas(1000, 'g') });
+e.correr('verProgresso()');
+ok(/Nas últimas 24 horas foram enviados 50\. Ao ritmo das últimas 24 horas, faltam cerca de 21 dias/.test(e.alertas[0]), 'estima pelo ritmo real das últimas 24 h: ' + e.alertas[0].split('\n').pop());
+e = ambiente({ institucional: pessoas(100, 'i').map((p, k) => k < 50 ? [p[0], p[1], p[2], 'Enviado a ' + fmt(T0 - 30 * H)] : p), geral: pessoas(10, 'g') });
+e.correr('verProgresso()');
+ok(/foram enviados 0\./.test(e.alertas[0]), 'envios com mais de 24 horas não contam para o ritmo');
 ok(/«Convidados 50 anos» \(separador «Folha1»\)/.test(e.alertas[0]) && /«Militantes Base»/.test(e.alertas[0]), 'mostra o nome de cada ficheiro, para confirmar que é a lista certa');
 ok(e.enviados.length === 0, 'não envia nada');
 e = ambiente({ quota: 100, reserva: 10 }); e.usados = 72; e.correr('verQuota()');
@@ -300,13 +333,13 @@ for (const fn of ['enviarConvites', 'enviarConvitesInstitucionais', 'envioAutoma
 
 // ------------------------------------------------------------------ 16. as listas crescem
 titulo('16. as listas crescem entre execuções: linhas novas, também depois de espaços; institucionais novos primeiro');
-e = ambiente({ geral: pessoas(3, 'g'), institucional: pessoas(2, 'i'), quota: 100 });
-e.correr('ativarEnvioAutomatico()'); e.correr('envioAutomatico()');
-ok(e.folhaGeral.estados().every(s => /^Enviado/.test(s)) && e.gatilhos.length === 0, 'primeira ronda envia tudo e desliga-se');
+e = ambiente({ geral: pessoas(3, 'g'), institucional: pessoas(2, 'i'), quota: 100, rolante: true, semente: 3 });
+e.correr('ativarEnvioAutomatico()'); minutos(e, 30, () => e.gatilhos.length === 0);
+ok(e.folhaGeral.estados().every(s => /^Enviado/.test(s)) && e.gatilhos.length === 0, 'envia tudo e desliga-se');
 e.folhaGeral.linhas.push(['', '', '', ''], ['Nova Pessoa Um', 'novo1@exemplo.pt', 'Feminino', ''], ['Nova Pessoa Dois', 'novo2@exemplo.pt', 'Masculino', '']);
 e.folhaInst.linhas.push(['Convidado Novo', 'conv@exemplo.pt', 'Masculino', '']);
-e.enviados.length = 0; e.usados = 0; e.correr('ativarEnvioAutomatico()'); e.correr('envioAutomatico()');
-const novos = e.enviados.map(m => m.to).filter(t => t !== 'jsd@exemplo.pt');
+e.registos.length = 0; e.correr('ativarEnvioAutomatico()'); minutos(e, 30, () => e.gatilhos.length === 0);
+const novos = e.registos.map(r => r.to).filter(t => t !== 'jsd@exemplo.pt');
 ok(novos.join() === 'conv@exemplo.pt,novo1@exemplo.pt,novo2@exemplo.pt', `novos: ${novos}`);
 
 // ------------------------------------------------------------------ 17. nomes: maiúsculas e sem nome
@@ -339,7 +372,6 @@ ok(e.enviados.length === 0, 'não envia nada');
 
 // ------------------------------------------------------------------ 19. sem reserva nas primeiras 72 horas
 titulo('19. sem reserva nas primeiras 72 horas de envio; depois, reserva de 10');
-const H = 3600 * 1000;
 e = ambiente({ geral: pessoas(1000, 'g'), quota: 100, reserva: 10, horasSemReserva: 72 });
 e.correr('enviarConvites()');
 ok(e.enviados.length === 100, `1.º envio: ${e.enviados.length} (sem reserva, esperava 100)`);
@@ -362,24 +394,14 @@ ok(/não há reserva/.test(e.alertas[0]), 'antes do 1.º envio: verQuota diz que
 e.correr('enviarConvites()'); e.alertas.length = 0; e.usados = 0; e.agora += 80 * H; e.correr('verQuota()');
 ok(/Destes, 10 ficam de reserva/.test(e.alertas[0]), 'passadas as 72 horas: verQuota mostra a reserva de 10');
 
-titulo('20. o caso real com 72 h sem reserva: 21 dias (e 22 sem essa folga)');
-function simularDias(horasSemReserva) {
-  const inst = pessoas(100, 'i').map((p, k) => k < 74 ? [p[0], p[1], p[2], 'Enviado a 02/10/2026'] : p);
-  const ee = ambiente({ geral: pessoas(1894, 'g'), institucional: inst, quota: 100, reserva: 10, horasSemReserva });
-  ee.correr('ativarEnvioAutomatico()');
-  let dias = 0;
-  while (ee.gatilhos.length && dias < 60) { ee.usados = 0; dias++; ee.correr('envioAutomatico()'); ee.agora += 24 * H; }
-  return { ee, dias };
-}
-let d72 = simularDias(72), d0 = simularDias(0);
-ok(d72.dias === 21, `com 72 h sem reserva: ${d72.dias} dias (esperava 21)`);
-ok(d0.dias === 22, `sem essa folga: ${d0.dias} dias (esperava 22)`);
-ok(d72.ee.folhaGeral.estados().every(s => /^Enviado a /.test(s)) && d72.ee.folhaInst.estados().every(s => /^Enviado a /.test(s)), 'todas enviadas');
-const dest72 = d72.ee.enviados.map(m => m.to).filter(t => t !== 'jsd@exemplo.pt');
-ok(dest72.length === 1920 && unicos(dest72), 'ninguém repetido');
-e = ambiente({ geral: pessoas(1894, 'g'), institucional: pessoas(26, 'i'), quota: 100, reserva: 10, horasSemReserva: 72 });
-e.correr('verProgresso()');
-ok(/Faltam 1920 emails\. Estimativa: 21 dias/.test(e.alertas[0]) && /100 por dia nas primeiras 72 horas/.test(e.alertas[0]), 'verProgresso: ' + e.alertas[0].split('\n').pop());
+titulo('20. não assume 100: com uma quota maior envia mais, até ao ritmo de 1 a 2 minutos');
+sim = simularReal({ reserva: 10, horasSemReserva: 0, quotaTotal: 1500 });
+ok(sim.dias < 5 && sim.conv.length === 1920, `quota de 1500: as 1920 saem em ${sim.dias.toFixed(1)} dias (não ficam limitadas a 100 por dia)`);
+const porDia = {}; sim.conv.forEach(r => { const d = Math.floor(r.t / (24 * H)); porDia[d] = (porDia[d] || 0) + 1; });
+ok(Math.max(...Object.values(porDia)) > 450, `em cada dia completo envia ${Math.max(...Object.values(porDia))} (14 horas a 1 ou 2 minutos)`);
+sim = simularReal({ reserva: 10, horasSemReserva: 0, quotaTotal: 50, maxDias: 70 });
+const porDia50 = {}; sim.conv.forEach(r => { const d = Math.floor(r.t / (24 * H)); porDia50[d] = (porDia50[d] || 0) + 1; });
+ok(sim.conv.length === 1920 && Math.max(...Object.values(porDia50)) <= 40, `quota de 50 e reserva 10: nunca mais de 40 por dia (máximo ${Math.max(...Object.values(porDia50))})`);
 
 // ------------------------------------------------------------------ 21. emails de teste
 titulo('21. enviarTeste: 4 emails por endereço, sem tocar nas listas nem nos estados');
@@ -418,6 +440,7 @@ diag(x => { x.c.URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL'; }, /✘ Falt
 diag(x => { x.c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/GERAL222_SEM_ACESSO/edit'; x.folhaGeral = null; x.c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/OUTRA999/edit'; }, /✘ Lista Geral: não consegui abrir/, 'lista sem acesso ou endereço errado');
 diag(x => { x.folhaInst.cabecalho = ['Email', 'Nome', 'Género', 'Estado']; }, /✘ Institucional .*o cabeçalho devia ser/, 'colunas trocadas na lista');
 diag(x => { x.c.URL_FOLHA_GERAL = x.c.URL_FOLHA_INSTITUCIONAL; }, /MESMO ficheiro/, 'as duas listas no mesmo ficheiro');
+diag(x => { x.gatilhos.push({ fn: 'envioAutomatico', horas: 1, minutos: null }); }, /✘ O envio automático está ativo, mas foi criado por uma versão antiga do script \(de hora a hora\)/, 'acionador de hora a hora de uma versão antiga');
 
 // ------------------------------------------------------------------ 23. diagnosticar (menu) e o código dividido em partes
 titulo('23. diagnosticar() e a verificação das partes do código');
@@ -452,12 +475,15 @@ if (modoPartes) {
   const corre = opcoes => { const x = ambiente(Object.assign({ geral: pessoas(2), institucional: pessoas(2), extraCodigo: [verificador] }, opcoes)); x.correr('verificarFuncoes()'); return x.alertas[0]; };
   let v = corre({});
   ok(new RegExp(`✔ As ${nFuncoes} funções estão todas no projeto`).test(v), 'projeto certo: ' + v.slice(0, 80));
-  v = corre({ omitirParte: 'Parte6.gs' });
-  ok(/Faltam \d+ funções/.test(v) && /inicioEnvio_ \(devia estar em Parte6\.gs\)/.test(v) && /validarUrls_ \(devia estar em Parte6\.gs\)/.test(v) && !/Parte3/.test(v), 'sem a Parte6: lista as funções dela');
-  v = corre({ modificarParte: { 'Parte6.gs': t => t.replace(/\/\*\*(?:(?!\*\/)[^])*\*\/\nfunction inicioEnvio_\(\) \{[^]*?\n\}\n/, '') } });
-  ok(/Falta 1 função:\n\s+inicioEnvio_ \(devia estar em Parte6\.gs\)/.test(v), 'o teu caso, Parte6 sem a inicioEnvio_: ' + (v.match(/Faltam[^]*?Parte6\.gs\)/) || ['(não apanhou)'])[0].replace(/\n\s*/g, ' '));
+  const ler = f => fs.readFileSync(path.join(pastaPartes, f), 'utf8');
+  const parteDe = nome => ficheirosPartes.find(f => new RegExp(`^function ${nome}\\(`, 'm').test(ler(f)));
+  const P = parteDe('inicioEnvio_'), outraFuncao = ler(P).match(/^function (\w+)/gm).map(x => x.slice(9)).find(n => n !== 'inicioEnvio_');
+  v = corre({ omitirParte: P });
+  ok(/Faltam \d+ funções/.test(v) && v.includes(`inicioEnvio_ (devia estar em ${P})`) && v.includes(`${outraFuncao} (devia estar em ${P})`), `sem ${P}: lista as funções dela (${outraFuncao}, inicioEnvio_…)`);
+  v = corre({ modificarParte: { [P]: t => t.replace(/\/\*\*(?:(?!\*\/)[^])*\*\/\nfunction inicioEnvio_\(\) \{[^]*?\n\}\n/, '') } });
+  ok(v.includes(`Falta 1 função:\n  inicioEnvio_ (devia estar em ${P})`), `o teu caso, ${P} sem a inicioEnvio_: ` + (v.match(/Falta[^]*?\)/) || ['(não apanhou)'])[0].replace(/\n\s*/g, ' '));
   v = corre({ extraCodigo: [verificador, 'function processarEnvios(folha, nomeFicheiroHtml) { return 0; }'] });
-  ok(/processarEnvios \(tem 2 parâmetros, devia ter 3\)/.test(v) && /versão antiga/.test(v), 'cópia antiga de uma função a sobrepor-se: apanhada');
+  ok(/processarEnvios \(tem 2 parâmetros, devia ter 4\)/.test(v) && /versão antiga/.test(v), 'cópia antiga de uma função a sobrepor-se: apanhada');
   v = corre({ omitirParte: 'Parte1.gs' });
   ok(/onOpen \(devia estar em Código\.gs\)/.test(v), 'sem a Parte1: diz que é o Código.gs');
 }

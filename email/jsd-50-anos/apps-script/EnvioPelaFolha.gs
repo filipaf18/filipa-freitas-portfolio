@@ -4,7 +4,8 @@
  * e mistura o código antigo com o novo). Se algo não funcionar, corre «Diagnosticar» no menu da folha.
  * Listas: institucional «Convidados 50 anos» (HTML «convite_institucional») e geral «Militantes Base» (HTML «convite»).
  * Colunas: A Nome · B Email · C Género · D estado (vazio = por enviar); linha 1 = cabeçalho. As listas podem crescer.
- * Quota (conta Gmail pessoal): 100 destinatários por dia, 6 minutos por execução. Documentação completa: LEIA-ME.md.
+ * Não assume nenhum limite diário: envia enquanto a quota real da Google deixar (lida em cada envio) e pára quando recusar.
+ * Envio automático: um email de cada vez, com 1 a 2 minutos de intervalo, entre as 8h e as 22h. Documentação: LEIA-ME.md.
  */
 
 // ---------------------------------------------------------------- configuração
@@ -13,16 +14,17 @@ var NOME_REMETENTE = 'JSD Famalicão';
 var URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_LISTA_INSTITUCIONAL';   // «Convidados 50 anos»
 var URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL';                    // «Militantes Base»
 var EXCLUIR_INSTITUCIONAIS_DA_GERAL = true;      // quem está na lista institucional não recebe o convite geral
-var QUOTA_DIARIA_DA_CONTA = 100;                 // só para a estimativa de dias: 100 numa conta Gmail pessoal, 1500 no Workspace
-var RESERVA_QUOTA = 10;                          // envios que ficam todos os dias para as confirmações de inscrição: 100 − 10 = 90 convites por dia
+var RESERVA_QUOTA = 10;                          // envios que ficam sempre por usar na quota da Google, para as confirmações de inscrição
 var HORAS_SEM_RESERVA = 72;                      // nas primeiras horas de envio de convites não se guarda reserva (0 = guardar sempre)
 var INICIO_DOS_ENVIOS = '';                      // quando começaram os envios. '' = quando este script enviar o 1.º convite. Ex.: '2026-10-02 12:00'
 var EMAILS_DE_TESTE = [];                        // para onde vão os emails de teste; vazio = a conta que corre o script. Ex.: ['eu@gmail.com', 'eu@icloud.com']
-var LIMITE_POR_RONDA = 100;                      // máximo por execução
-var PAUSA_MS = 1000;                             // pausa entre emails
+var LIMITE_POR_RONDA = 0;                        // máximo de emails por clique em «Enviar Lote» (0 = sem limite: só a quota e o tempo)
+var PAUSA_MS = 1000;                             // pausa entre emails no envio manual em lote
+var INTERVALO_MIN_S = 60;                        // envio automático: intervalo entre emails, sorteado entre estes dois valores (segundos)
+var INTERVALO_MAX_S = 120;                       // o acionador corre de minuto a minuto, por isso o intervalo real é de 1 ou 2 minutos
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
 var HORA_INICIO_ENVIO = 8;                       // o envio automático só envia entre estas horas (hora do script)
-var HORA_FIM_ENVIO = 21;
+var HORA_FIM_ENVIO = 22;                         // …até às 22h (não envia a partir das 22h00)
 var AVISAR_POR_EMAIL = true;                     // no fim, o envio automático manda um resumo para a tua conta
 
 // ---------------------------------------------------------------- menu
@@ -158,9 +160,10 @@ function analisar_(dados, excluir) {
 // ---------------------------------------------------------------- motor de envio
 /**
  * Envia a uma lista. Colunas da folha: A nome · B email · C género · D estado (vazio = por enviar).
+ * «maximo» (opcional): quantos emails, no máximo, nesta chamada (o envio automático passa 1).
  * Devolve {enviados, erros, ignorados, pendentes, paragem}; paragem: 'quota' | 'ronda' | 'tempo' | 'concluida' | 'sem-dados'.
  */
-function processarEnvios(folha, nomeFicheiroHtml, excluir) {
+function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
   var inicio = Date.now();
   var res = { enviados: 0, erros: 0, ignorados: 0, pendentes: 0, paragem: '' };
   var ultimaLinha = folha.getLastRow();
@@ -176,7 +179,8 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir) {
   if (!linhas.length) { res.paragem = 'concluida'; return res; }
 
   var disponivel = MailApp.getRemainingDailyQuota() - reservaAtual_();
-  var podeEnviar = Math.min(LIMITE_POR_RONDA, disponivel);
+  var limite = maximo > 0 ? maximo : (LIMITE_POR_RONDA > 0 ? LIMITE_POR_RONDA : Infinity);   // sem limite fixo: só a quota e o tempo
+  var podeEnviar = Math.min(limite, disponivel);
   if (podeEnviar <= 0) { res.pendentes = linhas.length; res.paragem = 'quota'; return res; }
 
   var modelo = HtmlService.createHtmlOutputFromFile(nomeFicheiroHtml).getContent();
@@ -199,7 +203,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir) {
       folha.getRange(i + 2, 4).setValue('Enviado a ' + agora);
       res.enviados++;
       if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
-      Utilities.sleep(PAUSA_MS);
+      if (res.enviados < podeEnviar) Utilities.sleep(PAUSA_MS);
     } catch (e) {
       if (erroDeQuota_(e)) { res.paragem = 'quota'; break; }   // a linha fica em branco: tenta-se na próxima ronda
       folha.getRange(i + 2, 4).setValue('Erro: ' + e.message);
@@ -347,18 +351,14 @@ function reservaAtual_() {
   return RESERVA_QUOTA;
 }
 
-/** Dias que faltam para enviar «faltam» emails: sem reserva durante as horas iniciais e com reserva depois. */
-function estimarDias_(faltam) {
-  var comReserva = Math.max(1, QUOTA_DIARIA_DA_CONTA - RESERVA_QUOTA);
-  var livres = 0;
-  if (HORAS_SEM_RESERVA > 0) {
-    var inicio = inicioEnvio_();
-    var restante = inicio ? Math.max(0, HORAS_SEM_RESERVA * 3600000 - (Date.now() - inicio)) : HORAS_SEM_RESERVA * 3600000;
-    livres = Math.ceil(restante / 86400000);
+/** Quantos emails foram enviados nas últimas 24 horas, pelas horas escritas no estado («Enviado a dd/MM/aaaa HH:mm»). */
+function enviadosNas24h_(dados) {
+  var desde = Date.now() - 24 * 3600000, n = 0;
+  for (var j = 0; j < dados.length; j++) {
+    var m = /^Enviado a (\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/.exec(texto_(dados[j][3]));
+    if (m && new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4]), Number(m[5])).getTime() >= desde) n++;
   }
-  var cabem = livres * QUOTA_DIARIA_DA_CONTA;
-  if (faltam <= cabem) return Math.ceil(faltam / QUOTA_DIARIA_DA_CONTA);
-  return livres + Math.ceil((faltam - cabem) / comReserva);
+  return n;
 }
 
 /**
@@ -434,7 +434,12 @@ function diagnostico() {
   }
 
   var ativos = ScriptApp.getProjectTriggers().filter(function (g) { return g.getHandlerFunction() === 'envioAutomatico'; }).length;
-  linhas.push((ativos ? '✔ Envio automático ativo.' : '• Envio automático desativado (ativa-o no menu quando quiseres começar).'));
+  if (ativos && PropertiesService.getScriptProperties().getProperty('acionador') !== 'minuto') {
+    mau('O envio automático está ativo, mas foi criado por uma versão antiga do script (de hora a hora): escolhe «Desativar envio automático» e depois «Ativar envio automático».');
+  } else {
+    linhas.push(ativos ? '✔ Envio automático ativo (de minuto a minuto, entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h).'
+                       : '• Envio automático desativado (ativa-o no menu quando quiseres começar).');
+  }
   avisar_(linhas.join('\n') + '\n\n' + (problemas ? problemas + ' problema(s) assinalado(s) com ✘.' : 'Tudo em ordem.'));
 }
 
@@ -454,18 +459,20 @@ function verProgresso() {
   try {
     var excluir = emailsInstitucionais_();
     var listas = [['Institucional', URL_FOLHA_INSTITUCIONAL, folhaInstitucional_(), {}], ['Geral', URL_FOLHA_GERAL, folhaGeral_(), excluir]];
-    var linhas = [], faltam = 0;
+    var linhas = [], faltam = 0, ultimas24 = 0;
     for (var n = 0; n < listas.length; n++) {
-      var a = analisar_(dadosDe_(listas[n][2]), listas[n][3]);
+      var dadosLista = dadosDe_(listas[n][2]);
+      var a = analisar_(dadosLista, listas[n][3]);
       faltam += a.porEnviar.length;
+      ultimas24 += enviadosNas24h_(dadosLista);
       linhas.push(listas[n][0] + ' ' + nomeDaLista_(listas[n][1], listas[n][2]) + ':\n   '
         + a.enviados + ' enviados · ' + a.porEnviar.length + ' por enviar · '
         + (a.ignorados + a.novosIgnorados.length) + ' ignorados (repetidos / já institucionais) · ' + a.erros + ' com erro');
     }
     linhas.push('');
-    linhas.push('Faltam ' + faltam + ' emails. Estimativa: ' + estimarDias_(faltam) + ' dias ('
-              + (HORAS_SEM_RESERVA > 0 ? QUOTA_DIARIA_DA_CONTA + ' por dia nas primeiras ' + HORAS_SEM_RESERVA + ' horas de envio, depois ' : '')
-              + Math.max(1, QUOTA_DIARIA_DA_CONTA - RESERVA_QUOTA) + ' por dia, com ' + RESERVA_QUOTA + ' de reserva).');
+    linhas.push('Faltam ' + faltam + ' emails. Nas últimas 24 horas foram enviados ' + ultimas24 + '.'
+              + (ultimas24 >= 20 ? ' Ao ritmo das últimas 24 horas, faltam cerca de ' + Math.ceil(faltam / ultimas24) + ' dias.'
+                                 : ' Ainda não há envios que cheguem para estimar os dias (o ritmo depende da quota da Google).'));
     avisar_(linhas.join('\n'));
   } catch (e) {
     avisar_('Erro: ' + e.message);
@@ -519,46 +526,59 @@ function descreverLista_(rotulo, dados, institucionais) {
     + '   nomes com uma só palavra: ' + c.semApelido + ' · nomes todos em maiúsculas/minúsculas (são corrigidos no email): ' + c.maiusculas;
 }
 
-// ---------------------------------------------------------------- envio automático (de hora a hora)
+// ---------------------------------------------------------------- envio automático (de minuto a minuto)
 function ativarEnvioAutomatico() {
   desativarEnvioAutomatico();
-  ScriptApp.newTrigger('envioAutomatico').timeBased().everyHours(1).create();
-  avisar_('Envio automático ativado: de hora a hora, entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h, o script envia o que a quota da Google deixar '
-        + '(primeiro a lista institucional, depois a geral). Nas primeiras ' + HORAS_SEM_RESERVA + ' horas usa a quota toda; depois guarda '
-        + RESERVA_QUOTA + ' envios por dia de reserva para as confirmações. '
-        + 'Desliga-se sozinho quando as listas acabarem. Podes ver o ponto da situação em «Ver progresso».');
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('acionador', 'minuto');
+  props.deleteProperty('proximoEnvio');
+  ScriptApp.newTrigger('envioAutomatico').timeBased().everyMinutes(1).create();
+  avisar_('Envio automático ativado: entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h o script envia um email de cada vez, com 1 a 2 minutos de intervalo '
+        + '(primeiro a lista institucional, depois a geral), enquanto a Google deixar. Quando a quota acabar pára e retoma sozinho quando ela for libertada. '
+        + 'Nas primeiras ' + HORAS_SEM_RESERVA + ' horas usa a quota toda; depois deixa sempre ' + RESERVA_QUOTA + ' por usar, para as confirmações. '
+        + 'Desliga-se sozinho quando as listas acabarem. «Ver progresso» mostra o ponto da situação.');
 }
 
 function desativarEnvioAutomatico() {
   ScriptApp.getProjectTriggers().forEach(function (g) {
     if (g.getHandlerFunction() === 'envioAutomatico') ScriptApp.deleteTrigger(g);
   });
+  PropertiesService.getScriptProperties().deleteProperty('acionador');
 }
 
-/** Função do acionador: institucional primeiro, depois a geral; para quando a quota acaba. */
+/** Intervalo até ao próximo email, em segundos: sorteado entre INTERVALO_MIN_S e INTERVALO_MAX_S. */
+function intervaloSorteado_() {
+  return INTERVALO_MIN_S + Math.floor(Math.random() * (Math.max(INTERVALO_MAX_S, INTERVALO_MIN_S) - INTERVALO_MIN_S + 1));
+}
+
+/**
+ * Função do acionador de minuto a minuto: envia UM email de cada vez (institucional primeiro, depois a geral), entre as
+ * HORA_INICIO_ENVIO e as HORA_FIM_ENVIO. Não assume nenhum limite diário: envia enquanto a quota real da Google, menos
+ * a reserva, deixar, e pára quando ela acabar. O intervalo sorteado conta 30 s a menos (meio minuto) porque o acionador
+ * só corre de minuto a minuto: assim o intervalo real fica arredondado ao minuto mais próximo (1 ou 2 minutos).
+ */
 function envioAutomatico() {
   var hora = new Date().getHours();
   if (hora < HORA_INICIO_ENVIO || hora >= HORA_FIM_ENVIO) return;                  // fora do horário de envio
-  if (MailApp.getRemainingDailyQuota() - reservaAtual_() <= 0) return;             // sem quota: nem lê as folhas
+  var props = PropertiesService.getScriptProperties();
+  var agora = Date.now(), proximo = Number(props.getProperty('proximoEnvio')) || 0;
+  if (agora < proximo && proximo - agora <= INTERVALO_MAX_S * 1000) return;        // ainda não é a hora do próximo email
+  if (MailApp.getRemainingDailyQuota() - reservaAtual_() <= 0) return;             // a Google não deixa enviar mais: nem lê as folhas
 
   var trava = LockService.getScriptLock();
-  if (!trava.tryLock(30000)) { Logger.log('Já está um envio a decorrer.'); return; }
+  if (!trava.tryLock(3000)) return;                                                // outra execução está a enviar
   try {
-    var listas = [['convite_institucional', function () { return folhaInstitucional_(); }, function () { return {}; }],
-                  ['convite', folhaGeral_, emailsInstitucionais_]];
-    var pendentes = 0, paragem = '', folhas = [];
-    for (var n = 0; n < listas.length; n++) {
-      var folha = listas[n][1]();
-      folhas.push(folha);
-      var r = processarEnvios(folha, listas[n][0], listas[n][2]());
-      pendentes += r.pendentes;
-      Logger.log(listas[n][0] + ': ' + resumo_(r).replace(/\n+/g, ' '));
-      if (r.paragem === 'quota' || r.paragem === 'tempo') { paragem = r.paragem; break; }
+    var institucional = folhaInstitucional_(), geral = null;
+    var r = processarEnvios(institucional, 'convite_institucional', {}, 1);
+    if (r.enviados === 0 && r.paragem !== 'quota' && r.paragem !== 'tempo') {      // a institucional acabou: segue-se a geral
+      geral = folhaGeral_();
+      r = processarEnvios(geral, 'convite', emailsInstitucionais_(), 1);
     }
-    var concluido = pendentes === 0 && !paragem;
-    if (concluido) {
+    if (r.enviados > 0) {
+      props.setProperty('proximoEnvio', String(Date.now() + (intervaloSorteado_() - 30) * 1000));
+    } else if (r.paragem === 'concluida' || r.paragem === 'sem-dados') {          // as duas listas acabaram
       desativarEnvioAutomatico();
-      if (AVISAR_POR_EMAIL) resumoFinal_(folhas);
+      if (AVISAR_POR_EMAIL) resumoFinal_([institucional, geral || folhaGeral_()]);
     }
   } catch (e) {
     Logger.log('Erro no envio automático: ' + e.message);

@@ -6,7 +6,8 @@
  * e mistura o código antigo com o novo). Se algo não funcionar, corre «Diagnosticar» no menu da folha.
  * Listas: institucional «Convidados 50 anos» (HTML «convite_institucional») e geral «Militantes Base» (HTML «convite»).
  * Colunas: A Nome · B Email · C Género · D estado (vazio = por enviar); linha 1 = cabeçalho. As listas podem crescer.
- * Quota (conta Gmail pessoal): 100 destinatários por dia, 6 minutos por execução. Documentação completa: LEIA-ME.md.
+ * Não assume nenhum limite diário: envia enquanto a quota real da Google deixar (lida em cada envio) e pára quando recusar.
+ * Envio automático: um email de cada vez, com 1 a 2 minutos de intervalo, entre as 8h e as 22h. Documentação: LEIA-ME.md.
  */
 
 // ---------------------------------------------------------------- configuração
@@ -15,16 +16,17 @@ var NOME_REMETENTE = 'JSD Famalicão';
 var URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_LISTA_INSTITUCIONAL';   // «Convidados 50 anos»
 var URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL';                    // «Militantes Base»
 var EXCLUIR_INSTITUCIONAIS_DA_GERAL = true;      // quem está na lista institucional não recebe o convite geral
-var QUOTA_DIARIA_DA_CONTA = 100;                 // só para a estimativa de dias: 100 numa conta Gmail pessoal, 1500 no Workspace
-var RESERVA_QUOTA = 10;                          // envios que ficam todos os dias para as confirmações de inscrição: 100 − 10 = 90 convites por dia
+var RESERVA_QUOTA = 10;                          // envios que ficam sempre por usar na quota da Google, para as confirmações de inscrição
 var HORAS_SEM_RESERVA = 72;                      // nas primeiras horas de envio de convites não se guarda reserva (0 = guardar sempre)
 var INICIO_DOS_ENVIOS = '';                      // quando começaram os envios. '' = quando este script enviar o 1.º convite. Ex.: '2026-10-02 12:00'
 var EMAILS_DE_TESTE = [];                        // para onde vão os emails de teste; vazio = a conta que corre o script. Ex.: ['eu@gmail.com', 'eu@icloud.com']
-var LIMITE_POR_RONDA = 100;                      // máximo por execução
-var PAUSA_MS = 1000;                             // pausa entre emails
+var LIMITE_POR_RONDA = 0;                        // máximo de emails por clique em «Enviar Lote» (0 = sem limite: só a quota e o tempo)
+var PAUSA_MS = 1000;                             // pausa entre emails no envio manual em lote
+var INTERVALO_MIN_S = 60;                        // envio automático: intervalo entre emails, sorteado entre estes dois valores (segundos)
+var INTERVALO_MAX_S = 120;                       // o acionador corre de minuto a minuto, por isso o intervalo real é de 1 ou 2 minutos
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
 var HORA_INICIO_ENVIO = 8;                       // o envio automático só envia entre estas horas (hora do script)
-var HORA_FIM_ENVIO = 21;
+var HORA_FIM_ENVIO = 22;                         // …até às 22h (não envia a partir das 22h00)
 var AVISAR_POR_EMAIL = true;                     // no fim, o envio automático manda um resumo para a tua conta
 
 
@@ -77,16 +79,12 @@ function diagnosticar() {
   diagnostico();
 }
 
-/** Versão em texto simples do HTML (a outra parte do email, para quem não vê HTML). */
-function textoSimples_(html) {
-  return html
-    .replace(/<(style|head)[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<div style="display:none;[\s\S]*?<\/div>/i, '')
-    .replace(/<br\s*\/?>|<\/tr>|<\/p>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(parseInt(n, 10)); })
-    .replace(/&amp;/g, '&')
-    .split('\n').map(function (l) { return l.replace(/[ \t ]+/g, ' ').trim(); }).join('\n')
-    .replace(/\n{3,}/g, '\n\n').trim();
+/** Nomes todos em maiúsculas ou todos em minúsculas passam a «Maria da Silva»; os restantes ficam como estão. */
+function nomeProprio_(nome) {
+  if (nome !== nome.toUpperCase() && nome !== nome.toLowerCase()) return nome;
+  var particulas = { de: 1, da: 1, do: 1, dos: 1, das: 1, e: 1 };
+  return nome.toLowerCase().split(/\s+/).map(function (p, k) {
+    if (k > 0 && particulas[p]) return p;
+    return p.replace(/(^|[-'])([a-zà-ÿ])/g, function (m, a, b) { return a + b.toUpperCase(); });
+  }).join(' ');
 }

@@ -3,13 +3,13 @@
 // Confere se TODAS as funções do script estão no projeto e se não há uma cópia antiga de alguma (número de parâmetros diferente).
 function verificarFuncoes() {
   var esperadas = {
-    1: 'onOpen/0 enviarConvites/0 enviarConvitesInstitucionais/0 partesEmFalta_/0 diagnosticar/0 textoSimples_/1',
-    2: 'analisar_/2 processarEnvios/3',
-    3: 'trocar_/3 diagnostico/0 envioAutomatico/0',
-    4: 'erroDeQuota_/1 personalizar_/4 resumo_/1 descreverLista_/3',
-    5: 'folhaGeral_/0 executar_/1 enviarTeste/0 verProgresso/0 verificarListas/0',
-    6: 'validarUrls_/0 mapaEmails_/1 nomeProprio_/1 avisar_/1 inicioEnvio_/0 estimarDias_/1 ativarEnvioAutomatico/0 resumoFinal_/1',
-    7: 'folhaInstitucional_/0 emailsInstitucionais_/0 porEnviar_/1 texto_/1 verQuota/0 registarInicioEnvio_/0 reservaAtual_/0 nomeDaLista_/2 dadosDe_/1 desativarEnvioAutomatico/0'
+    1: 'onOpen/0 enviarConvites/0 enviarConvitesInstitucionais/0 partesEmFalta_/0 diagnosticar/0 nomeProprio_/1',
+    2: 'processarEnvios/4 descreverLista_/3',
+    3: 'analisar_/2 diagnostico/0',
+    4: 'personalizar_/4 verProgresso/0 envioAutomatico/0',
+    5: 'executar_/1 resumo_/1 enviarTeste/0 verificarListas/0',
+    6: 'validarUrls_/0 mapaEmails_/1 textoSimples_/1 avisar_/1 verQuota/0 enviadosNas24h_/1 ativarEnvioAutomatico/0 resumoFinal_/1',
+    7: 'folhaGeral_/0 folhaInstitucional_/0 emailsInstitucionais_/0 porEnviar_/1 erroDeQuota_/1 texto_/1 trocar_/3 inicioEnvio_/0 registarInicioEnvio_/0 reservaAtual_/0 nomeDaLista_/2 dadosDe_/1 desativarEnvioAutomatico/0 intervaloSorteado_/0'
   };
   var faltam = [], antigas = [], total = 0;
   for (var parte in esperadas) {

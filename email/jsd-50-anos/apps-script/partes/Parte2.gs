@@ -2,44 +2,13 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_2 = true;
 
-// ---------------------------------------------------------------- análise da lista (só lê)
-/**
- * Percorre a lista e separa: quem falta enviar, quem já foi, os erros, e quem deve ser ignorado (email repetido na
- * lista, ou já na lista institucional). «excluir» é um mapa email-em-minúsculas → true.
- */
-function analisar_(dados, excluir) {
-  var r = { total: 0, porEnviar: [], novosIgnorados: [], enviados: 0, ignorados: 0, erros: 0 };
-  var vistos = {};
-  for (var j = 0; j < dados.length; j++) {
-    var email = texto_(dados[j][1]);
-    var estado = texto_(dados[j][3]);
-    if (texto_(dados[j][0]) === '' && email === '') continue;      // linha em branco: salta (a lista pode ter espaços)
-    r.total++;
-    var chave = email.toLowerCase();
-    var pendente = porEnviar_(estado);
-    var enviado = /^Enviado a /.test(estado);
-    if (pendente) {
-      if (chave !== '' && vistos[chave]) r.novosIgnorados.push({ i: j, motivo: 'Ignorado: email repetido na lista' });
-      else if (chave !== '' && excluir[chave]) r.novosIgnorados.push({ i: j, motivo: 'Ignorado: já está na lista institucional' });
-      else r.porEnviar.push(j);
-    } else if (enviado) {
-      r.enviados++;
-    } else if (/^Ignorado/.test(estado)) {
-      r.ignorados++;
-    } else {
-      r.erros++;
-    }
-    if (chave !== '' && (pendente || enviado)) vistos[chave] = true;   // a primeira ocorrência é a que conta
-  }
-  return r;
-}
-
 // ---------------------------------------------------------------- motor de envio
 /**
  * Envia a uma lista. Colunas da folha: A nome · B email · C género · D estado (vazio = por enviar).
+ * «maximo» (opcional): quantos emails, no máximo, nesta chamada (o envio automático passa 1).
  * Devolve {enviados, erros, ignorados, pendentes, paragem}; paragem: 'quota' | 'ronda' | 'tempo' | 'concluida' | 'sem-dados'.
  */
-function processarEnvios(folha, nomeFicheiroHtml, excluir) {
+function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
   var inicio = Date.now();
   var res = { enviados: 0, erros: 0, ignorados: 0, pendentes: 0, paragem: '' };
   var ultimaLinha = folha.getLastRow();
@@ -55,7 +24,8 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir) {
   if (!linhas.length) { res.paragem = 'concluida'; return res; }
 
   var disponivel = MailApp.getRemainingDailyQuota() - reservaAtual_();
-  var podeEnviar = Math.min(LIMITE_POR_RONDA, disponivel);
+  var limite = maximo > 0 ? maximo : (LIMITE_POR_RONDA > 0 ? LIMITE_POR_RONDA : Infinity);   // sem limite fixo: só a quota e o tempo
+  var podeEnviar = Math.min(limite, disponivel);
   if (podeEnviar <= 0) { res.pendentes = linhas.length; res.paragem = 'quota'; return res; }
 
   var modelo = HtmlService.createHtmlOutputFromFile(nomeFicheiroHtml).getContent();
@@ -78,7 +48,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir) {
       folha.getRange(i + 2, 4).setValue('Enviado a ' + agora);
       res.enviados++;
       if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
-      Utilities.sleep(PAUSA_MS);
+      if (res.enviados < podeEnviar) Utilities.sleep(PAUSA_MS);
     } catch (e) {
       if (erroDeQuota_(e)) { res.paragem = 'quota'; break; }   // a linha fica em branco: tenta-se na próxima ronda
       folha.getRange(i + 2, 4).setValue('Erro: ' + e.message);
@@ -88,4 +58,34 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir) {
   res.pendentes = linhas.length - res.enviados - res.erros;
   if (!res.paragem) res.paragem = res.pendentes > 0 ? 'ronda' : 'concluida';
   return res;
+}
+
+function descreverLista_(rotulo, dados, institucionais) {
+  var c = { total: 0, fem: 0, masc: 0, generoDesconhecido: [], invalidos: [], repetidos: [], jaInstitucionais: [], semApelido: 0, maiusculas: 0 };
+  var vistos = {};
+  var feminino = ['feminino', 'f', 'mulher'], masculino = ['masculino', 'm', 'homem'];
+  for (var j = 0; j < dados.length; j++) {
+    var nome = texto_(dados[j][0]), email = texto_(dados[j][1]), genero = texto_(dados[j][2]).toLowerCase();
+    if (nome === '' && email === '') continue;
+    c.total++;
+    var linha = j + 2;
+    if (feminino.indexOf(genero) !== -1) c.fem++;
+    else if (masculino.indexOf(genero) !== -1) c.masc++;
+    else c.generoDesconhecido.push(linha);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) c.invalidos.push(linha);
+    var chave = email.toLowerCase();
+    if (chave !== '') {
+      if (vistos[chave]) c.repetidos.push(linha); else vistos[chave] = true;
+      if (institucionais[chave]) c.jaInstitucionais.push(linha);
+    }
+    if (nome.split(/\s+/).length < 2) c.semApelido++;
+    if (nome !== '' && nomeProprio_(nome) !== nome) c.maiusculas++;
+  }
+  var lista = function (v) { return v.length ? v.length + ' (linhas ' + v.slice(0, 12).join(', ') + (v.length > 12 ? '…' : '') + ')' : '0'; };
+  return rotulo + ': ' + c.total + ' pessoas\n'
+    + '   Feminino ' + c.fem + ' · Masculino ' + c.masc + ' · género por reconhecer (seria tratado como masculino): ' + lista(c.generoDesconhecido) + '\n'
+    + '   emails inválidos: ' + lista(c.invalidos) + '\n'
+    + '   emails repetidos (só o 1.º recebe): ' + lista(c.repetidos) + '\n'
+    + (rotulo.indexOf('Geral') === 0 ? '   já na lista institucional (não recebem o geral): ' + lista(c.jaInstitucionais) + '\n' : '')
+    + '   nomes com uma só palavra: ' + c.semApelido + ' · nomes todos em maiúsculas/minúsculas (são corrigidos no email): ' + c.maiusculas;
 }

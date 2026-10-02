@@ -2,10 +2,36 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_3 = true;
 
-/** Troca a primeira ocorrência, sem que «$» no nome seja tratado como código de substituição. */
-function trocar_(texto, de, para) {
-  var p = texto.indexOf(de);
-  return p === -1 ? texto : texto.substring(0, p) + para + texto.substring(p + de.length);
+// ---------------------------------------------------------------- análise da lista (só lê)
+/**
+ * Percorre a lista e separa: quem falta enviar, quem já foi, os erros, e quem deve ser ignorado (email repetido na
+ * lista, ou já na lista institucional). «excluir» é um mapa email-em-minúsculas → true.
+ */
+function analisar_(dados, excluir) {
+  var r = { total: 0, porEnviar: [], novosIgnorados: [], enviados: 0, ignorados: 0, erros: 0 };
+  var vistos = {};
+  for (var j = 0; j < dados.length; j++) {
+    var email = texto_(dados[j][1]);
+    var estado = texto_(dados[j][3]);
+    if (texto_(dados[j][0]) === '' && email === '') continue;      // linha em branco: salta (a lista pode ter espaços)
+    r.total++;
+    var chave = email.toLowerCase();
+    var pendente = porEnviar_(estado);
+    var enviado = /^Enviado a /.test(estado);
+    if (pendente) {
+      if (chave !== '' && vistos[chave]) r.novosIgnorados.push({ i: j, motivo: 'Ignorado: email repetido na lista' });
+      else if (chave !== '' && excluir[chave]) r.novosIgnorados.push({ i: j, motivo: 'Ignorado: já está na lista institucional' });
+      else r.porEnviar.push(j);
+    } else if (enviado) {
+      r.enviados++;
+    } else if (/^Ignorado/.test(estado)) {
+      r.ignorados++;
+    } else {
+      r.erros++;
+    }
+    if (chave !== '' && (pendente || enviado)) vistos[chave] = true;   // a primeira ocorrência é a que conta
+  }
+  return r;
 }
 
 /**
@@ -54,38 +80,11 @@ function diagnostico() {
   }
 
   var ativos = ScriptApp.getProjectTriggers().filter(function (g) { return g.getHandlerFunction() === 'envioAutomatico'; }).length;
-  linhas.push((ativos ? '✔ Envio automático ativo.' : '• Envio automático desativado (ativa-o no menu quando quiseres começar).'));
-  avisar_(linhas.join('\n') + '\n\n' + (problemas ? problemas + ' problema(s) assinalado(s) com ✘.' : 'Tudo em ordem.'));
-}
-
-/** Função do acionador: institucional primeiro, depois a geral; para quando a quota acaba. */
-function envioAutomatico() {
-  var hora = new Date().getHours();
-  if (hora < HORA_INICIO_ENVIO || hora >= HORA_FIM_ENVIO) return;                  // fora do horário de envio
-  if (MailApp.getRemainingDailyQuota() - reservaAtual_() <= 0) return;             // sem quota: nem lê as folhas
-
-  var trava = LockService.getScriptLock();
-  if (!trava.tryLock(30000)) { Logger.log('Já está um envio a decorrer.'); return; }
-  try {
-    var listas = [['convite_institucional', function () { return folhaInstitucional_(); }, function () { return {}; }],
-                  ['convite', folhaGeral_, emailsInstitucionais_]];
-    var pendentes = 0, paragem = '', folhas = [];
-    for (var n = 0; n < listas.length; n++) {
-      var folha = listas[n][1]();
-      folhas.push(folha);
-      var r = processarEnvios(folha, listas[n][0], listas[n][2]());
-      pendentes += r.pendentes;
-      Logger.log(listas[n][0] + ': ' + resumo_(r).replace(/\n+/g, ' '));
-      if (r.paragem === 'quota' || r.paragem === 'tempo') { paragem = r.paragem; break; }
-    }
-    var concluido = pendentes === 0 && !paragem;
-    if (concluido) {
-      desativarEnvioAutomatico();
-      if (AVISAR_POR_EMAIL) resumoFinal_(folhas);
-    }
-  } catch (e) {
-    Logger.log('Erro no envio automático: ' + e.message);
-  } finally {
-    trava.releaseLock();
+  if (ativos && PropertiesService.getScriptProperties().getProperty('acionador') !== 'minuto') {
+    mau('O envio automático está ativo, mas foi criado por uma versão antiga do script (de hora a hora): escolhe «Desativar envio automático» e depois «Ativar envio automático».');
+  } else {
+    linhas.push(ativos ? '✔ Envio automático ativo (de minuto a minuto, entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h).'
+                       : '• Envio automático desativado (ativa-o no menu quando quiseres começar).');
   }
+  avisar_(linhas.join('\n') + '\n\n' + (problemas ? problemas + ' problema(s) assinalado(s) com ✘.' : 'Tudo em ordem.'));
 }

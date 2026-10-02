@@ -2,10 +2,6 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_4 = true;
 
-function erroDeQuota_(e) {
-  return /too many times|limit exceeded|quota/i.test(String(e && e.message));
-}
-
 // ---------------------------------------------------------------- personalização (igual à versão anterior)
 function personalizar_(modelo, nomeFicheiroHtml, nomeCompleto, genero) {
   var partes = nomeProprio_(nomeCompleto).split(/\s+/);
@@ -33,59 +29,63 @@ function personalizar_(modelo, nomeFicheiroHtml, nomeCompleto, genero) {
   return html;
 }
 
-// ---------------------------------------------------------------- mensagens
-function resumo_(res) {
-  if (res.teste) {
-    return 'Enviados ' + res.enviados + ' emails de teste para ' + res.destinos.join(', ') + ' (convite geral e institucional, feminino e masculino).\n'
-         + 'Não alteram as listas. Confere o nome, o género («Cara»/«Caro»), as imagens e o aspeto no Gmail (web e app) e no iPhone.';
+/** Quantos faltam em cada lista, quantos já foram, e quantos dias levará a acabar. Não envia nada. */
+function verProgresso() {
+  try {
+    var excluir = emailsInstitucionais_();
+    var listas = [['Institucional', URL_FOLHA_INSTITUCIONAL, folhaInstitucional_(), {}], ['Geral', URL_FOLHA_GERAL, folhaGeral_(), excluir]];
+    var linhas = [], faltam = 0, ultimas24 = 0;
+    for (var n = 0; n < listas.length; n++) {
+      var dadosLista = dadosDe_(listas[n][2]);
+      var a = analisar_(dadosLista, listas[n][3]);
+      faltam += a.porEnviar.length;
+      ultimas24 += enviadosNas24h_(dadosLista);
+      linhas.push(listas[n][0] + ' ' + nomeDaLista_(listas[n][1], listas[n][2]) + ':\n   '
+        + a.enviados + ' enviados · ' + a.porEnviar.length + ' por enviar · '
+        + (a.ignorados + a.novosIgnorados.length) + ' ignorados (repetidos / já institucionais) · ' + a.erros + ' com erro');
+    }
+    linhas.push('');
+    linhas.push('Faltam ' + faltam + ' emails. Nas últimas 24 horas foram enviados ' + ultimas24 + '.'
+              + (ultimas24 >= 20 ? ' Ao ritmo das últimas 24 horas, faltam cerca de ' + Math.ceil(faltam / ultimas24) + ' dias.'
+                                 : ' Ainda não há envios que cheguem para estimar os dias (o ritmo depende da quota da Google).'));
+    avisar_(linhas.join('\n'));
+  } catch (e) {
+    avisar_('Erro: ' + e.message);
   }
-  var t = 'Enviou ' + res.enviados + ' emails nesta ronda.';
-  if (res.ignorados) t += '\n' + res.ignorados + ' ignorados (email repetido ou já na lista institucional): ficam marcados «Ignorado».';
-  if (res.erros) t += '\n' + res.erros + ' com erro (ver a coluna «Estado»).';
-  if (res.paragem === 'quota') {
-    t += '\n\nA quota diária de envio da Google esgotou-se' + (reservaAtual_() ? ' (ficam ' + reservaAtual_() + ' de reserva para as confirmações de inscrição)' : '')
-       + '. As ' + res.pendentes + ' pessoas que faltam NÃO foram marcadas com erro: ficam para a próxima ronda, '
-       + 'passadas cerca de 24 horas (ou deixa o envio automático ativo).';
-  } else if (res.paragem === 'ronda') {
-    t += '\n\nPausa de segurança (limite por ronda). Faltam ' + res.pendentes + '. Volta a clicar daqui a uns minutos.';
-  } else if (res.paragem === 'tempo') {
-    t += '\n\nParou ao fim de 5 minutos (limite da Google por execução). Faltam ' + res.pendentes + '. Volta a clicar.';
-  } else if (res.paragem === 'concluida' && res.enviados === 0 && !res.erros && !res.ignorados) {
-    t = 'Não há ninguém por enviar nesta lista.';
-  } else if (res.paragem === 'concluida') {
-    t += '\n\nFim da lista.';
-  } else if (res.paragem === 'sem-dados') {
-    t = 'Não foram encontrados dados para enviar na folha.';
-  }
-  return t;
 }
 
-function descreverLista_(rotulo, dados, institucionais) {
-  var c = { total: 0, fem: 0, masc: 0, generoDesconhecido: [], invalidos: [], repetidos: [], jaInstitucionais: [], semApelido: 0, maiusculas: 0 };
-  var vistos = {};
-  var feminino = ['feminino', 'f', 'mulher'], masculino = ['masculino', 'm', 'homem'];
-  for (var j = 0; j < dados.length; j++) {
-    var nome = texto_(dados[j][0]), email = texto_(dados[j][1]), genero = texto_(dados[j][2]).toLowerCase();
-    if (nome === '' && email === '') continue;
-    c.total++;
-    var linha = j + 2;
-    if (feminino.indexOf(genero) !== -1) c.fem++;
-    else if (masculino.indexOf(genero) !== -1) c.masc++;
-    else c.generoDesconhecido.push(linha);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) c.invalidos.push(linha);
-    var chave = email.toLowerCase();
-    if (chave !== '') {
-      if (vistos[chave]) c.repetidos.push(linha); else vistos[chave] = true;
-      if (institucionais[chave]) c.jaInstitucionais.push(linha);
+/**
+ * Função do acionador de minuto a minuto: envia UM email de cada vez (institucional primeiro, depois a geral), entre as
+ * HORA_INICIO_ENVIO e as HORA_FIM_ENVIO. Não assume nenhum limite diário: envia enquanto a quota real da Google, menos
+ * a reserva, deixar, e pára quando ela acabar. O intervalo sorteado conta 30 s a menos (meio minuto) porque o acionador
+ * só corre de minuto a minuto: assim o intervalo real fica arredondado ao minuto mais próximo (1 ou 2 minutos).
+ */
+function envioAutomatico() {
+  var hora = new Date().getHours();
+  if (hora < HORA_INICIO_ENVIO || hora >= HORA_FIM_ENVIO) return;                  // fora do horário de envio
+  var props = PropertiesService.getScriptProperties();
+  var agora = Date.now(), proximo = Number(props.getProperty('proximoEnvio')) || 0;
+  if (agora < proximo && proximo - agora <= INTERVALO_MAX_S * 1000) return;        // ainda não é a hora do próximo email
+  if (MailApp.getRemainingDailyQuota() - reservaAtual_() <= 0) return;             // a Google não deixa enviar mais: nem lê as folhas
+
+  var trava = LockService.getScriptLock();
+  if (!trava.tryLock(3000)) return;                                                // outra execução está a enviar
+  try {
+    var institucional = folhaInstitucional_(), geral = null;
+    var r = processarEnvios(institucional, 'convite_institucional', {}, 1);
+    if (r.enviados === 0 && r.paragem !== 'quota' && r.paragem !== 'tempo') {      // a institucional acabou: segue-se a geral
+      geral = folhaGeral_();
+      r = processarEnvios(geral, 'convite', emailsInstitucionais_(), 1);
     }
-    if (nome.split(/\s+/).length < 2) c.semApelido++;
-    if (nome !== '' && nomeProprio_(nome) !== nome) c.maiusculas++;
+    if (r.enviados > 0) {
+      props.setProperty('proximoEnvio', String(Date.now() + (intervaloSorteado_() - 30) * 1000));
+    } else if (r.paragem === 'concluida' || r.paragem === 'sem-dados') {          // as duas listas acabaram
+      desativarEnvioAutomatico();
+      if (AVISAR_POR_EMAIL) resumoFinal_([institucional, geral || folhaGeral_()]);
+    }
+  } catch (e) {
+    Logger.log('Erro no envio automático: ' + e.message);
+  } finally {
+    trava.releaseLock();
   }
-  var lista = function (v) { return v.length ? v.length + ' (linhas ' + v.slice(0, 12).join(', ') + (v.length > 12 ? '…' : '') + ')' : '0'; };
-  return rotulo + ': ' + c.total + ' pessoas\n'
-    + '   Feminino ' + c.fem + ' · Masculino ' + c.masc + ' · género por reconhecer (seria tratado como masculino): ' + lista(c.generoDesconhecido) + '\n'
-    + '   emails inválidos: ' + lista(c.invalidos) + '\n'
-    + '   emails repetidos (só o 1.º recebe): ' + lista(c.repetidos) + '\n'
-    + (rotulo.indexOf('Geral') === 0 ? '   já na lista institucional (não recebem o geral): ' + lista(c.jaInstitucionais) + '\n' : '')
-    + '   nomes com uma só palavra: ' + c.semApelido + ' · nomes todos em maiúsculas/minúsculas (são corrigidos no email): ' + c.maiusculas;
 }

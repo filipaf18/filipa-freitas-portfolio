@@ -2,11 +2,6 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_5 = true;
 
-function folhaGeral_() {
-  validarUrls_();
-  return SpreadsheetApp.openByUrl(URL_FOLHA_GERAL).getSheets()[0];
-}
-
 /** Corre um envio com a trava, e mostra o resumo (ou regista-o, se não houver ecrã, como nos acionadores). */
 function executar_(envio) {
   var trava = LockService.getScriptLock();
@@ -21,6 +16,33 @@ function executar_(envio) {
   } finally {
     trava.releaseLock();
   }
+}
+
+// ---------------------------------------------------------------- mensagens
+function resumo_(res) {
+  if (res.teste) {
+    return 'Enviados ' + res.enviados + ' emails de teste para ' + res.destinos.join(', ') + ' (convite geral e institucional, feminino e masculino).\n'
+         + 'Não alteram as listas. Confere o nome, o género («Cara»/«Caro»), as imagens e o aspeto no Gmail (web e app) e no iPhone.';
+  }
+  var t = 'Enviou ' + res.enviados + ' emails nesta ronda.';
+  if (res.ignorados) t += '\n' + res.ignorados + ' ignorados (email repetido ou já na lista institucional): ficam marcados «Ignorado».';
+  if (res.erros) t += '\n' + res.erros + ' com erro (ver a coluna «Estado»).';
+  if (res.paragem === 'quota') {
+    t += '\n\nA quota diária de envio da Google esgotou-se' + (reservaAtual_() ? ' (ficam ' + reservaAtual_() + ' de reserva para as confirmações de inscrição)' : '')
+       + '. As ' + res.pendentes + ' pessoas que faltam NÃO foram marcadas com erro: ficam para a próxima ronda, '
+       + 'passadas cerca de 24 horas (ou deixa o envio automático ativo).';
+  } else if (res.paragem === 'ronda') {
+    t += '\n\nPausa de segurança (limite por ronda). Faltam ' + res.pendentes + '. Volta a clicar daqui a uns minutos.';
+  } else if (res.paragem === 'tempo') {
+    t += '\n\nParou ao fim de 5 minutos (limite da Google por execução). Faltam ' + res.pendentes + '. Volta a clicar.';
+  } else if (res.paragem === 'concluida' && res.enviados === 0 && !res.erros && !res.ignorados) {
+    t = 'Não há ninguém por enviar nesta lista.';
+  } else if (res.paragem === 'concluida') {
+    t += '\n\nFim da lista.';
+  } else if (res.paragem === 'sem-dados') {
+    t = 'Não foram encontrados dados para enviar na folha.';
+  }
+  return t;
 }
 
 /**
@@ -48,29 +70,6 @@ function enviarTeste() {
     }
     return { teste: true, enviados: enviados, destinos: destinos };
   });
-}
-
-/** Quantos faltam em cada lista, quantos já foram, e quantos dias levará a acabar. Não envia nada. */
-function verProgresso() {
-  try {
-    var excluir = emailsInstitucionais_();
-    var listas = [['Institucional', URL_FOLHA_INSTITUCIONAL, folhaInstitucional_(), {}], ['Geral', URL_FOLHA_GERAL, folhaGeral_(), excluir]];
-    var linhas = [], faltam = 0;
-    for (var n = 0; n < listas.length; n++) {
-      var a = analisar_(dadosDe_(listas[n][2]), listas[n][3]);
-      faltam += a.porEnviar.length;
-      linhas.push(listas[n][0] + ' ' + nomeDaLista_(listas[n][1], listas[n][2]) + ':\n   '
-        + a.enviados + ' enviados · ' + a.porEnviar.length + ' por enviar · '
-        + (a.ignorados + a.novosIgnorados.length) + ' ignorados (repetidos / já institucionais) · ' + a.erros + ' com erro');
-    }
-    linhas.push('');
-    linhas.push('Faltam ' + faltam + ' emails. Estimativa: ' + estimarDias_(faltam) + ' dias ('
-              + (HORAS_SEM_RESERVA > 0 ? QUOTA_DIARIA_DA_CONTA + ' por dia nas primeiras ' + HORAS_SEM_RESERVA + ' horas de envio, depois ' : '')
-              + Math.max(1, QUOTA_DIARIA_DA_CONTA - RESERVA_QUOTA) + ' por dia, com ' + RESERVA_QUOTA + ' de reserva).');
-    avisar_(linhas.join('\n'));
-  } catch (e) {
-    avisar_('Erro: ' + e.message);
-  }
 }
 
 /**

@@ -2,6 +2,11 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_7 = true;
 
+function folhaGeral_() {
+  validarUrls_();
+  return SpreadsheetApp.openByUrl(URL_FOLHA_GERAL).getSheets()[0];
+}
+
 function folhaInstitucional_() {
   validarUrls_();
   return SpreadsheetApp.openByUrl(URL_FOLHA_INSTITUCIONAL).getSheets()[0];
@@ -20,15 +25,27 @@ function porEnviar_(estado) {
   return estado === '' || /^Erro: .*(too many times|limit exceeded)/i.test(estado);
 }
 
+function erroDeQuota_(e) {
+  return /too many times|limit exceeded|quota/i.test(String(e && e.message));
+}
+
 function texto_(v) {
   return (v === null || v === undefined ? '' : v).toString().trim();
 }
 
-function verQuota() {
-  avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje (o limite renova-se passadas cerca de 24 horas).\n'
-        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
-                           : 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n')
-        + 'Conta: ' + Session.getEffectiveUser().getEmail());
+/** Troca a primeira ocorrência, sem que «$» no nome seja tratado como código de substituição. */
+function trocar_(texto, de, para) {
+  var p = texto.indexOf(de);
+  return p === -1 ? texto : texto.substring(0, p) + para + texto.substring(p + de.length);
+}
+
+/** Quando começaram os envios de convites, em ms: INICIO_DOS_ENVIOS, ou o momento em que este script enviou o 1.º; 0 se ainda não. */
+function inicioEnvio_() {
+  if (INICIO_DOS_ENVIOS) {
+    var d = new Date(String(INICIO_DOS_ENVIOS).replace(' ', 'T'));
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+  return Number(PropertiesService.getScriptProperties().getProperty('inicioEnvio')) || 0;
 }
 
 /** Guarda o momento do 1.º envio de convites (uma só vez). Os emails de teste não contam. */
@@ -60,4 +77,10 @@ function desativarEnvioAutomatico() {
   ScriptApp.getProjectTriggers().forEach(function (g) {
     if (g.getHandlerFunction() === 'envioAutomatico') ScriptApp.deleteTrigger(g);
   });
+  PropertiesService.getScriptProperties().deleteProperty('acionador');
+}
+
+/** Intervalo até ao próximo email, em segundos: sorteado entre INTERVALO_MIN_S e INTERVALO_MAX_S. */
+function intervaloSorteado_() {
+  return INTERVALO_MIN_S + Math.floor(Math.random() * (Math.max(INTERVALO_MAX_S, INTERVALO_MIN_S) - INTERVALO_MIN_S + 1));
 }

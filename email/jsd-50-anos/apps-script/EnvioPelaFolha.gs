@@ -25,7 +25,8 @@ var INTERVALO_MAX_S = 120;                       // o acionador corre de minuto 
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
 var HORA_INICIO_ENVIO = 8;                       // o envio automático só envia entre estas horas (hora do script)
 var HORA_FIM_ENVIO = 22;                         // …até às 22h (não envia a partir das 22h00)
-var AVISAR_POR_EMAIL = true;                     // no fim, o envio automático manda um resumo para a tua conta
+var AVISAR_POR_EMAIL = true;                     // no fim (ou se houver falhas seguidas), o envio automático manda um aviso para a tua conta
+var FALHAS_SEGUIDAS_MAX = 3;                     // se falharem tantos envios seguidos sem sair nenhum, é uma falha geral: ninguém é marcado com erro
 
 // ---------------------------------------------------------------- menu
 function onOpen() {
@@ -185,6 +186,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
 
   var modelo = HtmlService.createHtmlOutputFromFile(nomeFicheiroHtml).getContent();
   var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+  var falhadas = [];   // linhas que falharam desde o último envio que saiu
 
   for (var k = 0; k < linhas.length; k++) {
     if (res.enviados >= podeEnviar) { res.paragem = (podeEnviar === disponivel) ? 'quota' : 'ronda'; break; }
@@ -192,7 +194,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
 
     var i = linhas[k];
     var email = texto_(dados[i][1]);
-    if (email.indexOf('@') === -1) {
+    if (!emailValido_(email)) {
       folha.getRange(i + 2, 4).setValue('Erro: email inválido');
       res.erros++;
       continue;
@@ -200,15 +202,31 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
     try {
       var html = personalizar_(modelo, nomeFicheiroHtml, texto_(dados[i][0]), texto_(dados[i][2]).toLowerCase());
       MailApp.sendEmail({ to: email, subject: ASSUNTO, body: textoSimples_(html), htmlBody: html, name: NOME_REMETENTE });
-      folha.getRange(i + 2, 4).setValue('Enviado a ' + agora);
-      res.enviados++;
-      if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
-      if (res.enviados < podeEnviar) Utilities.sleep(PAUSA_MS);
     } catch (e) {
       if (erroDeQuota_(e)) { res.paragem = 'quota'; break; }   // a linha fica em branco: tenta-se na próxima ronda
       folha.getRange(i + 2, 4).setValue('Erro: ' + e.message);
+      falhadas.push(i);
       res.erros++;
+      res.ultimoErro = e.message;
+      if (falhadas.length >= FALHAS_SEGUIDAS_MAX) {            // vários seguidos e nenhum saiu: não é culpa das pessoas
+        for (var f = 0; f < falhadas.length; f++) folha.getRange(falhadas[f] + 2, 4).setValue('');
+        res.erros -= falhadas.length;
+        res.paragem = 'falha';
+        break;
+      }
+      continue;
     }
+    res.enviados++;
+    falhadas = [];
+    try {
+      folha.getRange(i + 2, 4).setValue('Enviado a ' + agora);
+    } catch (e) {                                              // o email saiu mas não ficou marcado: parar, senão repetia-se
+      res.paragem = 'falha'; res.bloqueio = true;
+      res.ultimoErro = 'O email saiu mas não consegui escrever «Enviado» na folha (' + e.message + '). Parei para não repetir emails: confirma que podes editar a folha.';
+      break;
+    }
+    if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
+    if (res.enviados < podeEnviar) Utilities.sleep(PAUSA_MS);
   }
   res.pendentes = linhas.length - res.enviados - res.erros;
   if (!res.paragem) res.paragem = res.pendentes > 0 ? 'ronda' : 'concluida';
@@ -221,7 +239,11 @@ function porEnviar_(estado) {
 }
 
 function erroDeQuota_(e) {
-  return /too many times|limit exceeded|quota/i.test(String(e && e.message));
+  return /too many times|limit exceeded|quota|daily limit|limit reached/i.test(String(e && e.message));
+}
+
+function emailValido_(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function texto_(v) {
@@ -302,6 +324,9 @@ function resumo_(res) {
     t += '\n\nPausa de segurança (limite por ronda). Faltam ' + res.pendentes + '. Volta a clicar daqui a uns minutos.';
   } else if (res.paragem === 'tempo') {
     t += '\n\nParou ao fim de 5 minutos (limite da Google por execução). Faltam ' + res.pendentes + '. Volta a clicar.';
+  } else if (res.paragem === 'falha') {
+    t += '\n\n' + (res.bloqueio ? '' : 'Pararam os envios: falharam ' + FALHAS_SEGUIDAS_MAX + ' seguidos sem sair nenhum, o que não costuma ser culpa das pessoas, '
+       + 'por isso NÃO as marquei com erro. Último erro: ') + res.ultimoErro;
   } else if (res.paragem === 'concluida' && res.enviados === 0 && !res.erros && !res.ignorados) {
     t = 'Não há ninguém por enviar nesta lista.';
   } else if (res.paragem === 'concluida') {
@@ -440,6 +465,7 @@ function diagnostico() {
     linhas.push(ativos ? '✔ Envio automático ativo (de minuto a minuto, entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h).'
                        : '• Envio automático desativado (ativa-o no menu quando quiseres começar).');
   }
+  if (problemaAtual_()) mau(problemaAtual_());
   avisar_(linhas.join('\n') + '\n\n' + (problemas ? problemas + ' problema(s) assinalado(s) com ✘.' : 'Tudo em ordem.'));
 }
 
@@ -473,6 +499,7 @@ function verProgresso() {
     linhas.push('Faltam ' + faltam + ' emails. Nas últimas 24 horas foram enviados ' + ultimas24 + '.'
               + (ultimas24 >= 20 ? ' Ao ritmo das últimas 24 horas, faltam cerca de ' + Math.ceil(faltam / ultimas24) + ' dias.'
                                  : ' Ainda não há envios que cheguem para estimar os dias (o ritmo depende da quota da Google).'));
+    if (problemaAtual_()) linhas.push('', '⚠ ' + problemaAtual_());
     avisar_(linhas.join('\n'));
   } catch (e) {
     avisar_('Erro: ' + e.message);
@@ -508,7 +535,7 @@ function descreverLista_(rotulo, dados, institucionais) {
     if (feminino.indexOf(genero) !== -1) c.fem++;
     else if (masculino.indexOf(genero) !== -1) c.masc++;
     else c.generoDesconhecido.push(linha);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) c.invalidos.push(linha);
+    if (!emailValido_(email)) c.invalidos.push(linha);
     var chave = email.toLowerCase();
     if (chave !== '') {
       if (vistos[chave]) c.repetidos.push(linha); else vistos[chave] = true;
@@ -532,6 +559,7 @@ function ativarEnvioAutomatico() {
   var props = PropertiesService.getScriptProperties();
   props.setProperty('acionador', 'minuto');
   props.deleteProperty('proximoEnvio');
+  limparFalhas_();
   ScriptApp.newTrigger('envioAutomatico').timeBased().everyMinutes(1).create();
   avisar_('Envio automático ativado: entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h o script envia um email de cada vez, com 1 a 2 minutos de intervalo '
         + '(primeiro a lista institucional, depois a geral), enquanto a Google deixar. Quando a quota acabar pára e retoma sozinho quando ela for libertada. '
@@ -563,6 +591,7 @@ function envioAutomatico() {
   var props = PropertiesService.getScriptProperties();
   var agora = Date.now(), proximo = Number(props.getProperty('proximoEnvio')) || 0;
   if (agora < proximo && proximo - agora <= INTERVALO_MAX_S * 1000) return;        // ainda não é a hora do próximo email
+  if (agora < (Number(props.getProperty('pausaAte')) || 0)) return;                // pausa depois de uma falha
   if (MailApp.getRemainingDailyQuota() - reservaAtual_() <= 0) return;             // a Google não deixa enviar mais: nem lê as folhas
 
   var trava = LockService.getScriptLock();
@@ -570,32 +599,80 @@ function envioAutomatico() {
   try {
     var institucional = folhaInstitucional_(), geral = null;
     var r = processarEnvios(institucional, 'convite_institucional', {}, 1);
-    if (r.enviados === 0 && r.paragem !== 'quota' && r.paragem !== 'tempo') {      // a institucional acabou: segue-se a geral
+    if (r.enviados === 0 && r.paragem !== 'quota' && r.paragem !== 'tempo' && r.paragem !== 'falha') {   // a institucional acabou: segue-se a geral
       geral = folhaGeral_();
       r = processarEnvios(geral, 'convite', emailsInstitucionais_(), 1);
     }
-    if (r.enviados > 0) {
+    if (r.bloqueio) {
+      registarFalha_(r.ultimoErro, true);                                          // saiu sem ficar marcado: desliga, para não repetir emails
+    } else if (r.enviados > 0) {
       props.setProperty('proximoEnvio', String(Date.now() + (intervaloSorteado_() - 30) * 1000));
-    } else if (r.paragem === 'concluida' || r.paragem === 'sem-dados') {          // as duas listas acabaram
-      desativarEnvioAutomatico();
-      if (AVISAR_POR_EMAIL) resumoFinal_([institucional, geral || folhaGeral_()]);
+      limparFalhas_();
+    } else if (r.paragem === 'falha') {
+      registarFalha_(r.ultimoErro, false);
+    } else if (r.paragem === 'concluida' || r.paragem === 'sem-dados') {
+      concluir_([institucional, geral || folhaGeral_()]);
     }
   } catch (e) {
-    Logger.log('Erro no envio automático: ' + e.message);
+    registarFalha_(e.message, false);                                              // folha ou ficheiro HTML inacessível, etc.: tenta de novo mais tarde
   } finally {
     trava.releaseLock();
   }
 }
 
-/** Email para a própria conta quando as listas acabam. */
-function resumoFinal_(folhas) {
-  var nomes = ['Institucional', 'Geral'], linhas = [];
-  for (var n = 0; n < folhas.length; n++) {
-    var ultima = folhas[n].getLastRow();
-    var a = analisar_(ultima < 2 ? [] : folhas[n].getRange(2, 1, ultima - 1, 4).getValues(), {});
-    linhas.push(nomes[n] + ': ' + a.enviados + ' enviados · ' + a.ignorados + ' ignorados · ' + a.erros + ' com erro');
+/** Uma falha (não é falta de quota): guarda o erro, espera 1, 2, 3… até 10 minutos antes de tentar de novo, e avisa por email à 3.ª seguida. */
+function registarFalha_(mensagem, desligar) {
+  var props = PropertiesService.getScriptProperties();
+  var n = (Number(props.getProperty('falhasSeguidas')) || 0) + 1;
+  props.setProperty('falhasSeguidas', String(n));
+  props.setProperty('ultimoErro', Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM HH:mm') + ' · ' + mensagem);
+  props.setProperty('pausaAte', String(Date.now() + Math.min(n, 10) * 60000));
+  Logger.log('Envio automático com falha (' + n + ' seguidas): ' + mensagem);
+  if (desligar) desativarEnvioAutomatico();
+  if (AVISAR_POR_EMAIL && (desligar || n === 3)) {
+    try {
+      MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Envio automático dos convites: PROBLEMA',
+        (desligar ? 'O envio automático foi DESATIVADO.\n\n' : 'O envio automático falhou ' + n + ' vezes seguidas e continua a tentar.\n\n') + mensagem
+        + '\n\nNo menu da folha, «Diagnosticar» e «Ver progresso» mostram o ponto da situação.');
+    } catch (e) { Logger.log('Não consegui avisar por email: ' + e.message); }
   }
-  MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Envio automático dos convites: concluído',
-    linhas.join('\n') + '\n\nAs listas estão concluídas e o envio automático foi desativado.\n'
-    + 'Os «com erro» ficam na coluna Estado, para veres e decidires.');
+}
+
+function limparFalhas_() {
+  var props = PropertiesService.getScriptProperties();
+  ['falhasSeguidas', 'ultimoErro', 'pausaAte', 'aviso'].forEach(function (k) { props.deleteProperty(k); });
+}
+
+/**
+ * Nada por enviar nas duas listas. Só desativa se em ambas já saiu pelo menos um convite; se não, algo está mal
+ * (separador errado, lista vazia, estados escritos à mão): fica ativo, sem concluir, e diz porquê em «Ver progresso».
+ */
+function concluir_(folhas) {
+  var nomes = ['Institucional', 'Geral'], linhas = [], vazias = [];
+  for (var n = 0; n < folhas.length; n++) {
+    var a = analisar_(dadosDe_(folhas[n]), {});
+    linhas.push(nomes[n] + ': ' + a.enviados + ' enviados · ' + a.ignorados + ' ignorados · ' + a.erros + ' com erro');
+    if (a.enviados + a.ignorados === 0) vazias.push(nomes[n]);
+  }
+  if (vazias.length) {
+    PropertiesService.getScriptProperties().setProperty('aviso', 'Não há ninguém por enviar, mas NÃO dei o envio por concluído: na lista ' + vazias.join(' e ')
+      + ' nenhum convite foi enviado (lista vazia, outro separador — o script lê o 1.º —, ou a coluna D tem textos que não são «Enviado a…»). '
+      + linhas.join(' · ') + '. Fica ativo: corrige a folha, ou desativa-o no menu se for assim mesmo.');
+    return;
+  }
+  desativarEnvioAutomatico();
+  limparFalhas_();
+  if (!AVISAR_POR_EMAIL) return;
+  try {
+    MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Envio automático dos convites: concluído',
+      linhas.join('\n') + '\n\nAs listas estão concluídas e o envio automático foi desativado.\n'
+      + 'Os «com erro» ficam na coluna Estado, para veres e decidires.');
+  } catch (e) { Logger.log('Não consegui enviar o resumo: ' + e.message); }
+}
+
+/** Problema ou aviso em vigor do envio automático (vazio se não houver). */
+function problemaAtual_() {
+  var props = PropertiesService.getScriptProperties();
+  var erro = props.getProperty('ultimoErro'), aviso = props.getProperty('aviso');
+  return (erro ? 'O envio automático teve um problema (' + erro + ') e volta a tentar sozinho.' : '') + (erro && aviso ? '\n' : '') + (aviso || '');
 }

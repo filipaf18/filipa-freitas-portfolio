@@ -1,4 +1,4 @@
-// PARTE 1 de 7. Ficheiro «Código.gs (substitui o que lá estava)» do projeto Apps Script.
+// PARTE 1 de 8. Ficheiro «Código.gs (substitui o que lá estava)» do projeto Apps Script.
 
 /**
  * Envio dos convites dos 50 anos da JSD Famalicão a partir de duas folhas de cálculo, dentro do limite diário da Google.
@@ -27,7 +27,8 @@ var INTERVALO_MAX_S = 120;                       // o acionador corre de minuto 
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
 var HORA_INICIO_ENVIO = 8;                       // o envio automático só envia entre estas horas (hora do script)
 var HORA_FIM_ENVIO = 22;                         // …até às 22h (não envia a partir das 22h00)
-var AVISAR_POR_EMAIL = true;                     // no fim, o envio automático manda um resumo para a tua conta
+var AVISAR_POR_EMAIL = true;                     // no fim (ou se houver falhas seguidas), o envio automático manda um aviso para a tua conta
+var FALHAS_SEGUIDAS_MAX = 3;                     // se falharem tantos envios seguidos sem sair nenhum, é uma falha geral: ninguém é marcado com erro
 
 
 // ---------------------------------------------------------------- menu
@@ -55,7 +56,7 @@ function enviarConvitesInstitucionais() {
   executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}); });
 }
 
-/** Partes do código (ficheiros Parte2.gs a Parte7.gs) que não estão no projeto. */
+/** Partes do código (ficheiros Parte2.gs a Parte8.gs) que não estão no projeto. */
 function partesEmFalta_() {
   var falta = [];
   if (typeof PARTE_2 === 'undefined') falta.push(2);
@@ -64,6 +65,7 @@ function partesEmFalta_() {
   if (typeof PARTE_5 === 'undefined') falta.push(5);
   if (typeof PARTE_6 === 'undefined') falta.push(6);
   if (typeof PARTE_7 === 'undefined') falta.push(7);
+  if (typeof PARTE_8 === 'undefined') falta.push(8);
   return falta;
 }
 

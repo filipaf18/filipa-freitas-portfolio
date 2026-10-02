@@ -1,6 +1,19 @@
-// PARTE 2 de 7. Ficheiro «Parte2.gs» do projeto Apps Script.
+// PARTE 2 de 8. Ficheiro «Parte2.gs» do projeto Apps Script.
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_2 = true;
+
+/** Os dois endereços têm de estar preenchidos e apontar para ficheiros DIFERENTES (senão enviava-se o convite errado). */
+function validarUrls_() {
+  var faltam = [];
+  if (URL_FOLHA_INSTITUCIONAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_INSTITUCIONAL');
+  if (URL_FOLHA_GERAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_GERAL');
+  if (faltam.length) throw new Error('Falta o URL da lista (' + faltam.join(' e ') + '): preenche no início do script.');
+  var id = function (u) { var m = /\/d\/([a-zA-Z0-9_-]+)/.exec(u); return m ? m[1] : u; };
+  if (id(URL_FOLHA_INSTITUCIONAL) === id(URL_FOLHA_GERAL)) {
+    throw new Error('A lista institucional e a lista geral apontam para o MESMO ficheiro. Confirma os dois endereços no início do script '
+                  + '(institucional = «Convidados 50 anos», geral = «Militantes Base»).');
+  }
+}
 
 // ---------------------------------------------------------------- motor de envio
 /**
@@ -30,6 +43,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
 
   var modelo = HtmlService.createHtmlOutputFromFile(nomeFicheiroHtml).getContent();
   var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+  var falhadas = [];   // linhas que falharam desde o último envio que saiu
 
   for (var k = 0; k < linhas.length; k++) {
     if (res.enviados >= podeEnviar) { res.paragem = (podeEnviar === disponivel) ? 'quota' : 'ronda'; break; }
@@ -37,7 +51,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
 
     var i = linhas[k];
     var email = texto_(dados[i][1]);
-    if (email.indexOf('@') === -1) {
+    if (!emailValido_(email)) {
       folha.getRange(i + 2, 4).setValue('Erro: email inválido');
       res.erros++;
       continue;
@@ -45,47 +59,33 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
     try {
       var html = personalizar_(modelo, nomeFicheiroHtml, texto_(dados[i][0]), texto_(dados[i][2]).toLowerCase());
       MailApp.sendEmail({ to: email, subject: ASSUNTO, body: textoSimples_(html), htmlBody: html, name: NOME_REMETENTE });
-      folha.getRange(i + 2, 4).setValue('Enviado a ' + agora);
-      res.enviados++;
-      if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
-      if (res.enviados < podeEnviar) Utilities.sleep(PAUSA_MS);
     } catch (e) {
       if (erroDeQuota_(e)) { res.paragem = 'quota'; break; }   // a linha fica em branco: tenta-se na próxima ronda
       folha.getRange(i + 2, 4).setValue('Erro: ' + e.message);
+      falhadas.push(i);
       res.erros++;
+      res.ultimoErro = e.message;
+      if (falhadas.length >= FALHAS_SEGUIDAS_MAX) {            // vários seguidos e nenhum saiu: não é culpa das pessoas
+        for (var f = 0; f < falhadas.length; f++) folha.getRange(falhadas[f] + 2, 4).setValue('');
+        res.erros -= falhadas.length;
+        res.paragem = 'falha';
+        break;
+      }
+      continue;
     }
+    res.enviados++;
+    falhadas = [];
+    try {
+      folha.getRange(i + 2, 4).setValue('Enviado a ' + agora);
+    } catch (e) {                                              // o email saiu mas não ficou marcado: parar, senão repetia-se
+      res.paragem = 'falha'; res.bloqueio = true;
+      res.ultimoErro = 'O email saiu mas não consegui escrever «Enviado» na folha (' + e.message + '). Parei para não repetir emails: confirma que podes editar a folha.';
+      break;
+    }
+    if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
+    if (res.enviados < podeEnviar) Utilities.sleep(PAUSA_MS);
   }
   res.pendentes = linhas.length - res.enviados - res.erros;
   if (!res.paragem) res.paragem = res.pendentes > 0 ? 'ronda' : 'concluida';
   return res;
-}
-
-function descreverLista_(rotulo, dados, institucionais) {
-  var c = { total: 0, fem: 0, masc: 0, generoDesconhecido: [], invalidos: [], repetidos: [], jaInstitucionais: [], semApelido: 0, maiusculas: 0 };
-  var vistos = {};
-  var feminino = ['feminino', 'f', 'mulher'], masculino = ['masculino', 'm', 'homem'];
-  for (var j = 0; j < dados.length; j++) {
-    var nome = texto_(dados[j][0]), email = texto_(dados[j][1]), genero = texto_(dados[j][2]).toLowerCase();
-    if (nome === '' && email === '') continue;
-    c.total++;
-    var linha = j + 2;
-    if (feminino.indexOf(genero) !== -1) c.fem++;
-    else if (masculino.indexOf(genero) !== -1) c.masc++;
-    else c.generoDesconhecido.push(linha);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) c.invalidos.push(linha);
-    var chave = email.toLowerCase();
-    if (chave !== '') {
-      if (vistos[chave]) c.repetidos.push(linha); else vistos[chave] = true;
-      if (institucionais[chave]) c.jaInstitucionais.push(linha);
-    }
-    if (nome.split(/\s+/).length < 2) c.semApelido++;
-    if (nome !== '' && nomeProprio_(nome) !== nome) c.maiusculas++;
-  }
-  var lista = function (v) { return v.length ? v.length + ' (linhas ' + v.slice(0, 12).join(', ') + (v.length > 12 ? '…' : '') + ')' : '0'; };
-  return rotulo + ': ' + c.total + ' pessoas\n'
-    + '   Feminino ' + c.fem + ' · Masculino ' + c.masc + ' · género por reconhecer (seria tratado como masculino): ' + lista(c.generoDesconhecido) + '\n'
-    + '   emails inválidos: ' + lista(c.invalidos) + '\n'
-    + '   emails repetidos (só o 1.º recebe): ' + lista(c.repetidos) + '\n'
-    + (rotulo.indexOf('Geral') === 0 ? '   já na lista institucional (não recebem o geral): ' + lista(c.jaInstitucionais) + '\n' : '')
-    + '   nomes com uma só palavra: ' + c.semApelido + ' · nomes todos em maiúsculas/minúsculas (são corrigidos no email): ' + c.maiusculas;
 }

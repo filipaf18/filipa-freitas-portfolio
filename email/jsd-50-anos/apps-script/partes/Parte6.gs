@@ -1,91 +1,90 @@
-// PARTE 6 de 7. Ficheiro «Parte6.gs» do projeto Apps Script.
+// PARTE 6 de 8. Ficheiro «Parte6.gs» do projeto Apps Script.
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_6 = true;
 
-/** Os dois endereços têm de estar preenchidos e apontar para ficheiros DIFERENTES (senão enviava-se o convite errado). */
-function validarUrls_() {
-  var faltam = [];
-  if (URL_FOLHA_INSTITUCIONAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_INSTITUCIONAL');
-  if (URL_FOLHA_GERAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_GERAL');
-  if (faltam.length) throw new Error('Falta o URL da lista (' + faltam.join(' e ') + '): preenche no início do script.');
-  var id = function (u) { var m = /\/d\/([a-zA-Z0-9_-]+)/.exec(u); return m ? m[1] : u; };
-  if (id(URL_FOLHA_INSTITUCIONAL) === id(URL_FOLHA_GERAL)) {
-    throw new Error('A lista institucional e a lista geral apontam para o MESMO ficheiro. Confirma os dois endereços no início do script '
-                  + '(institucional = «Convidados 50 anos», geral = «Militantes Base»).');
+/** Corre um envio com a trava, e mostra o resumo (ou regista-o, se não houver ecrã, como nos acionadores). */
+function executar_(envio) {
+  var trava = LockService.getScriptLock();
+  if (!trava.tryLock(30000)) {
+    avisar_('Já está um envio a decorrer. Espera que termine e volta a tentar.');
+    return;
   }
-}
-
-function mapaEmails_(dados) {
-  var mapa = {};
-  for (var k = 0; k < dados.length; k++) {
-    var e = texto_(dados[k][1]).toLowerCase();
-    if (e !== '') mapa[e] = true;
-  }
-  return mapa;
-}
-
-/** Versão em texto simples do HTML (a outra parte do email, para quem não vê HTML). */
-function textoSimples_(html) {
-  return html
-    .replace(/<(style|head)[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<div style="display:none;[\s\S]*?<\/div>/i, '')
-    .replace(/<br\s*\/?>|<\/tr>|<\/p>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(parseInt(n, 10)); })
-    .replace(/&amp;/g, '&')
-    .split('\n').map(function (l) { return l.replace(/[ \t ]+/g, ' ').trim(); }).join('\n')
-    .replace(/\n{3,}/g, '\n\n').trim();
-}
-
-/** Mostra a mensagem num ecrã e, se não houver (acionadores), regista-a. */
-function avisar_(mensagem) {
   try {
-    SpreadsheetApp.getUi().alert(mensagem);
+    avisar_(resumo_(envio()));
   } catch (e) {
-    Logger.log(mensagem);
+    avisar_('Erro: ' + e.message);
+  } finally {
+    trava.releaseLock();
   }
 }
 
-function verQuota() {
-  avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje (o limite renova-se passadas cerca de 24 horas).\n'
-        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
-                           : 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n')
-        + 'Conta: ' + Session.getEffectiveUser().getEmail());
-}
-
-/** Quantos emails foram enviados nas últimas 24 horas, pelas horas escritas no estado («Enviado a dd/MM/aaaa HH:mm»). */
-function enviadosNas24h_(dados) {
-  var desde = Date.now() - 24 * 3600000, n = 0;
-  for (var j = 0; j < dados.length; j++) {
-    var m = /^Enviado a (\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/.exec(texto_(dados[j][3]));
-    if (m && new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4]), Number(m[5])).getTime() >= desde) n++;
+/** Quantos faltam em cada lista, quantos já foram, e quantos dias levará a acabar. Não envia nada. */
+function verProgresso() {
+  try {
+    var excluir = emailsInstitucionais_();
+    var listas = [['Institucional', URL_FOLHA_INSTITUCIONAL, folhaInstitucional_(), {}], ['Geral', URL_FOLHA_GERAL, folhaGeral_(), excluir]];
+    var linhas = [], faltam = 0, ultimas24 = 0;
+    for (var n = 0; n < listas.length; n++) {
+      var dadosLista = dadosDe_(listas[n][2]);
+      var a = analisar_(dadosLista, listas[n][3]);
+      faltam += a.porEnviar.length;
+      ultimas24 += enviadosNas24h_(dadosLista);
+      linhas.push(listas[n][0] + ' ' + nomeDaLista_(listas[n][1], listas[n][2]) + ':\n   '
+        + a.enviados + ' enviados · ' + a.porEnviar.length + ' por enviar · '
+        + (a.ignorados + a.novosIgnorados.length) + ' ignorados (repetidos / já institucionais) · ' + a.erros + ' com erro');
+    }
+    linhas.push('');
+    linhas.push('Faltam ' + faltam + ' emails. Nas últimas 24 horas foram enviados ' + ultimas24 + '.'
+              + (ultimas24 >= 20 ? ' Ao ritmo das últimas 24 horas, faltam cerca de ' + Math.ceil(faltam / ultimas24) + ' dias.'
+                                 : ' Ainda não há envios que cheguem para estimar os dias (o ritmo depende da quota da Google).'));
+    if (problemaAtual_()) linhas.push('', '⚠ ' + problemaAtual_());
+    avisar_(linhas.join('\n'));
+  } catch (e) {
+    avisar_('Erro: ' + e.message);
   }
-  return n;
 }
 
-// ---------------------------------------------------------------- envio automático (de minuto a minuto)
-function ativarEnvioAutomatico() {
-  desativarEnvioAutomatico();
+/** Uma falha (não é falta de quota): guarda o erro, espera 1, 2, 3… até 10 minutos antes de tentar de novo, e avisa por email à 3.ª seguida. */
+function registarFalha_(mensagem, desligar) {
   var props = PropertiesService.getScriptProperties();
-  props.setProperty('acionador', 'minuto');
-  props.deleteProperty('proximoEnvio');
-  ScriptApp.newTrigger('envioAutomatico').timeBased().everyMinutes(1).create();
-  avisar_('Envio automático ativado: entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h o script envia um email de cada vez, com 1 a 2 minutos de intervalo '
-        + '(primeiro a lista institucional, depois a geral), enquanto a Google deixar. Quando a quota acabar pára e retoma sozinho quando ela for libertada. '
-        + 'Nas primeiras ' + HORAS_SEM_RESERVA + ' horas usa a quota toda; depois deixa sempre ' + RESERVA_QUOTA + ' por usar, para as confirmações. '
-        + 'Desliga-se sozinho quando as listas acabarem. «Ver progresso» mostra o ponto da situação.');
+  var n = (Number(props.getProperty('falhasSeguidas')) || 0) + 1;
+  props.setProperty('falhasSeguidas', String(n));
+  props.setProperty('ultimoErro', Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM HH:mm') + ' · ' + mensagem);
+  props.setProperty('pausaAte', String(Date.now() + Math.min(n, 10) * 60000));
+  Logger.log('Envio automático com falha (' + n + ' seguidas): ' + mensagem);
+  if (desligar) desativarEnvioAutomatico();
+  if (AVISAR_POR_EMAIL && (desligar || n === 3)) {
+    try {
+      MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Envio automático dos convites: PROBLEMA',
+        (desligar ? 'O envio automático foi DESATIVADO.\n\n' : 'O envio automático falhou ' + n + ' vezes seguidas e continua a tentar.\n\n') + mensagem
+        + '\n\nNo menu da folha, «Diagnosticar» e «Ver progresso» mostram o ponto da situação.');
+    } catch (e) { Logger.log('Não consegui avisar por email: ' + e.message); }
+  }
 }
 
-/** Email para a própria conta quando as listas acabam. */
-function resumoFinal_(folhas) {
-  var nomes = ['Institucional', 'Geral'], linhas = [];
+/**
+ * Nada por enviar nas duas listas. Só desativa se em ambas já saiu pelo menos um convite; se não, algo está mal
+ * (separador errado, lista vazia, estados escritos à mão): fica ativo, sem concluir, e diz porquê em «Ver progresso».
+ */
+function concluir_(folhas) {
+  var nomes = ['Institucional', 'Geral'], linhas = [], vazias = [];
   for (var n = 0; n < folhas.length; n++) {
-    var ultima = folhas[n].getLastRow();
-    var a = analisar_(ultima < 2 ? [] : folhas[n].getRange(2, 1, ultima - 1, 4).getValues(), {});
+    var a = analisar_(dadosDe_(folhas[n]), {});
     linhas.push(nomes[n] + ': ' + a.enviados + ' enviados · ' + a.ignorados + ' ignorados · ' + a.erros + ' com erro');
+    if (a.enviados + a.ignorados === 0) vazias.push(nomes[n]);
   }
-  MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Envio automático dos convites: concluído',
-    linhas.join('\n') + '\n\nAs listas estão concluídas e o envio automático foi desativado.\n'
-    + 'Os «com erro» ficam na coluna Estado, para veres e decidires.');
+  if (vazias.length) {
+    PropertiesService.getScriptProperties().setProperty('aviso', 'Não há ninguém por enviar, mas NÃO dei o envio por concluído: na lista ' + vazias.join(' e ')
+      + ' nenhum convite foi enviado (lista vazia, outro separador — o script lê o 1.º —, ou a coluna D tem textos que não são «Enviado a…»). '
+      + linhas.join(' · ') + '. Fica ativo: corrige a folha, ou desativa-o no menu se for assim mesmo.');
+    return;
+  }
+  desativarEnvioAutomatico();
+  limparFalhas_();
+  if (!AVISAR_POR_EMAIL) return;
+  try {
+    MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Envio automático dos convites: concluído',
+      linhas.join('\n') + '\n\nAs listas estão concluídas e o envio automático foi desativado.\n'
+      + 'Os «com erro» ficam na coluna Estado, para veres e decidires.');
+  } catch (e) { Logger.log('Não consegui enviar o resumo: ' + e.message); }
 }

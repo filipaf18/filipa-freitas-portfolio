@@ -488,5 +488,79 @@ if (modoPartes) {
   ok(/onOpen \(devia estar em Código\.gs\)/.test(v), 'sem a Parte1: diz que é o Código.gs');
 }
 
+// ------------------------------------------------------------------ 25. nunca dá por concluído sem ter enviado; falhas gerais não queimam a lista
+titulo('25. o envio automático só conclui quando as listas acabaram de facto; uma falha geral não marca ninguém com erro');
+{
+  const ativo = x => x.gatilhos.some(g => g.fn === 'envioAutomatico');
+  const correr = (x, k) => { for (let i = 0; i < k; i++) { if (!ativo(x)) return i; x.agora += MIN; x.hora = new Date(x.agora).getUTCHours(); x.correr('envioAutomatico()'); } return k; };  // como a Google: sem acionador, não corre
+  const convites = x => x.registos.filter(r => r.to !== 'jsd@exemplo.pt').length;
+  const mails = x => x.enviados.filter(m => m.to === 'jsd@exemplo.pt').map(m => m.subject);
+  const ultimo = x => x.alertas[x.alertas.length - 1];
+  const comEstado = (f, re) => f.estados().filter(s => re.test(s)).length;
+  const arranca = o => { const x = ambiente(o); x.correr('ativarEnvioAutomatico()'); return x; };
+
+  // a) lista geral sem linhas (por exemplo o 1.º separador está vazio): não conclui, fica ativo e explica
+  let x = arranca({ geral: [], institucional: pessoas(2, 'i') }); correr(x, 10);
+  ok(convites(x) === 2 && ativo(x) && mails(x).length === 0, 'a) geral vazia: envia a institucional, não desativa nem diz «concluído»');
+  x.correr('verProgresso()');
+  ok(/NÃO dei o envio por concluído/.test(ultimo(x)) && /Geral/.test(ultimo(x)), 'a) «Ver progresso» explica porque não concluiu');
+  x.folhaGeral.linhas.push(...pessoas(2, 'g').map(p => [p[0], p[1], p[2], '']));          // a lista cresce depois
+  correr(x, 10);
+  ok(convites(x) === 4 && !ativo(x) && mails(x).length === 1 && /concluído/.test(mails(x)[0]), 'a) quando a lista passa a ter gente envia-a e só então conclui, com um só aviso');
+  ok(!/NÃO dei/.test(x.props.aviso || ''), 'a) o aviso desaparece quando conclui');
+
+  // b) estados escritos à mão que não são «Enviado a…» (ex.: «Sim»): nada é enviado, não conclui
+  x = arranca({ geral: pessoas(4, 'g').map(p => p.concat(['Sim'])), institucional: pessoas(1, 'i').map(p => p.concat(['Enviado a 01/10/2026 09:00'])) }); correr(x, 5);
+  ok(convites(x) === 0 && ativo(x) && mails(x).length === 0, 'b) coluna D = «Sim» na geral: não conclui');
+  ok(/nenhum convite foi enviado/.test(x.props.aviso || '') && /Geral/.test(x.props.aviso || ''), 'b) o aviso nomeia a lista geral');
+
+  // c) tudo enviado de facto: conclui uma vez (e o acionador deixa de correr)
+  x = arranca({ geral: pessoas(3, 'g'), institucional: pessoas(2, 'i') }); correr(x, 60);
+  ok(convites(x) === 5 && !ativo(x) && mails(x).length === 1, 'c) 2 + 3 enviados: conclui com um só aviso e desativa');
+
+  // d) falha geral (erro que não é de quota) em todos os envios: ninguém fica marcado, tenta de novo, avisa à 3.ª
+  x = arranca({ geral: pessoas(5, 'g'), institucional: [] });
+  const original = x.c.MailApp.sendEmail; let avariado = true;
+  x.c.MailApp.sendEmail = (m, ...resto) => { if (avariado && (m.to || m) !== 'jsd@exemplo.pt') throw new Error('Exception: Service error: Mail'); return original(m, ...resto); };
+  correr(x, 40);
+  ok(comEstado(x.folhaGeral, /./) === 0 && ativo(x) && convites(x) === 0, 'd) falha geral durante 40 min: nenhuma linha marcada «Erro», acionador ativo');
+  ok(Number(x.props.falhasSeguidas) >= 5 && Number(x.props.falhasSeguidas) <= 12, `d) a pausa vai aumentando: ${x.props.falhasSeguidas} tentativas em 40 minutos (não 40)`);
+  ok(mails(x).length === 1 && /PROBLEMA/.test(mails(x)[0]), 'd) um só email de aviso (à 3.ª falha seguida)');
+  x.correr('verProgresso()'); x.correr('diagnostico()');
+  ok(/Service error: Mail/.test(x.alertas[x.alertas.length - 2]) && /Service error: Mail/.test(ultimo(x)), 'd) «Ver progresso» e «Diagnosticar» mostram o erro');
+  avariado = false; correr(x, 60);
+  ok(comEstado(x.folhaGeral, /^Enviado a/) === 5 && !x.props.ultimoErro && !x.props.falhasSeguidas, 'd) quando a falha passa, envia todos e o erro desaparece');
+
+  // e) uma falha só de um endereço: marca essa linha e segue
+  x = arranca({ geral: pessoas(5, 'g'), institucional: [] }); const o2 = x.c.MailApp.sendEmail;
+  x.c.MailApp.sendEmail = m => { if (m.to === 'g0@exemplo.pt') throw new Error('Exception: Invalid email: g0'); return o2(m); };
+  correr(x, 12);
+  ok(comEstado(x.folhaGeral, /^Erro: .*Invalid email/) === 1 && comEstado(x.folhaGeral, /^Enviado a/) === 4, 'e) um endereço rejeitado fica «Erro» e os outros 4 saem');
+
+  // f) a Google recusa com outras palavras («Daily email limit reached»): é quota, ninguém é marcado
+  x = arranca({ geral: pessoas(4, 'g'), institucional: [] }); x.c.MailApp.sendEmail = () => { throw new Error('Exception: Daily email limit reached.'); }; correr(x, 6);
+  ok(comEstado(x.folhaGeral, /./) === 0 && ativo(x), 'f) outra redação de erro de quota: não marca ninguém');
+
+  // g) o ficheiro HTML não existe: o acionador não morre em silêncio (guarda o erro, pausa, avisa)
+  x = arranca({ geral: pessoas(3, 'g'), institucional: [] }); delete x.htmls.convite; correr(x, 8);
+  ok(ativo(x) && /No HTML file named convite/.test(x.props.ultimoErro || '') && mails(x).length === 1, 'g) HTML em falta: erro guardado e avisado por email, sem marcar ninguém');
+
+  // h) o email sai mas a folha não deixa escrever «Enviado»: pára e desativa, para não repetir o email de minuto a minuto
+  x = arranca({ geral: pessoas(4, 'g'), institucional: [] });
+  const f = x.folhaGeral, intacto = f.getRange.bind(f);
+  f.getRange = (r, c, nr, nc) => { const y = intacto(r, c, nr, nc); return (c === 4 && nr === undefined) ? { getValues: y.getValues, setValue: v => { if (/^Enviado/.test(v)) throw new Error('sem permissão'); y.setValue(v); } } : y; };
+  correr(x, 10);
+  ok(convites(x) === 1 && !ativo(x) && /PROBLEMA/.test(mails(x)[0] || ''), 'h) sem poder escrever na folha: um só email enviado, envio automático desativado e aviso por email');
+
+  // i) envio manual com falha geral: não marca ninguém e explica
+  x = ambiente({ geral: pessoas(6, 'g'), institucional: [] }); x.c.MailApp.sendEmail = () => { throw new Error('Exception: Service error: Mail'); };
+  x.correr('enviarConvites()');
+  ok(comEstado(x.folhaGeral, /./) === 0 && /não costuma ser culpa das pessoas/.test(x.alertas[0]) && /Service error: Mail/.test(x.alertas[0]), 'i) «Enviar Lote» com falha geral: ninguém marcado e a mensagem explica');
+
+  // j) reativar limpa avisos e falhas antigas
+  x = arranca({ geral: pessoas(2, 'g'), institucional: [] }); x.props.ultimoErro = 'velho'; x.props.aviso = 'velho'; x.props.pausaAte = String(x.agora + 1e9); x.correr('ativarEnvioAutomatico()');
+  ok(!x.props.ultimoErro && !x.props.aviso && !x.props.pausaAte, 'j) «Ativar envio automático» limpa erros, avisos e pausas antigas');
+}
+
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);
 process.exit(erros ? 1 : 0);

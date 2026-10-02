@@ -1,4 +1,4 @@
-// PARTE 3 de 7. Ficheiro «Parte3.gs» do projeto Apps Script.
+// PARTE 3 de 8. Ficheiro «Parte3.gs» do projeto Apps Script.
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_3 = true;
 
@@ -86,5 +86,6 @@ function diagnostico() {
     linhas.push(ativos ? '✔ Envio automático ativo (de minuto a minuto, entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h).'
                        : '• Envio automático desativado (ativa-o no menu quando quiseres começar).');
   }
+  if (problemaAtual_()) mau(problemaAtual_());
   avisar_(linhas.join('\n') + '\n\n' + (problemas ? problemas + ' problema(s) assinalado(s) com ✘.' : 'Tudo em ordem.'));
 }

@@ -1,16 +1,6 @@
-// PARTE 7 de 7. Ficheiro «Parte7.gs» do projeto Apps Script.
+// PARTE 7 de 8. Ficheiro «Parte7.gs» do projeto Apps Script.
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_7 = true;
-
-function folhaGeral_() {
-  validarUrls_();
-  return SpreadsheetApp.openByUrl(URL_FOLHA_GERAL).getSheets()[0];
-}
-
-function folhaInstitucional_() {
-  validarUrls_();
-  return SpreadsheetApp.openByUrl(URL_FOLHA_INSTITUCIONAL).getSheets()[0];
-}
 
 /** Emails da lista institucional (para não lhes enviar também o convite geral). Vazio se estiver desligado. */
 function emailsInstitucionais_() {
@@ -20,23 +10,43 @@ function emailsInstitucionais_() {
   return n < 2 ? {} : mapaEmails_(folha.getRange(2, 1, n - 1, 4).getValues());
 }
 
-/** Por enviar: estado vazio, ou um erro de quota de uma ronda anterior (os outros erros ficam à vista para decidires). */
-function porEnviar_(estado) {
-  return estado === '' || /^Erro: .*(too many times|limit exceeded)/i.test(estado);
+function mapaEmails_(dados) {
+  var mapa = {};
+  for (var k = 0; k < dados.length; k++) {
+    var e = texto_(dados[k][1]).toLowerCase();
+    if (e !== '') mapa[e] = true;
+  }
+  return mapa;
 }
 
-function erroDeQuota_(e) {
-  return /too many times|limit exceeded|quota/i.test(String(e && e.message));
+/** Versão em texto simples do HTML (a outra parte do email, para quem não vê HTML). */
+function textoSimples_(html) {
+  return html
+    .replace(/<(style|head)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<div style="display:none;[\s\S]*?<\/div>/i, '')
+    .replace(/<br\s*\/?>|<\/tr>|<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(parseInt(n, 10)); })
+    .replace(/&amp;/g, '&')
+    .split('\n').map(function (l) { return l.replace(/[ \t ]+/g, ' ').trim(); }).join('\n')
+    .replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function texto_(v) {
-  return (v === null || v === undefined ? '' : v).toString().trim();
+/** Mostra a mensagem num ecrã e, se não houver (acionadores), regista-a. */
+function avisar_(mensagem) {
+  try {
+    SpreadsheetApp.getUi().alert(mensagem);
+  } catch (e) {
+    Logger.log(mensagem);
+  }
 }
 
-/** Troca a primeira ocorrência, sem que «$» no nome seja tratado como código de substituição. */
-function trocar_(texto, de, para) {
-  var p = texto.indexOf(de);
-  return p === -1 ? texto : texto.substring(0, p) + para + texto.substring(p + de.length);
+function verQuota() {
+  avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje (o limite renova-se passadas cerca de 24 horas).\n'
+        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
+                           : 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n')
+        + 'Conta: ' + Session.getEffectiveUser().getEmail());
 }
 
 /** Quando começaram os envios de convites, em ms: INICIO_DOS_ENVIOS, ou o momento em que este script enviou o 1.º; 0 se ainda não. */
@@ -48,12 +58,6 @@ function inicioEnvio_() {
   return Number(PropertiesService.getScriptProperties().getProperty('inicioEnvio')) || 0;
 }
 
-/** Guarda o momento do 1.º envio de convites (uma só vez). Os emails de teste não contam. */
-function registarInicioEnvio_() {
-  var props = PropertiesService.getScriptProperties();
-  if (!props.getProperty('inicioEnvio')) props.setProperty('inicioEnvio', String(Date.now()));
-}
-
 /** Reserva em vigor: zero nas primeiras HORAS_SEM_RESERVA depois do 1.º convite enviado, RESERVA_QUOTA depois. */
 function reservaAtual_() {
   if (HORAS_SEM_RESERVA <= 0) return RESERVA_QUOTA;
@@ -62,25 +66,26 @@ function reservaAtual_() {
   return RESERVA_QUOTA;
 }
 
-/** Rótulo de uma lista para mostrar ao utilizador: nome do ficheiro e do separador (para ele confirmar que é a lista certa). */
-function nomeDaLista_(url, folha) {
-  var ss = SpreadsheetApp.openByUrl(url);
-  return '«' + ss.getName() + '» (separador «' + folha.getName() + '»)';
+/** Quantos emails foram enviados nas últimas 24 horas, pelas horas escritas no estado («Enviado a dd/MM/aaaa HH:mm»). */
+function enviadosNas24h_(dados) {
+  var desde = Date.now() - 24 * 3600000, n = 0;
+  for (var j = 0; j < dados.length; j++) {
+    var m = /^Enviado a (\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/.exec(texto_(dados[j][3]));
+    if (m && new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4]), Number(m[5])).getTime() >= desde) n++;
+  }
+  return n;
 }
 
-function dadosDe_(folha) {
-  var ultima = folha.getLastRow();
-  return ultima < 2 ? [] : folha.getRange(2, 1, ultima - 1, 4).getValues();
-}
-
-function desativarEnvioAutomatico() {
-  ScriptApp.getProjectTriggers().forEach(function (g) {
-    if (g.getHandlerFunction() === 'envioAutomatico') ScriptApp.deleteTrigger(g);
-  });
-  PropertiesService.getScriptProperties().deleteProperty('acionador');
-}
-
-/** Intervalo até ao próximo email, em segundos: sorteado entre INTERVALO_MIN_S e INTERVALO_MAX_S. */
-function intervaloSorteado_() {
-  return INTERVALO_MIN_S + Math.floor(Math.random() * (Math.max(INTERVALO_MAX_S, INTERVALO_MIN_S) - INTERVALO_MIN_S + 1));
+// ---------------------------------------------------------------- envio automático (de minuto a minuto)
+function ativarEnvioAutomatico() {
+  desativarEnvioAutomatico();
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('acionador', 'minuto');
+  props.deleteProperty('proximoEnvio');
+  limparFalhas_();
+  ScriptApp.newTrigger('envioAutomatico').timeBased().everyMinutes(1).create();
+  avisar_('Envio automático ativado: entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h o script envia um email de cada vez, com 1 a 2 minutos de intervalo '
+        + '(primeiro a lista institucional, depois a geral), enquanto a Google deixar. Quando a quota acabar pára e retoma sozinho quando ela for libertada. '
+        + 'Nas primeiras ' + HORAS_SEM_RESERVA + ' horas usa a quota toda; depois deixa sempre ' + RESERVA_QUOTA + ' por usar, para as confirmações. '
+        + 'Desliga-se sozinho quando as listas acabarem. «Ver progresso» mostra o ponto da situação.');
 }

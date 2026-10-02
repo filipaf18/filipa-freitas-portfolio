@@ -24,17 +24,22 @@
  *   conta Gmail pessoal: 100 destinatários por dia · Google Workspace: 1500 por dia · 6 minutos por execução.
  * Não há maneira legítima de os ultrapassar com a mesma conta. Menu «Ver progresso» mostra quantos faltam e os dias.
  *
- * Os ficheiros HTML do projeto têm de se chamar «convite» (geral) e «convite_institucional».
+ * LISTAS (duas folhas de cálculo, abertas pelo endereço, por isso pouco importa onde o script está guardado):
+ *   Institucional: «Convidados 50 anos» → ficheiro HTML «convite_institucional»
+ *   Geral:         «Militantes Base»    → ficheiro HTML «convite»
+ * Em ambas: linha 1 = cabeçalho; A Nome · B Email · C Género (Feminino/Masculino) · D «Email Enviado?» (estado).
+ * As listas podem crescer: cada execução volta a ler a folha e envia a quem tiver o estado vazio (linhas novas no fim,
+ * ou no meio; linhas em branco são saltadas). Os institucionais novos passam à frente dos gerais.
  */
 
 // ---------------------------------------------------------------- configuração
 var ASSUNTO = '50 Anos JSD Famalicão · Jantar Comemorativo';
 var NOME_REMETENTE = 'JSD Famalicão';
-var URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_FOLHA_INSTITUCIONAL';
-var NOME_FOLHA_GERAL = '';                       // nome do separador da lista geral. '' = o separador ativo (no envio automático, o primeiro: põe aqui o nome)
+var URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_LISTA_INSTITUCIONAL';   // «Convidados 50 anos»
+var URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL';                    // «Militantes Base»
 var EXCLUIR_INSTITUCIONAIS_DA_GERAL = true;      // quem está na lista institucional não recebe o convite geral
 var QUOTA_DIARIA_DA_CONTA = 100;                 // só para a estimativa de dias: 100 numa conta Gmail pessoal, 1500 no Workspace
-var RESERVA_QUOTA = 20;                          // envios que ficam todos os dias para lembretes e confirmações (0 = usar tudo)
+var RESERVA_QUOTA = 10;                          // envios que ficam todos os dias para as confirmações de inscrição: 100 − 10 = 90 convites por dia
 var LIMITE_POR_RONDA = 100;                      // máximo por execução
 var PAUSA_MS = 1000;                             // pausa entre emails
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
@@ -48,6 +53,7 @@ function onOpen() {
       .addItem('Enviar Lote - Convite Geral', 'enviarConvites')
       .addItem('Enviar Lote - Institucional', 'enviarConvitesInstitucionais')
       .addSeparator()
+      .addItem('Verificar as listas (antes de enviar)', 'verificarListas')
       .addItem('Ver progresso (quantos faltam e quantos dias)', 'verProgresso')
       .addItem('Ver quanto ainda posso enviar hoje', 'verQuota')
       .addItem('Ativar envio automático', 'ativarEnvioAutomatico')
@@ -64,33 +70,41 @@ function enviarConvitesInstitucionais() {
   executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}); });
 }
 
-function folhaGeral_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (NOME_FOLHA_GERAL) {
-    var f = ss.getSheetByName(NOME_FOLHA_GERAL);
-    if (!f) throw new Error('Não existe a folha «' + NOME_FOLHA_GERAL + '».');
-    return f;
+/** Os dois endereços têm de estar preenchidos e apontar para ficheiros DIFERENTES (senão enviava-se o convite errado). */
+function validarUrls_() {
+  var faltam = [];
+  if (URL_FOLHA_INSTITUCIONAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_INSTITUCIONAL');
+  if (URL_FOLHA_GERAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_GERAL');
+  if (faltam.length) throw new Error('Falta o URL da lista (' + faltam.join(' e ') + '): preenche no início do script.');
+  var id = function (u) { var m = /\/d\/([a-zA-Z0-9_-]+)/.exec(u); return m ? m[1] : u; };
+  if (id(URL_FOLHA_INSTITUCIONAL) === id(URL_FOLHA_GERAL)) {
+    throw new Error('A lista institucional e a lista geral apontam para o MESMO ficheiro. Confirma os dois endereços no início do script '
+                  + '(institucional = «Convidados 50 anos», geral = «Militantes Base»).');
   }
-  return ss.getActiveSheet() || ss.getSheets()[0];
+}
+
+function folhaGeral_() {
+  validarUrls_();
+  return SpreadsheetApp.openByUrl(URL_FOLHA_GERAL).getSheets()[0];
 }
 
 function folhaInstitucional_() {
-  if (URL_FOLHA_INSTITUCIONAL.indexOf('COLA_AQUI') !== -1) {
-    throw new Error('Falta o URL da folha institucional: preenche URL_FOLHA_INSTITUCIONAL no início do script.');
-  }
+  validarUrls_();
   return SpreadsheetApp.openByUrl(URL_FOLHA_INSTITUCIONAL).getSheets()[0];
 }
 
 /** Emails da lista institucional (para não lhes enviar também o convite geral). Vazio se estiver desligado. */
 function emailsInstitucionais_() {
-  var mapa = {};
-  if (!EXCLUIR_INSTITUCIONAIS_DA_GERAL || URL_FOLHA_INSTITUCIONAL.indexOf('COLA_AQUI') !== -1) return mapa;
+  if (!EXCLUIR_INSTITUCIONAIS_DA_GERAL) return {};
   var folha = folhaInstitucional_();
   var n = folha.getLastRow();
-  if (n < 2) return mapa;
-  var col = folha.getRange(2, 2, n - 1, 1).getValues();
-  for (var k = 0; k < col.length; k++) {
-    var e = texto_(col[k][0]).toLowerCase();
+  return n < 2 ? {} : mapaEmails_(folha.getRange(2, 1, n - 1, 4).getValues());
+}
+
+function mapaEmails_(dados) {
+  var mapa = {};
+  for (var k = 0; k < dados.length; k++) {
+    var e = texto_(dados[k][1]).toLowerCase();
     if (e !== '') mapa[e] = true;
   }
   return mapa;
@@ -123,7 +137,7 @@ function analisar_(dados, excluir) {
   for (var j = 0; j < dados.length; j++) {
     var email = texto_(dados[j][1]);
     var estado = texto_(dados[j][3]);
-    if (texto_(dados[j][0]) === '' && email === '') break;
+    if (texto_(dados[j][0]) === '' && email === '') continue;      // linha em branco: salta (a lista pode ter espaços)
     r.total++;
     var chave = email.toLowerCase();
     var pendente = porEnviar_(estado);
@@ -214,17 +228,20 @@ function texto_(v) {
 
 // ---------------------------------------------------------------- personalização (igual à versão anterior)
 function personalizar_(modelo, nomeFicheiroHtml, nomeCompleto, genero) {
-  var partes = nomeCompleto.split(' ');
+  var partes = nomeProprio_(nomeCompleto).split(/\s+/);
   var nomeFinal = partes.length > 1 ? partes[0] + ' ' + partes[partes.length - 1] : partes[0];
   nomeFinal = nomeFinal.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   var html = modelo;
 
-  // saudação: no institucional mantém «companheiro(a)» e junta o nome; no geral o nome substitui «companheiro(a)»
-  if (nomeFicheiroHtml === 'convite_institucional') {
-    html = trocar_(html, 'Estimado(a) companheiro(a),', 'Estimado(a) companheiro(a) ' + nomeFinal + ',');
-    html = trocar_(html, 'Caro(a) companheiro(a),', 'Caro(a) companheiro(a) ' + nomeFinal + ',');
-  } else {
-    html = trocar_(html, 'Caro(a) companheiro(a),', 'Caro(a) ' + nomeFinal + ',');
+  // saudação: no institucional mantém «companheiro(a)» e junta o nome; no geral o nome substitui «companheiro(a)».
+  // Sem nome na folha, fica «Caro(a) companheiro(a),» (e o género adapta-o na mesma).
+  if (nomeFinal !== '') {
+    if (nomeFicheiroHtml === 'convite_institucional') {
+      html = trocar_(html, 'Estimado(a) companheiro(a),', 'Estimado(a) companheiro(a) ' + nomeFinal + ',');
+      html = trocar_(html, 'Caro(a) companheiro(a),', 'Caro(a) companheiro(a) ' + nomeFinal + ',');
+    } else {
+      html = trocar_(html, 'Caro(a) companheiro(a),', 'Caro(a) ' + nomeFinal + ',');
+    }
   }
 
   // género
@@ -234,6 +251,16 @@ function personalizar_(modelo, nomeFicheiroHtml, nomeCompleto, genero) {
     : [[/o\(a\)/g, 'o'], [/a\(o\)/g, 'o'], [/\(a\)/g, ''], [/\(o\)/g, 'o'], [/O\(A\)/g, 'O'], [/A\(O\)/g, 'O'], [/\(A\)/g, ''], [/\(O\)/g, 'O']];
   for (var t = 0; t < trocas.length; t++) html = html.replace(trocas[t][0], trocas[t][1]);
   return html;
+}
+
+/** Nomes todos em maiúsculas ou todos em minúsculas passam a «Maria da Silva»; os restantes ficam como estão. */
+function nomeProprio_(nome) {
+  if (nome !== nome.toUpperCase() && nome !== nome.toLowerCase()) return nome;
+  var particulas = { de: 1, da: 1, do: 1, dos: 1, das: 1, e: 1 };
+  return nome.toLowerCase().split(/\s+/).map(function (p, k) {
+    if (k > 0 && particulas[p]) return p;
+    return p.replace(/(^|[-'])([a-zà-ÿ])/g, function (m, a, b) { return a + b.toUpperCase(); });
+  }).join(' ');
 }
 
 /** Troca a primeira ocorrência, sem que «$» no nome seja tratado como código de substituição. */
@@ -294,18 +321,28 @@ function verQuota() {
         + 'Conta: ' + Session.getEffectiveUser().getEmail());
 }
 
+/** Rótulo de uma lista para mostrar ao utilizador: nome do ficheiro e do separador (para ele confirmar que é a lista certa). */
+function nomeDaLista_(url, folha) {
+  var ss = SpreadsheetApp.openByUrl(url);
+  return '«' + ss.getName() + '» (separador «' + folha.getName() + '»)';
+}
+
+function dadosDe_(folha) {
+  var ultima = folha.getLastRow();
+  return ultima < 2 ? [] : folha.getRange(2, 1, ultima - 1, 4).getValues();
+}
+
 /** Quantos faltam em cada lista, quantos já foram, e quantos dias levará a acabar. Não envia nada. */
 function verProgresso() {
   try {
     var excluir = emailsInstitucionais_();
-    var listas = [['Institucional', function () { return folhaInstitucional_(); }, {}], ['Geral', folhaGeral_, excluir]];
+    var listas = [['Institucional', URL_FOLHA_INSTITUCIONAL, folhaInstitucional_(), {}], ['Geral', URL_FOLHA_GERAL, folhaGeral_(), excluir]];
     var linhas = [], faltam = 0;
     for (var n = 0; n < listas.length; n++) {
-      var folha = listas[n][1]();
-      var ultima = folha.getLastRow();
-      var a = analisar_(ultima < 2 ? [] : folha.getRange(2, 1, ultima - 1, 4).getValues(), listas[n][2]);
+      var a = analisar_(dadosDe_(listas[n][2]), listas[n][3]);
       faltam += a.porEnviar.length;
-      linhas.push(listas[n][0] + ': ' + a.enviados + ' enviados · ' + a.porEnviar.length + ' por enviar · '
+      linhas.push(listas[n][0] + ' ' + nomeDaLista_(listas[n][1], listas[n][2]) + ':\n   '
+        + a.enviados + ' enviados · ' + a.porEnviar.length + ' por enviar · '
         + (a.ignorados + a.novosIgnorados.length) + ' ignorados (repetidos / já institucionais) · ' + a.erros + ' com erro');
     }
     var porDia = Math.max(1, QUOTA_DIARIA_DA_CONTA - RESERVA_QUOTA);
@@ -316,6 +353,53 @@ function verProgresso() {
   } catch (e) {
     avisar_('Erro: ' + e.message);
   }
+}
+
+/**
+ * Confere as listas ANTES de enviar, sem enviar nada nem mostrar nomes: género por reconhecer (seria tratado como
+ * masculino), emails inválidos, emails repetidos, geral já na institucional, nomes sem apelido ou em maiúsculas.
+ * Indica os números das linhas da folha (corrige à mão) em vez dos dados.
+ */
+function verificarListas() {
+  try {
+    var instituicao = folhaInstitucional_(), geral = folhaGeral_();
+    var dInst = dadosDe_(instituicao), dGeral = dadosDe_(geral);
+    var texto = [descreverLista_('Institucional ' + nomeDaLista_(URL_FOLHA_INSTITUCIONAL, instituicao), dInst, {}),
+                 descreverLista_('Geral ' + nomeDaLista_(URL_FOLHA_GERAL, geral), dGeral, mapaEmails_(dInst))];
+    avisar_(texto.join('\n\n'));
+  } catch (e) {
+    avisar_('Erro: ' + e.message);
+  }
+}
+
+function descreverLista_(rotulo, dados, institucionais) {
+  var c = { total: 0, fem: 0, masc: 0, generoDesconhecido: [], invalidos: [], repetidos: [], jaInstitucionais: [], semApelido: 0, maiusculas: 0 };
+  var vistos = {};
+  var feminino = ['feminino', 'f', 'mulher'], masculino = ['masculino', 'm', 'homem'];
+  for (var j = 0; j < dados.length; j++) {
+    var nome = texto_(dados[j][0]), email = texto_(dados[j][1]), genero = texto_(dados[j][2]).toLowerCase();
+    if (nome === '' && email === '') continue;
+    c.total++;
+    var linha = j + 2;
+    if (feminino.indexOf(genero) !== -1) c.fem++;
+    else if (masculino.indexOf(genero) !== -1) c.masc++;
+    else c.generoDesconhecido.push(linha);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) c.invalidos.push(linha);
+    var chave = email.toLowerCase();
+    if (chave !== '') {
+      if (vistos[chave]) c.repetidos.push(linha); else vistos[chave] = true;
+      if (institucionais[chave]) c.jaInstitucionais.push(linha);
+    }
+    if (nome.split(/\s+/).length < 2) c.semApelido++;
+    if (nome !== '' && nomeProprio_(nome) !== nome) c.maiusculas++;
+  }
+  var lista = function (v) { return v.length ? v.length + ' (linhas ' + v.slice(0, 12).join(', ') + (v.length > 12 ? '…' : '') + ')' : '0'; };
+  return rotulo + ': ' + c.total + ' pessoas\n'
+    + '   Feminino ' + c.fem + ' · Masculino ' + c.masc + ' · género por reconhecer (seria tratado como masculino): ' + lista(c.generoDesconhecido) + '\n'
+    + '   emails inválidos: ' + lista(c.invalidos) + '\n'
+    + '   emails repetidos (só o 1.º recebe): ' + lista(c.repetidos) + '\n'
+    + (rotulo.indexOf('Geral') === 0 ? '   já na lista institucional (não recebem o geral): ' + lista(c.jaInstitucionais) + '\n' : '')
+    + '   nomes com uma só palavra: ' + c.semApelido + ' · nomes todos em maiúsculas/minúsculas (são corrigidos no email): ' + c.maiusculas;
 }
 
 // ---------------------------------------------------------------- envio automático (de hora a hora)

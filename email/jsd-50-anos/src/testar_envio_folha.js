@@ -16,7 +16,8 @@ const titulo = t => console.log('\n' + t);
 
 class Folha {
   static leituras = 0;
-  constructor(pessoas) { this.linhas = pessoas.map(p => [p[0], p[1], p[2] || '', p[3] || '']); }
+  constructor(pessoas, ficheiro = '', separador = 'Folha1') { this.linhas = pessoas.map(p => [p[0], p[1], p[2] || '', p[3] || '']); this.ficheiro = ficheiro; this.separador = separador; }
+  getName() { return this.separador; }
   getLastRow() { Folha.leituras++; return this.linhas.length + 1; }
   getRange(r, c, nr, nc) {
     const f = this;
@@ -30,11 +31,14 @@ class Folha {
 
 function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10 }) {
   const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0 };
-  e.folhaGeral = new Folha(geral); e.folhaInst = new Folha(institucional);
+  e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
     SpreadsheetApp: {
-      getActiveSpreadsheet: () => ({ getActiveSheet: () => e.folhaGeral, getSheets: () => [e.folhaGeral], getSheetByName: () => e.folhaGeral }),
-      openByUrl: () => ({ getSheets: () => [e.folhaInst] }),
+      openByUrl: url => {
+        const f = url.includes('GERAL') ? e.folhaGeral : url.includes('INSTITUCIONAL') ? e.folhaInst : null;
+        if (!f) throw new Error('endereço desconhecido: ' + url);
+        return { getName: () => f.ficheiro, getSheets: () => [f] };
+      },
       getUi: () => { if (!ecra) throw new Error('sem ecrã (acionador)'); return { alert: m => e.alertas.push(m), createMenu: () => { const m = { addItem: () => m, addSeparator: () => m, addToUi: () => {} }; return m; } }; },
     },
     MailApp: {
@@ -60,7 +64,8 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
   };
   vm.createContext(c);
   vm.runInContext(codigo, c, { filename: 'EnvioPelaFolha.gs' });
-  c.URL_FOLHA_INSTITUCIONAL = 'https://docs.google.com/spreadsheets/d/EXEMPLO/edit';
+  c.URL_FOLHA_INSTITUCIONAL = 'https://docs.google.com/spreadsheets/d/INSTITUCIONAL111/edit?usp=sharing';
+  c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/GERAL222/edit?usp=sharing';
   vm.runInContext(`RESERVA_QUOTA = ${reserva};`, c);
   e.c = c; e.correr = js => vm.runInContext(js, c);
   return e;
@@ -121,7 +126,7 @@ ok(e.enviados.length === 28 && /esgotou/.test(e.alertas[0]), 'com a quota a zero
 // ------------------------------------------------------------------ 6. personalização com os HTML reais
 titulo('6. saudação e género, com os HTML reais (v7 geral e v8 institucional)');
 const corpo = m => m.htmlBody;
-e = ambiente({ geral: [['Maria João Ferreira', 'm@exemplo.pt', 'Feminino'], ['José Pedro Alves', 'j@exemplo.pt', 'masculino'], ['', '', '']],
+e = ambiente({ geral: [['Maria João Ferreira', 'm@exemplo.pt', 'Feminino'], ['', '', ''], ['José Pedro Alves', 'j@exemplo.pt', 'masculino']],
                institucional: [['Ana Costa', 'a@exemplo.pt', 'f'], ['Rui Dias', 'r@exemplo.pt', ''], ['Tom & <Jerry> Cat', 't@exemplo.pt', 'm']] });
 e.correr('enviarConvites()'); e.correr('enviarConvitesInstitucionais()');
 const [gF, gM, iF, iM, iX] = e.enviados;
@@ -135,7 +140,7 @@ ok(corpo(nomeEsc.enviados[0]).includes('Caro A Cruz,'), 'primeiro e último nome
 const nomeEsc2 = ambiente({ geral: [['A&B <x>', 'x@exemplo.pt', 'm']] }); nomeEsc2.correr('enviarConvites()');
 ok(corpo(nomeEsc2.enviados[0]).includes('Caro A&amp;B &lt;x&gt;,'), 'caracteres especiais escapados: ' + (corpo(nomeEsc2.enviados[0]).match(/Caro [^,]*,/) || [''])[0]);
 for (const m of e.enviados) ok(!/\((a|o|A|O)\)/.test(m.htmlBody.replace(/<[^>]+>/g, ' ')), `sobrou «(a)» ou «(o)» no texto de ${m.to}`);
-ok(e.enviados.length === 5, 'a linha em branco pára a leitura');
+ok(e.enviados.length === 5, 'a linha em branco no meio da lista é saltada e quem vem depois também recebe');
 ok(e.enviados.every(m => m.subject === '50 Anos JSD Famalicão · Jantar Comemorativo' && m.name === 'JSD Famalicão'), 'assunto e remetente');
 ok(e.enviados.every(m => m.body && m.body.length > 200 && !/<[a-z]/i.test(m.body) && /50 anos/.test(m.body)), 'texto simples presente e sem etiquetas');
 ok(e.enviados.every(m => /https:\/\/jsdfamalicao\.pt\/convite\/capa-evento-email\.png/.test(m.htmlBody)), 'HTML com as imagens por endereço');
@@ -163,14 +168,18 @@ e.correr('TEMPO_MAXIMO_MS = 300000'); e.correr('enviarConvites()');
 ok(e.enviados.length === 10, 'retoma e envia');
 
 // ------------------------------------------------------------------ 10. reserva da quota
-titulo('10. reserva de 20 por dia para lembretes e confirmações');
-e = ambiente({ geral: pessoas(150), quota: 100, reserva: 20 });
+titulo('10. reserva de 10 por dia para as confirmações de inscrição (90 convites por dia)');
+e = ambiente({ geral: pessoas(150), quota: 100, reserva: 10 });
 e.correr('enviarConvites()');
-ok(e.enviados.length === 80 && e.usados === 80, `enviou ${e.enviados.length}, esperava 80 (ficam 20 de reserva)`);
-ok(e.c.MailApp.getRemainingDailyQuota() === 20, 'ficam 20 por usar');
-ok(/20 de reserva/.test(e.alertas[0]), 'o resumo menciona a reserva');
+ok(e.enviados.length === 90 && e.usados === 90, `enviou ${e.enviados.length}, esperava 90 (ficam 10 de reserva)`);
+ok(e.c.MailApp.getRemainingDailyQuota() === 10, 'ficam 10 por usar');
+ok(/10 de reserva/.test(e.alertas[0]), 'o resumo menciona a reserva');
 e.alertas.length = 0; e.correr('enviarConvites()');
-ok(e.enviados.length === 80, 'com a reserva intacta não envia mais');
+ok(e.enviados.length === 90, 'com a reserva intacta não envia mais');
+e.usados += 4; e.enviados.length = 0; e.correr('enviarConvites()');
+ok(e.enviados.length === 0, 'se as confirmações gastaram quota, os convites não tocam na reserva');
+e.usados = 0; e.correr('enviarConvites()');
+ok(e.enviados.length === 60, `no dia seguinte envia os 60 que faltam (foram ${e.enviados.length})`);
 
 // ------------------------------------------------------------------ 11. repetidos e quem já está na lista institucional
 titulo('11. quem está na lista institucional não recebe o geral; repetidos só uma vez');
@@ -237,6 +246,9 @@ const dest = sim.ee.enviados.map(m => m.to).filter(t => t !== 'jsd@exemplo.pt');
 ok(dest.length === 1920 && unicos(dest), `1920 emails, ninguém repetido (${dest.length})`);
 ok(sim.ee.enviados.slice(0, 26).every(m => m.to.startsWith('i')), 'o 1.º dia começa pelos 26 institucionais');
 ok(sim.ee.enviados.slice(26, 100).every(m => m.to.startsWith('g')), '…e preenche o resto do 1.º dia (74) com gerais');
+sim = simular(10);
+ok(sim.dias === 22, `com reserva de 10 (90 por dia): ${sim.dias} dias (esperava 22)`);
+ok(sim.ee.enviados.slice(0, 26).every(m => m.to.startsWith('i')) && sim.ee.enviados.slice(26, 90).every(m => m.to.startsWith('g')) && sim.ee.enviados.length >= 90, 'o 1.º dia: 26 institucionais + 64 gerais');
 sim = simular(20);
 ok(sim.dias === 24, `com reserva de 20: ${sim.dias} dias (esperava 24)`);
 sim = simular(0, true);
@@ -245,21 +257,70 @@ ok(sim.ee.folhaGeral.estados().filter(s => /^Ignorado/.test(s)).length === 50, '
 
 // ------------------------------------------------------------------ 14. verProgresso e verQuota
 titulo('14. verProgresso e verQuota');
-e = ambiente({ institucional: pessoas(100, 'i').map((p, k) => k < 74 ? [p[0], p[1], p[2], 'Enviado a x'] : p), geral: pessoas(1894, 'g'), quota: 100, reserva: 20 });
+e = ambiente({ institucional: pessoas(100, 'i').map((p, k) => k < 74 ? [p[0], p[1], p[2], 'Enviado a x'] : p), geral: pessoas(1894, 'g'), quota: 100, reserva: 10 });
 e.correr('verProgresso()');
-ok(/Institucional: 74 enviados · 26 por enviar/.test(e.alertas[0]) && /Geral: 0 enviados · 1894 por enviar/.test(e.alertas[0]), 'contagens');
-ok(/Faltam 1920 emails/.test(e.alertas[0]) && /24 dias/.test(e.alertas[0]), 'estimativa de 24 dias com reserva de 20: ' + e.alertas[0].split('\n').pop());
+ok(/Institucional «Convidados 50 anos» \(separador «Folha1»\):\n\s+74 enviados · 26 por enviar/.test(e.alertas[0]) && /Geral «Militantes Base» \(separador «Folha1»\):\n\s+0 enviados · 1894 por enviar/.test(e.alertas[0]), 'contagens por lista: ' + e.alertas[0].split('\n').slice(0, 4).join(' | '));
+ok(/Faltam 1920 emails/.test(e.alertas[0]) && /22 dias/.test(e.alertas[0]), 'estimativa de 22 dias com reserva de 10: ' + e.alertas[0].split('\n').pop());
+ok(/«Convidados 50 anos» \(separador «Folha1»\)/.test(e.alertas[0]) && /«Militantes Base»/.test(e.alertas[0]), 'mostra o nome de cada ficheiro, para confirmar que é a lista certa');
 ok(e.enviados.length === 0, 'não envia nada');
-e = ambiente({ quota: 100, reserva: 20 }); e.usados = 72; e.correr('verQuota()');
-ok(/28 emails/.test(e.alertas[0]) && /jsd@exemplo\.pt/.test(e.alertas[0]) && /20 .*reserva/.test(e.alertas[0]), 'verQuota mostra 28, a reserva e a conta');
+e = ambiente({ quota: 100, reserva: 10 }); e.usados = 72; e.correr('verQuota()');
+ok(/28 emails/.test(e.alertas[0]) && /jsd@exemplo\.pt/.test(e.alertas[0]) && /10 .*reserva/.test(e.alertas[0]), 'verQuota mostra 28, a reserva e a conta');
 
-// sem URL da folha institucional
-e = ambiente({ institucional: pessoas(2) }); e.c.URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_FOLHA_INSTITUCIONAL';
-e.correr('enviarConvitesInstitucionais()');
-ok(/Falta o URL/.test(e.alertas[0]) && e.enviados.length === 0, 'avisa se falta o URL da folha institucional');
-e = ambiente({ geral: pessoas(2) }); e.c.URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_FOLHA_INSTITUCIONAL';
+// ------------------------------------------------------------------ 15. endereços das listas
+titulo('15. endereços em falta ou iguais: não envia nada e explica');
+for (const [fn, qual] of [['enviarConvites', 'geral'], ['enviarConvitesInstitucionais', 'institucional'], ['verProgresso', 'progresso'], ['verificarListas', 'verificação']]) {
+  e = ambiente({ geral: pessoas(2), institucional: pessoas(2) }); e.c.URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_LISTA_INSTITUCIONAL';
+  e.correr(fn + '()');
+  ok(/Falta o URL da lista \(URL_FOLHA_INSTITUCIONAL\)/.test(e.alertas[0]) && e.enviados.length === 0, `${qual}: avisa que falta o URL institucional`);
+}
+e = ambiente({ geral: pessoas(2), institucional: pessoas(2) }); e.c.URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL';
 e.correr('enviarConvites()');
-ok(e.enviados.length === 2, 'o geral funciona sem o URL (só não exclui os institucionais)');
+ok(/URL_FOLHA_GERAL/.test(e.alertas[0]) && e.enviados.length === 0, 'avisa que falta o URL geral');
+for (const fn of ['enviarConvites', 'enviarConvitesInstitucionais', 'envioAutomatico']) {
+  e = ambiente({ geral: pessoas(2), institucional: pessoas(2) });
+  e.c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/MESMO/edit?usp=sharing'; e.c.URL_FOLHA_INSTITUCIONAL = 'https://docs.google.com/spreadsheets/d/MESMO/edit#gid=0';
+  e.correr(fn + '()');
+  ok(e.enviados.length === 0 && (fn === 'envioAutomatico' ? true : /MESMO ficheiro/.test(e.alertas[0])), `${fn}: duas listas com o mesmo ficheiro não enviam nada`);
+}
+
+// ------------------------------------------------------------------ 16. as listas crescem
+titulo('16. as listas crescem entre execuções: linhas novas, também depois de espaços; institucionais novos primeiro');
+e = ambiente({ geral: pessoas(3, 'g'), institucional: pessoas(2, 'i'), quota: 100 });
+e.correr('ativarEnvioAutomatico()'); e.correr('envioAutomatico()');
+ok(e.folhaGeral.estados().every(s => /^Enviado/.test(s)) && e.gatilhos.length === 0, 'primeira ronda envia tudo e desliga-se');
+e.folhaGeral.linhas.push(['', '', '', ''], ['Nova Pessoa Um', 'novo1@exemplo.pt', 'Feminino', ''], ['Nova Pessoa Dois', 'novo2@exemplo.pt', 'Masculino', '']);
+e.folhaInst.linhas.push(['Convidado Novo', 'conv@exemplo.pt', 'Masculino', '']);
+e.enviados.length = 0; e.usados = 0; e.correr('ativarEnvioAutomatico()'); e.correr('envioAutomatico()');
+const novos = e.enviados.map(m => m.to).filter(t => t !== 'jsd@exemplo.pt');
+ok(novos.join() === 'conv@exemplo.pt,novo1@exemplo.pt,novo2@exemplo.pt', `novos: ${novos}`);
+
+// ------------------------------------------------------------------ 17. nomes: maiúsculas e sem nome
+titulo('17. nomes em maiúsculas e linhas sem nome');
+e = ambiente({ geral: [['JOÃO PEDRO DA SILVA', 'a@exemplo.pt', 'Masculino'], ['maria de fátima santos azevedo', 'b@exemplo.pt', 'Feminino'], ['Ana-Luísa D\'Ávila', 'c@exemplo.pt', 'f'], ['', 'd@exemplo.pt', 'Feminino'], ['Rita', 'e@exemplo.pt', 'Feminino']] });
+e.correr('enviarConvites()');
+const saud = e.enviados.map(m => (m.htmlBody.match(/Cara?o? [^<]*,/) || [''])[0]);
+ok(saud[0] === 'Caro João Silva,', 'maiúsculas → «Caro João Silva,» (foi «' + saud[0] + '»)');
+ok(saud[1] === 'Cara Maria Azevedo,', 'minúsculas → «Cara Maria Azevedo,» (foi «' + saud[1] + '»)');
+ok(saud[2] === 'Cara Ana-Luísa D\'Ávila,', 'nome já bem escrito fica como está (foi «' + saud[2] + '»)');
+ok(saud[3] === 'Cara companheira,', 'sem nome: «Cara companheira,» (foi «' + saud[3] + '»)');
+ok(saud[4] === 'Cara Rita,', 'só um nome: «Cara Rita,» (foi «' + saud[4] + '»)');
+
+// ------------------------------------------------------------------ 18. verificarListas
+titulo('18. verificarListas: aponta linhas, sem mostrar nomes nem emails');
+e = ambiente({
+  institucional: [['Ana Costa', 'ana@exemplo.pt', 'Feminino'], ['Rui Dias', 'rui@exemplo.pt', 'Masculino']],
+  geral: [['Ana C', 'ANA@exemplo.pt', 'Feminino'], ['Zé', 'ze@exemplo', 'Masculino'], ['EVA BORGES', 'eva@exemplo.pt', ''], ['Eva Borges', 'eva@exemplo.pt', 'Feminino'], ['Tó Mané', 'to@exemplo.pt', 'Outro']],
+});
+e.correr('verificarListas()');
+const v = e.alertas[0];
+ok(/Geral «Militantes Base» \(separador «Folha1»\): 5 pessoas/.test(v), 'cabeçalho da lista geral: ' + v.split('\n').find(l => l.startsWith('Geral')));
+ok(/género por reconhecer .*: 2 \(linhas 4, 6\)/.test(v), 'género por reconhecer: linhas 4 e 6');
+ok(/emails inválidos: 1 \(linhas 3\)/.test(v), 'email inválido: linha 3');
+ok(/emails repetidos .*: 1 \(linhas 5\)/.test(v), 'email repetido: linha 5');
+ok(/já na lista institucional .*: 1 \(linhas 2\)/.test(v), 'já institucional: linha 2');
+ok(/nomes com uma só palavra: 1/.test(v) && /maiúsculas\/minúsculas .*: 1/.test(v), 'nomes com uma palavra e em maiúsculas');
+ok(!/@|Ana|Eva|Rui/.test(v.replace(/Militantes Base|Convidados 50 anos/g, '')), 'não mostra nomes nem emails');
+ok(e.enviados.length === 0, 'não envia nada');
 
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);
 process.exit(erros ? 1 : 0);

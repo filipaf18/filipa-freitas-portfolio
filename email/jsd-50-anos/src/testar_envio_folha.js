@@ -34,7 +34,7 @@ class Folha {
   estados() { return this.linhas.map(l => l[3]); }
 }
 
-function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [], omitirParte = null }) {
+function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [], omitirParte = null, modificarParte = {}, extraCodigo = [] }) {
   const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, htmls: Object.assign({}, HTML) };
   e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
@@ -70,7 +70,12 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
   };
   vm.createContext(c);
   if (modoPartes) {
-    for (const f of ficheirosPartes.slice().reverse()) if (f !== omitirParte) vm.runInContext(fs.readFileSync(path.join(pastaPartes, f), 'utf8'), c, { filename: f });
+    for (const f of ficheirosPartes.slice().reverse()) {
+      if (f === omitirParte) continue;
+      const txt = fs.readFileSync(path.join(pastaPartes, f), 'utf8');
+      vm.runInContext(modificarParte[f] ? modificarParte[f](txt) : txt, c, { filename: f });
+    }
+    for (const x of extraCodigo) vm.runInContext(x, c);
   } else {
     vm.runInContext(codigo, c, { filename: 'EnvioPelaFolha.gs' });
   }
@@ -437,6 +442,24 @@ if (modoPartes) {
   const todas = fs.readFileSync(path.join(aqui, 'apps-script', 'EnvioPelaFolha.gs'), 'utf8').match(/^function \w+/gm).sort();
   const nasPartes = ficheirosPartes.flatMap(f => fs.readFileSync(path.join(pastaPartes, f), 'utf8').match(/^function \w+/gm)).sort();
   ok(JSON.stringify(todas) === JSON.stringify(nasPartes), `as ${todas.length} funções do ficheiro único estão nas partes, nem uma a mais nem a menos`);
+}
+
+// ------------------------------------------------------------------ 24. verificarFuncoes (VerificarInstalacao.gs)
+if (modoPartes) {
+  titulo('24. VerificarInstalacao.gs: diz que função falta ou está desatualizada, e em que ficheiro');
+  const verificador = fs.readFileSync(path.join(pastaPartes, 'VerificarInstalacao.gs'), 'utf8');
+  const nFuncoes = ficheirosPartes.flatMap(f => fs.readFileSync(path.join(pastaPartes, f), 'utf8').match(/^function \w+/gm)).length;
+  const corre = opcoes => { const x = ambiente(Object.assign({ geral: pessoas(2), institucional: pessoas(2), extraCodigo: [verificador] }, opcoes)); x.correr('verificarFuncoes()'); return x.alertas[0]; };
+  let v = corre({});
+  ok(new RegExp(`✔ As ${nFuncoes} funções estão todas no projeto`).test(v), 'projeto certo: ' + v.slice(0, 80));
+  v = corre({ omitirParte: 'Parte6.gs' });
+  ok(/Faltam \d+ funções/.test(v) && /inicioEnvio_ \(devia estar em Parte6\.gs\)/.test(v) && /validarUrls_ \(devia estar em Parte6\.gs\)/.test(v) && !/Parte3/.test(v), 'sem a Parte6: lista as funções dela');
+  v = corre({ modificarParte: { 'Parte6.gs': t => t.replace(/\/\*\*(?:(?!\*\/)[^])*\*\/\nfunction inicioEnvio_\(\) \{[^]*?\n\}\n/, '') } });
+  ok(/Falta 1 função:\n\s+inicioEnvio_ \(devia estar em Parte6\.gs\)/.test(v), 'o teu caso, Parte6 sem a inicioEnvio_: ' + (v.match(/Faltam[^]*?Parte6\.gs\)/) || ['(não apanhou)'])[0].replace(/\n\s*/g, ' '));
+  v = corre({ extraCodigo: [verificador, 'function processarEnvios(folha, nomeFicheiroHtml) { return 0; }'] });
+  ok(/processarEnvios \(tem 2 parâmetros, devia ter 3\)/.test(v) && /versão antiga/.test(v), 'cópia antiga de uma função a sobrepor-se: apanhada');
+  v = corre({ omitirParte: 'Parte1.gs' });
+  ok(/onOpen \(devia estar em Código\.gs\)/.test(v), 'sem a Parte1: diz que é o Código.gs');
 }
 
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);

@@ -96,7 +96,56 @@ def main(saida):
         assert len(texto) <= MAX_LINHAS + 6, f'Parte{k} tem {len(texto)} linhas'
         (saida / f'Parte{k}.gs').write_text('\n'.join(texto) + '\n', encoding='utf-8')
         print(f'Parte{k}.gs: {len(texto)} linhas, {len(chr(10).join(texto))} caracteres: ' + ', '.join(nome_da(b) for b in grupo))
+    escrever_verificador(saida, partes)
     return len(partes)
+
+
+def aridade(bloco):
+    cab = next(l for l in bloco if l.startswith('function '))
+    args = re.match(r'function \w+\(([^)]*)\)', cab).group(1).strip()
+    return len([a for a in args.split(',') if a.strip()])
+
+
+def escrever_verificador(saida, partes):
+    """VerificarInstalacao.gs: ficheiro à parte (não é uma «parte») que confere se todas as funções estão no projeto, com o
+    número certo de parâmetros (apanha uma cópia antiga de uma função), e diz em que ficheiro está a que falta."""
+    linhas = []
+    for k, grupo in enumerate(partes, 1):
+        nomes = ' '.join('%s/%d' % (nome_da(b), aridade(b)) for b in grupo)
+        linhas.append("    %d: '%s'%s" % (k, nomes, ',' if k < len(partes) else ''))
+    codigo = '''// VERIFICAR INSTALAÇÃO. Ficheiro à parte, só para diagnóstico (podes apagá-lo depois).
+// Como usar: cria um ficheiro novo (+ → Script), cola isto, grava, escolhe «verificarFuncoes» no seletor do topo e carrega em Executar.
+// Confere se TODAS as funções do script estão no projeto e se não há uma cópia antiga de alguma (número de parâmetros diferente).
+function verificarFuncoes() {
+  var esperadas = {
+%s
+  };
+  var faltam = [], antigas = [], total = 0;
+  for (var parte in esperadas) {
+    var ficheiro = parte === '1' ? 'Código.gs' : 'Parte' + parte + '.gs';
+    var itens = esperadas[parte].split(' ');
+    for (var i = 0; i < itens.length; i++) {
+      var nome = itens[i].split('/')[0], parametros = Number(itens[i].split('/')[1]);
+      var funcao = null;
+      total++;
+      try { funcao = eval(nome); } catch (e) { funcao = null; }
+      if (typeof funcao !== 'function') faltam.push(nome + ' (devia estar em ' + ficheiro + ')');
+      else if (funcao.length !== parametros) antigas.push(nome + ' (tem ' + funcao.length + ' parâmetros, devia ter ' + parametros + ')');
+    }
+  }
+  var texto = faltam.length || antigas.length
+    ? '✘ O código do projeto não está certo.\\n'
+      + (faltam.length ? '\\n' + (faltam.length === 1 ? 'Falta 1 função' : 'Faltam ' + faltam.length + ' funções') + ':\\n  ' + faltam.join('\\n  ')
+        + '\\n→ o ficheiro indicado está incompleto (colagem cortada, ou não foi gravado) ou é de outra versão: apaga tudo nele, cola de novo o conteúdo certo e grava com Ctrl+S.\\n' : '')
+      + (antigas.length ? '\\n' + (antigas.length === 1 ? 'Há 1 função de uma versão antiga' : 'Há ' + antigas.length + ' funções de uma versão antiga') + ':\\n  ' + antigas.join('\\n  ')
+        + '\\n→ há outro ficheiro no projeto com código antigo a sobrepor-se. Deixa só Código.gs, Parte2.gs … e este: apaga os restantes.\\n' : '')
+    : '✔ As ' + total + ' funções estão todas no projeto, na versão certa. O código está completo.';
+  try { SpreadsheetApp.getUi().alert(texto); } catch (e) { Logger.log(texto); }
+  Logger.log(texto);
+}
+''' % '\n'.join(linhas)
+    (saida / 'VerificarInstalacao.gs').write_text(codigo, encoding='utf-8')
+    print('VerificarInstalacao.gs: %d linhas' % len(codigo.split('\n')))
 
 
 if __name__ == '__main__':

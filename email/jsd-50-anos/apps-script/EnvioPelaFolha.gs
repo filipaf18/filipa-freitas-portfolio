@@ -1,42 +1,10 @@
 /**
- * ATENÇÃO: este ficheiro SUBSTITUI todo o código antigo. Cola-o em «Código.gs» (apagando o que lá estava) e não deixes
- * outro ficheiro .gs com as mesmas funções (onOpen, enviarConvites, processarEnvios…): o Apps Script não avisa, o último
- * ficheiro a carregar sobrepõe-se em silêncio e o resultado é uma mistura do código antigo com o novo.
- * Se algo não funcionar, corre «Diagnosticar» no menu: diz o que falta no projeto (ficheiros HTML, acessos às listas…).
- *
- * Envio dos convites a partir da folha de cálculo, DENTRO do limite diário de envio da Google.
- * Versão corrigida do script «Envio de Convites»: mesmas listas, mesmas saudações e adaptação de género.
- *
- * COMO FUNCIONA O ENVIO AUTOMÁTICO (ativarEnvioAutomatico): de hora a hora, entre as 8h e as 21h, vê quanto a Google
- * ainda deixa enviar. Se deixar, envia: primeiro o que falta da lista INSTITUCIONAL e, só depois de ela acabar, a lista
- * GERAL. Quando a quota acaba, pára, e retoma sozinho assim que a Google a libertar. Quando as duas listas acabam,
- * desliga-se e manda-te um resumo.
- *
- * O que muda em relação à versão anterior:
- *  - Lê a quota real que a Google ainda deixa enviar hoje (MailApp.getRemainingDailyQuota) e pára quando acaba,
- *    em vez de contar só os «Enviado a hoje» da folha (os testes e outros envios da conta também contam).
- *  - Se a Google recusar um envio por limite, PÁRA e deixa a linha em branco. Antes escrevia «Erro» em todas as
- *    linhas seguintes e essas pessoas nunca mais eram tentadas. As linhas que já ficaram com
- *    «Erro: Service invoked too many times...» voltam a ser tentadas sozinhas.
- *  - RESERVA_QUOTA: guarda 10 envios por dia para as confirmações de inscrição, que são mais urgentes. Nas primeiras
- *    HORAS_SEM_RESERVA (72) depois de o script enviar o primeiro convite ainda não há inscrições e a reserva não se aplica.
- *  - enviarTeste(): manda emails de teste (geral e institucional, feminino e masculino) para ti, sem tocar nas listas.
- *  - Quem já está na lista institucional não recebe também o convite geral, e emails repetidos na mesma lista
- *    só recebem uma vez (ficam marcados «Ignorado: …», sem gastar quota).
- *  - Trava para duas execuções ao mesmo tempo não enviarem duas vezes à mesma pessoa.
- *  - Corpo em texto simples junto do HTML (ajuda a não ir para o spam), nomes com «&» ou «<» não estragam o HTML,
- *    emails sem «@» ficam marcados («Erro: email inválido») em vez de ficarem sempre por tratar.
- *
- * LIMITES DA GOOGLE (Apps Script, MailApp/GmailApp; confirma em developers.google.com/apps-script/guides/services/quotas):
- *   conta Gmail pessoal: 100 destinatários por dia · Google Workspace: 1500 por dia · 6 minutos por execução.
- * Não há maneira legítima de os ultrapassar com a mesma conta. Menu «Ver progresso» mostra quantos faltam e os dias.
- *
- * LISTAS (duas folhas de cálculo, abertas pelo endereço, por isso pouco importa onde o script está guardado):
- *   Institucional: «Convidados 50 anos» → ficheiro HTML «convite_institucional»
- *   Geral:         «Militantes Base»    → ficheiro HTML «convite»
- * Em ambas: linha 1 = cabeçalho; A Nome · B Email · C Género (Feminino/Masculino) · D «Email Enviado?» (estado).
- * As listas podem crescer: cada execução volta a ler a folha e envia a quem tiver o estado vazio (linhas novas no fim,
- * ou no meio; linhas em branco são saltadas). Os institucionais novos passam à frente dos gerais.
+ * Envio dos convites dos 50 anos da JSD Famalicão a partir de duas folhas de cálculo, dentro do limite diário da Google.
+ * ATENÇÃO: este código SUBSTITUI o antigo (não deixes outro ficheiro .gs com as mesmas funções: o Apps Script não avisa
+ * e mistura o código antigo com o novo). Se algo não funcionar, corre «Diagnosticar» no menu da folha.
+ * Listas: institucional «Convidados 50 anos» (HTML «convite_institucional») e geral «Militantes Base» (HTML «convite»).
+ * Colunas: A Nome · B Email · C Género · D estado (vazio = por enviar); linha 1 = cabeçalho. As listas podem crescer.
+ * Quota (conta Gmail pessoal): 100 destinatários por dia, 6 minutos por execução. Documentação completa: LEIA-ME.md.
  */
 
 // ---------------------------------------------------------------- configuração
@@ -63,7 +31,7 @@ function onOpen() {
       .addItem('Enviar Lote - Convite Geral', 'enviarConvites')
       .addItem('Enviar Lote - Institucional', 'enviarConvitesInstitucionais')
       .addSeparator()
-      .addItem('Diagnosticar (se algo não funciona)', 'diagnostico')
+      .addItem('Diagnosticar (se algo não funciona)', 'diagnosticar')
       .addItem('Enviar emails de teste para mim', 'enviarTeste')
       .addItem('Verificar as listas (antes de enviar)', 'verificarListas')
       .addItem('Ver progresso (quantos faltam e quantos dias)', 'verProgresso')
@@ -80,6 +48,23 @@ function enviarConvites() {
 
 function enviarConvitesInstitucionais() {
   executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}); });
+}
+
+/** Partes do código (ficheiros Parte2.gs a ParteN.gs) que não estão no projeto. Com o código num só ficheiro, nenhuma. */
+function partesEmFalta_() {
+  return [];
+}
+
+/** Menu «Diagnosticar»: primeiro confere se o código está completo, depois corre o diagnóstico do projeto. */
+function diagnosticar() {
+  var emFalta = partesEmFalta_();
+  if (emFalta.length) {
+    var texto = '✘ Faltam partes do código no projeto: ' + emFalta.map(function (k) { return 'Parte' + k + '.gs'; }).join(', ')
+              + '.\nCria esses ficheiros (+ → Script), com esses nomes, e cola lá o conteúdo de cada um.';
+    try { SpreadsheetApp.getUi().alert(texto); } catch (e) { Logger.log(texto); }
+    return;
+  }
+  diagnostico();
 }
 
 /** Os dois endereços têm de estar preenchidos e apontar para ficheiros DIFERENTES (senão enviava-se o convite errado). */

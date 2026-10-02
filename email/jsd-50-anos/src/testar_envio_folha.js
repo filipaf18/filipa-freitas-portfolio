@@ -6,6 +6,10 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const aqui = path.resolve(__dirname, '..');
 const codigo = fs.readFileSync(path.join(aqui, 'apps-script', 'EnvioPelaFolha.gs'), 'utf8');
+// PARTES=1 node src/testar_envio_folha.js → corre tudo com o código dividido (apps-script/partes/), carregado por ordem inversa
+const pastaPartes = path.join(aqui, 'apps-script', 'partes');
+const modoPartes = !!process.env.PARTES;
+const ficheirosPartes = fs.readdirSync(pastaPartes).filter(f => /^Parte\d+\.gs$/.test(f)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 const HTML = {
   convite: fs.readFileSync(path.join(aqui, 'v7-convite-geral.html'), 'utf8'),
   convite_institucional: fs.readFileSync(path.join(aqui, 'v8-convite-institucional.html'), 'utf8'),
@@ -30,7 +34,7 @@ class Folha {
   estados() { return this.linhas.map(l => l[3]); }
 }
 
-function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [] }) {
+function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [], omitirParte = null }) {
   const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, htmls: Object.assign({}, HTML) };
   e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
@@ -65,7 +69,11 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
     Math, String, RegExp, Error, Object, Array, JSON,
   };
   vm.createContext(c);
-  vm.runInContext(codigo, c, { filename: 'EnvioPelaFolha.gs' });
+  if (modoPartes) {
+    for (const f of ficheirosPartes.slice().reverse()) if (f !== omitirParte) vm.runInContext(fs.readFileSync(path.join(pastaPartes, f), 'utf8'), c, { filename: f });
+  } else {
+    vm.runInContext(codigo, c, { filename: 'EnvioPelaFolha.gs' });
+  }
   c.URL_FOLHA_INSTITUCIONAL = 'https://docs.google.com/spreadsheets/d/INSTITUCIONAL111/edit?usp=sharing';
   c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/GERAL222/edit?usp=sharing';
   vm.runInContext(`RESERVA_QUOTA = ${reserva}; HORAS_SEM_RESERVA = ${horasSemReserva}; INICIO_DOS_ENVIOS = ${JSON.stringify(inicioDosEnvios)}; EMAILS_DE_TESTE = ${JSON.stringify(emailsDeTeste)};`, c);
@@ -405,6 +413,31 @@ diag(x => { x.c.URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL'; }, /✘ Falt
 diag(x => { x.c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/GERAL222_SEM_ACESSO/edit'; x.folhaGeral = null; x.c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/OUTRA999/edit'; }, /✘ Lista Geral: não consegui abrir/, 'lista sem acesso ou endereço errado');
 diag(x => { x.folhaInst.cabecalho = ['Email', 'Nome', 'Género', 'Estado']; }, /✘ Institucional .*o cabeçalho devia ser/, 'colunas trocadas na lista');
 diag(x => { x.c.URL_FOLHA_GERAL = x.c.URL_FOLHA_INSTITUCIONAL; }, /MESMO ficheiro/, 'as duas listas no mesmo ficheiro');
+
+// ------------------------------------------------------------------ 23. diagnosticar (menu) e o código dividido em partes
+titulo('23. diagnosticar() e a verificação das partes do código');
+e = ambiente({ geral: pessoas(3, 'g'), institucional: pessoas(2, 'i') });
+e.correr('diagnosticar()');
+ok(/Tudo em ordem/.test(e.alertas[0]), 'com o código completo corre o diagnóstico');
+if (modoPartes) {
+  ok(ficheirosPartes.length >= 2 && ficheirosPartes[0] === 'Parte1.gs', `${ficheirosPartes.length} partes: ${ficheirosPartes.join(', ')}`);
+  for (const f of ficheirosPartes) {
+    const txt = fs.readFileSync(path.join(pastaPartes, f), 'utf8');
+    const linhas = txt.trimEnd().split('\n').length;
+    ok(linhas <= 95, `${f} tem ${linhas} linhas (máximo 95: uma cópia que só traga as primeiras 100 linhas fica completa)`);
+    let sintaxeOk = true; try { new vm.Script(txt); } catch (x) { sintaxeOk = false; }
+    ok(sintaxeOk, `${f} tem sintaxe válida sozinha`);
+    ok(f === 'Parte1.gs' || new RegExp(`var PARTE_${f.match(/\d+/)[0]} = true;`).test(txt), `${f} declara o seu marcador`);
+  }
+  for (const f of ficheirosPartes.slice(1)) {
+    const x = ambiente({ geral: pessoas(2), institucional: pessoas(2), omitirParte: f });
+    x.correr('diagnosticar()');
+    ok(new RegExp(`Faltam partes do código no projeto: ${f.replace('.', '\\.')}\\b`).test(x.alertas[0]) && x.enviados.length === 0, `sem ${f}: o diagnóstico diz qual falta`);
+  }
+  const todas = fs.readFileSync(path.join(aqui, 'apps-script', 'EnvioPelaFolha.gs'), 'utf8').match(/^function \w+/gm).sort();
+  const nasPartes = ficheirosPartes.flatMap(f => fs.readFileSync(path.join(pastaPartes, f), 'utf8').match(/^function \w+/gm)).sort();
+  ok(JSON.stringify(todas) === JSON.stringify(nasPartes), `as ${todas.length} funções do ficheiro único estão nas partes, nem uma a mais nem a menos`);
+}
 
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);
 process.exit(erros ? 1 : 0);

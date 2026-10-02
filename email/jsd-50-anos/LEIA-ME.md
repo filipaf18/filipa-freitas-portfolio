@@ -50,13 +50,30 @@ Layout: o banner «Jantar Comemorativo» a toda a largura, as barras, a tipograf
 
 **Banner (convites v7 e v8):** `banner-jantar.jpg`, com 1200 × 400 px (3:1), **a toda a largura do email**, sem faixas laterais: no computador ocupa a janela toda (1100 px → 367 px de altura; 1400 px → 467 px), no telemóvel o ecrã (375 × 125 px num iPhone). A barra com o degradê fica logo por baixo, também a toda a largura. Se for alto de mais em ecrãs largos, usa uma imagem mais baixa (por exemplo 1200 × 300 px, 4:1). É construído com `width="1200"` numérico de reserva e `min-width:100%; max-width:100%`, que sobrevive ao Ctrl+C e à colagem no Gmail (verificado nos dois casos a 390, 900 e 1400 px). O original enviado (1200 × 500) está em `banner-jantar-original.jpg`. `src/preparar_banner.py` recorta-o para 3:1, centrado no texto branco, e comprime-o para menos de 44 KB, para o email ficar abaixo dos 102 KB. **Para trocar a imagem:** substitui `banner-jantar-original.jpg` (de preferência já com 1200 × 400 px) e corre `python3 src/preparar_banner.py` e depois `python3 src/gerar_final.py`. Os lembretes (v9/v10) e as confirmações (v11/v12) continuam com o banner anterior, numa faixa escura (`banner-faixa.jpg`, `banner_max=800`). Para usarem também o banner novo, basta trocar `banner_max=800` por `banner_coluna=True` em `src/gerar_lembrete.py` e em `src/gerar_confirmacao.py`.
 
+### Imagens por endereço (v7 a v12)
+
+Os seis HTML (`v7` a `v12`) referem as imagens por endereço e já não as trazem embutidas (base64), porque o Gmail não mostra imagens base64 num email enviado por script. Cada HTML passou de ~92 KB (a confirmação, 261 KB) para ~14 KB (a confirmação, ~29 KB), bem abaixo dos 102 KB a partir dos quais o Gmail corta a mensagem.
+
+| Imagem | Endereço |
+| --- | --- |
+| Banner | `https://jsdfamalicao.pt/convite/capa-evento-email.png` |
+| Dress code (confirmação, v11/v12) | `https://jsdfamalicao.pt/convite/dresscode.png` |
+| Logo do rodapé | `https://jsdfamalicao.pt/convite/logo-50-anos.png` |
+| Logo do Classe Bar (confirmação, v11/v12) | **ainda embutido em base64**: por agora não aparece no Gmail se o email for enviado por script. Quando houver endereço, pô-lo em `IMAGENS_ONLINE['classe-bar']` |
+
+Os endereços estão em `IMAGENS_ONLINE`, em `src/comum.py` (para mudar uma imagem, muda aí e volta a correr `gerar_final.py`, `gerar_lembrete.py` e `gerar_confirmacao.py`). `JSD_IMAGENS=base64 python3 src/gerar_final.py` gera tudo com as imagens embutidas, para ver o email sem internet.
+
+**Requisitos das imagens alojadas:** públicas, por `https`, sem login nem redirecionamento, e sem proteção do site contra bots ou contra uso das imagens por outros sites (o Gmail vai buscá-las pelos servidores da Google). O logo tem de ter **fundo transparente** (o rodapé é cinzento claro). O banner funciona com qualquer proporção, mas a altura segue a da imagem (com 3:1, como `banner-jantar.jpg`, fica baixo; mais alto, o topo do email cresce); a imagem do dress code ocupa a largura da coluna de texto. Não apagues nem mudes os ficheiros depois de enviares (os emails já enviados vão buscá-los a esse endereço); para trocar uma imagem usa um nome novo, porque o Gmail guarda cópias por endereço. Algumas apps (Outlook, ou o Gmail com «perguntar antes de mostrar imagens») só mostram as imagens depois de a pessoa as autorizar.
+
+**Verificação:** os endereços do site não são acessíveis a partir do ambiente onde isto foi feito (política de rede), por isso os alinhamentos, o modo escuro e o transbordo foram verificados com ficheiros locais a responder por esses endereços (`imagens_locais()` em `src/verificar_alinhamento.py`: o banner `banner-jantar.jpg`, o logo `logo-50-anos.png` e `dresscode-casual-chic.jpg`). **As imagens que estão realmente no site não foram vistas**: se tiverem outras proporções ou o logo não tiver fundo transparente, o resultado pode diferir.
+
 ### Enviar por Google Apps Script (imagens que abrem no Gmail)
 
 **O problema:** o Gmail (web e apps) **não mostra imagens `data:` (base64)** dentro de um email recebido; só o Mail do iPhone as mostra. Ao colar o email no Gmail isto não se nota, porque o próprio Gmail converte as imagens em anexos inline ao enviar. Um script (`MailApp` / `GmailApp`) envia o HTML tal como está e por isso as imagens não abrem no Gmail.
 
-**A solução, sem alojar nada num site:** o parâmetro `inlineImages` do Apps Script. O HTML refere `<img src="cid:banner">` e as imagens seguem anexadas ao próprio email (multipart/related); o Gmail mostra-as no sítio certo e sem pedir «Mostrar imagens». Como o HTML sai com ~13 KB (sem as imagens), deixa também de haver o corte do Gmail aos 102 KB (a confirmação v11/v12 tinha 261 KB com as imagens dentro).
+**A solução, sem alojar nada num site (alternativa aos endereços acima):** o parâmetro `inlineImages` do Apps Script. O HTML refere `<img src="cid:banner">` e as imagens seguem anexadas ao próprio email (multipart/related); o Gmail mostra-as no sítio certo e sem pedir «Mostrar imagens». Como o HTML sai com ~13 KB (sem as imagens), deixa também de haver o corte do Gmail aos 102 KB (a confirmação v11/v12 tinha 261 KB com as imagens dentro).
 
-**Ficheiros** (em `apps-script/`, gerados por `python3 src/gerar_apps_script.py` a partir dos HTML v7 a v12):
+**Ficheiros** (em `apps-script/`, gerados por `python3 src/gerar_apps_script.py` a partir dos HTML v7 a v12; com as imagens por endereço, só o logo do Classe Bar, no 3.º email, segue ainda como anexo `cid:`, e `Imagens.gs` fica vazio):
 
 | Ficheiro | Para quê |
 | --- | --- |

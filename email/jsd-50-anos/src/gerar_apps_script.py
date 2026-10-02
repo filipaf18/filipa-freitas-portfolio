@@ -1,4 +1,9 @@
-"""Versões dos emails para enviar por Google Apps Script, com as imagens como anexos «inline» (CID).
+"""Versões dos emails para enviar por Google Apps Script. As imagens com endereço público (IMAGENS_ONLINE em comum.py:
+banner, dress code e logo do rodapé) ficam por endereço; as que continuam embutidas (hoje só o logo do Classe Bar, no
+3.º email) seguem como anexos «inline» (CID). Para quem já tem o seu script, o que interessa são os HTML de
+html/ (e v7 a v12 já vêm por endereço; ver LEIA-ME).
+
+Antes de haver endereços para as imagens, tudo o que estava embutido ia como anexo «inline» (CID).
 
 Porquê: o Gmail (web e apps) NÃO mostra imagens `data:` (base64) dentro do HTML de um email recebido; só o Mail
 do iPhone as mostra. Ao colar o email no Gmail, o próprio Gmail converte as imagens em anexos inline e por isso
@@ -17,7 +22,10 @@ Uso (a partir de email/jsd-50-anos/):  python3 src/gerar_apps_script.py
 Depois de mudar qualquer texto ou imagem: correr primeiro os geradores (gerar_final, gerar_lembrete,
 gerar_confirmacao) e a seguir este.
 """
-import base64, html as _html, json, pathlib, re
+import base64, html as _html, json, pathlib, re, sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from comum import IMAGENS_ONLINE
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 SAIDA = AQUI / 'apps-script'
@@ -102,7 +110,8 @@ def main():
             return f'cid:{nome}'
 
         cid = re.sub(r'data:image/(?:jpeg|png);base64,([A-Za-z0-9+/=]+)', troca, original)
-        assert 'data:image' not in cid and not re.search(r'src="https?://', cid), f'{ficheiro}: sobrou uma imagem que não é CID'
+        externas = set(re.findall(r'src="(https?://[^"]+)"', cid))
+        assert 'data:image' not in cid and externas <= {u for u in IMAGENS_ONLINE.values() if u}, f'{ficheiro}: sobrou uma imagem que não é CID nem tem endereço em IMAGENS_ONLINE'
         (SAIDA / 'html' / ficheiro).write_text(cid, encoding='utf-8')
         titulo = _html.unescape(re.search(r'<title>(.*?)</title>', original).group(1))
         registos.append((chave, ficheiro, descricao, titulo, nomes, cid, texto_simples(original)))
@@ -181,7 +190,8 @@ const EMAILS = {{
 function enviarEmail(destinatario, chave, opcoes) {{
   const e = EMAILS[chave];
   if (!e) throw new Error('Email desconhecido: «' + chave + '». Os possíveis são: ' + Object.keys(EMAILS).join(', '));
-  const o = {{ htmlBody: htmlDoEmail_(chave), inlineImages: imagensInline(e.imagens) }};
+  const o = {{ htmlBody: htmlDoEmail_(chave) }};
+  if (e.imagens.length) o.inlineImages = imagensInline(e.imagens);     // só as imagens que ainda não têm endereço
   if (REMETENTE) o.name = REMETENTE;
   MailApp.sendEmail(destinatario, e.assunto, textoDoEmail_(chave), Object.assign(o, opcoes || {{}}));
 }}

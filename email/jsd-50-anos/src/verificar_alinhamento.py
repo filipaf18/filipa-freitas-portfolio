@@ -27,6 +27,9 @@ import numpy as np
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from comum import IMAGENS_ONLINE, LOCAIS
+
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 PADRAO = ['v7-convite-geral.html', 'v8-convite-institucional.html']
@@ -35,6 +38,25 @@ LARGURAS_RAPIDO = [320, 390, 601, 1400]
 LARGURAS_VARIANTES = [320, 390, 601, 768, 1400]
 
 TOL_CAIXA, TOL_TINTA = 0.5, 1.0          # px
+
+
+def imagens_locais(pg):
+    """Os emails referem as imagens por endereço (jsdfamalicao.pt/convite/...), que pode não ser acessível daqui (e não
+    tem de estar publicado para se testar o layout): cada endereço é respondido com o ficheiro local equivalente
+    (banner 1200 × 400, logo transparente, imagem do dress code). Qualquer outro endereço é bloqueado.
+    Atenção: as imagens publicadas no site podem ter outras proporções; a altura do banner segue a da imagem real."""
+    locais = {url: LOCAIS[nome] for nome, url in IMAGENS_ONLINE.items() if url}
+
+    def rota(route):
+        url = route.request.url
+        if url in locais:
+            ficheiro, mime = locais[url]
+            route.fulfill(path=str(AQUI / ficheiro), content_type=mime)
+        elif url.startswith('http'):
+            route.abort()
+        else:
+            route.continue_()
+    pg.route('**/*', rota)
 
 
 def sem_head(h): return re.sub(r'<head>.*?</head>', '', h, flags=re.S)
@@ -215,7 +237,7 @@ def main(argv):
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=EXE, args=['--no-sandbox'])
         pg = b.new_context(device_scale_factor=2, viewport={'width': 800, 'height': 900}).new_page()
-        pg.route('**/*', lambda r: r.abort() if r.request.url.startswith('http') else r.continue_())
+        imagens_locais(pg)
         for f in ficheiros:
             original = (AQUI / f).read_text(encoding='utf-8')
             for nome, (fn, obrig) in VARIANTES.items():

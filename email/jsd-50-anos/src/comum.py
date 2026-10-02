@@ -7,14 +7,43 @@ Regras de construção, para sobreviver à colagem no Gmail e ao telemóvel:
 - larguras fluidas: tabelas com width="100%" (atributo); imagens com min-width/max-width:100% no style
   e um width numérico de reserva (os clientes de email leem width="100%" numa imagem como 100 px).
 """
-import base64, pathlib
+import base64, os, pathlib
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 BANNER = base64.b64encode((AQUI / 'banner-largo.jpg').read_bytes()).decode()
 BANNER_FAIXA = base64.b64encode((AQUI / 'banner-faixa.jpg').read_bytes()).decode()   # margens laterais esbatidas para preto (para a faixa escura)
-BANNER_JANTAR = base64.b64encode((AQUI / 'banner-jantar.jpg').read_bytes()).decode()   # versões finais, 1200 × 400 (src/preparar_banner.py)
 LOGO = base64.b64encode((AQUI / 'logo-50-anos.jpg').read_bytes()).decode()   # fundo #F8F8F8, igual ao do rodapé
-LOGO_PNG = base64.b64encode((AQUI / 'logo-50-anos.png').read_bytes()).decode()   # fundo transparente, contorno claro nas letras
+
+# Imagens das versões finais (v7 a v12), por endereço: o Gmail não mostra imagens embutidas (base64) num email enviado por
+# script, e por endereço o HTML também fica leve (~13 KB, bem abaixo dos 102 KB a partir dos quais o Gmail corta).
+# nome → endereço público; None = fica embutida em base64 (é o caso do logo do Classe Bar, por agora).
+URL_BASE = 'https://jsdfamalicao.pt/convite'
+IMAGENS_ONLINE = {
+    'banner': f'{URL_BASE}/capa-evento-email.png',
+    'dresscode': f'{URL_BASE}/dresscode.png',
+    'logo': f'{URL_BASE}/logo-50-anos.png',
+    'classe-bar': None,
+}
+# ficheiro local equivalente (para embutir) e tipo. JSD_IMAGENS=base64 gera tudo com as imagens embutidas, útil para ver
+# o email sem ligação à internet (os ficheiros locais não são necessariamente iguais aos publicados no site).
+LOCAIS = {
+    'banner': ('banner-jantar.jpg', 'image/jpeg'),                                   # 1200 × 400 (src/preparar_banner.py)
+    'dresscode': ('dresscode/dresscode-casual-chic.jpg', 'image/jpeg'),
+    'logo': ('logo-50-anos.png', 'image/png'),                                       # fundo transparente
+    'classe-bar': ('dresscode/classe-bar-logo.png', 'image/png'),
+}
+EMBUTIR_TUDO = os.environ.get('JSD_IMAGENS') == 'base64'
+
+
+def src_imagem(nome):
+    """Valor do atributo src de uma imagem das versões finais: o endereço, ou a imagem embutida em base64."""
+    url = IMAGENS_ONLINE.get(nome)
+    if url and not EMBUTIR_TUDO:
+        return url
+    ficheiro, mime = LOCAIS[nome]
+    return f'data:{mime};base64,' + base64.b64encode((AQUI / ficheiro).read_bytes()).decode()
+
+
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
 MAPA = 'https://www.google.com/maps/search/?api=1&amp;query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'   # já escapado para usar em href
 FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
@@ -98,7 +127,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
     esquema_inline = ' color-scheme:light only;' if claro_forcado else ''
     css_claro = ('\n    :root {{ color-scheme:light only; supported-color-schemes:light only; }}'.replace('{{', '{').replace('}}', '}')
                  if claro_forcado else '')
-    logo_src = f'data:image/png;base64,{LOGO_PNG}' if logo_png else f'data:image/jpeg;base64,{LOGO}'
+    logo_src = src_imagem('logo') if logo_png else f'data:image/jpeg;base64,{LOGO}'
     alt_banner = '50 anos JSD Famalicão. Cinco décadas, uma identidade. 1976–2026.'
     estilo_img = (f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;')
     barra = f'''
@@ -115,7 +144,7 @@ def pagina(titulo, preheader, corpo, rodape_extra, largura=1040, css_extra='', c
         bloco_banner = f'''    <tr>
       <td align="center" bgcolor="#554835" style="background-color:#554835; font-size:0; line-height:0; text-align:center;">
         <a href="{link_banner}" style="text-decoration:none;">
-          <img src="data:image/jpeg;base64,{BANNER_JANTAR}" width="640" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
+          <img src="{src_imagem('banner')}" width="640" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
                style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
         </a>
       </td>

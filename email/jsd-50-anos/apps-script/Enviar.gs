@@ -16,17 +16,17 @@ const REMETENTE = 'JSD Famalicão';     // nome que aparece como remetente; '' p
 // chave → assunto e imagens que o HTML usa (<img src="cid:...">). Os assuntos podem ser mudados à vontade.
 const EMAILS = {
   // 1.º email · convite, militantes
-  'convite-geral': { assunto: "50 Anos JSD Famalicão · Jantar Comemorativo", imagens: ["banner", "logo"] },
+  'convite-geral': { assunto: "50 Anos JSD Famalicão · Jantar Comemorativo", imagens: [] },
   // 1.º email · convite, institucionais
-  'convite-institucional': { assunto: "50 Anos JSD Famalicão · Convite", imagens: ["banner", "logo"] },
+  'convite-institucional': { assunto: "50 Anos JSD Famalicão · Convite", imagens: [] },
   // 2.º email · lembrete do pagamento, militantes
-  'lembrete-geral': { assunto: "50 Anos JSD Famalicão · Pagamento da inscrição", imagens: ["banner", "logo"] },
+  'lembrete-geral': { assunto: "50 Anos JSD Famalicão · Pagamento da inscrição", imagens: [] },
   // 2.º email · lembrete do pagamento, institucionais
-  'lembrete-institucional': { assunto: "50 Anos JSD Famalicão · Pagamento da inscrição", imagens: ["banner", "logo"] },
+  'lembrete-institucional': { assunto: "50 Anos JSD Famalicão · Pagamento da inscrição", imagens: [] },
   // 3.º email · inscrição confirmada, militantes
-  'confirmacao-geral': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: ["banner", "dresscode", "classe-bar", "logo"] },
+  'confirmacao-geral': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: ["classe-bar"] },
   // 3.º email · inscrição confirmada, institucionais
-  'confirmacao-institucional': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: ["banner", "dresscode", "classe-bar", "logo"] }
+  'confirmacao-institucional': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: ["classe-bar"] }
 };
 
 /**
@@ -35,7 +35,8 @@ const EMAILS = {
 function enviarEmail(destinatario, chave, opcoes) {
   const e = EMAILS[chave];
   if (!e) throw new Error('Email desconhecido: «' + chave + '». Os possíveis são: ' + Object.keys(EMAILS).join(', '));
-  const o = { htmlBody: htmlDoEmail_(chave), inlineImages: imagensInline(e.imagens) };
+  const o = { htmlBody: htmlDoEmail_(chave) };
+  if (e.imagens.length) o.inlineImages = imagensInline(e.imagens);     // só as imagens que ainda não têm endereço
   if (REMETENTE) o.name = REMETENTE;
   MailApp.sendEmail(destinatario, e.assunto, textoDoEmail_(chave), Object.assign(o, opcoes || {}));
 }

@@ -29,7 +29,7 @@ def desenhar(f, w, recorte_x=None):
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=EXE, args=['--no-sandbox'])
         pg = b.new_context(device_scale_factor=ESC, viewport={'width': w, 'height': 900}).new_page()
-        pg.route('**/*', lambda r: r.abort() if r.request.url.startswith('http') else r.continue_())
+        imagens_locais(pg)
         d, img = medir(pg, html, w)
         d['scrollH'] = pg.evaluate('document.documentElement.scrollHeight')
         b.close()

@@ -45,13 +45,15 @@ if (enviados.length !== Object.keys(ficheiros).length) falha(`esperava ${Object.
 const chaves = Object.keys(contexto.EMAILS_);          // testeParaMim envia pela ordem de EMAILS
 enviados.forEach((e, i) => { e.chave = chaves[i]; });
 for (const e of enviados) {
-  const html = e.opcoes.htmlBody, imagens = e.opcoes.inlineImages;
+  const html = e.opcoes.htmlBody, imagens = e.opcoes.inlineImages || {};
   console.log(`${e.chave}: «${e.assunto}», HTML ${(html.length / 1024).toFixed(0)} KB, anexos: ${Object.keys(imagens).join(', ')}`);
   if (e.para !== 'teste@exemplo.pt') falha('destinatário errado');
   if (!e.texto || e.texto.length < 200) falha('texto simples vazio ou curto');
   if (!html.includes('<!DOCTYPE html>') || !html.includes('<head>')) falha('o HTML devia chegar completo, com <head>');
   if (/data:image/.test(html)) falha('sobrou uma imagem data:');
-  if (/src="https?:/.test(html)) falha('sobrou uma imagem externa');
+  const permitidas = ['https://jsdfamalicao.pt/convite/capa-evento-email.png', 'https://jsdfamalicao.pt/convite/dresscode.png',
+                      'https://jsdfamalicao.pt/convite/logo-50-anos.png'];       // IMAGENS_ONLINE em src/comum.py
+  for (const m of html.matchAll(/src="(https?:[^"]+)"/g)) if (!permitidas.includes(m[1])) falha('imagem externa não prevista: ' + m[1]);
   const usados = [...new Set([...html.matchAll(/src="cid:([^"]+)"/g)].map(m => m[1]))].sort();
   const anexados = Object.keys(imagens).sort();
   if (JSON.stringify(usados) !== JSON.stringify(anexados)) falha(`cid usados [${usados}] ≠ anexos [${anexados}]`);

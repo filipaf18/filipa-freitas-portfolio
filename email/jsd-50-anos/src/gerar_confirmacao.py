@@ -17,11 +17,8 @@ from gerar_final import *          # comum.py, mote(), MUTED, MAPA_LINK, ASSINAT
 
 SITE_50 = 'https://jsdfamalicao.pt/50-anos'     # o banner leva ao site (já não há nada para «inscrever»)
 
-# Por omissão as imagens vão embutidas no HTML (como o banner e o logo). Se, num envio de teste, o Gmail cortar a
-# mensagem ou as imagens não aparecerem, publicar os ficheiros de dresscode/ (dresscode-casual-chic.jpg e
-# classe-bar-logo.png) num endereço público e pôr aqui a pasta, por exemplo 'https://jsdfamalicao.pt/50-anos/dresscode'.
-# O HTML passa a referir as imagens por endereço e fica leve.
-IMAGENS_URL = None
+# As imagens (banner, dress code e logo do rodapé) vão por endereço, ver IMAGENS_ONLINE em comum.py. O logo do Classe
+# Bar continua embutido em base64 até haver um endereço (pô-lo em IMAGENS_ONLINE['classe-bar']).
 
 # ------------------------------------------------------------------ textos (registo geral e institucional)
 CONFIRMACOES = {
@@ -83,20 +80,13 @@ def dados_confirmacao():
         24, 24, 'font-size:15px; line-height:29px; color:#3E352B;', 'center', 't-dados') + filete()
 
 
-def _src(ficheiro):
-    if IMAGENS_URL:
-        return f'{IMAGENS_URL.rstrip("/")}/{ficheiro}'
-    tipo = 'jpeg' if ficheiro.endswith('.jpg') else 'png'
-    return f'data:image/{tipo};base64,' + base64.b64encode((AQUI / 'dresscode' / ficheiro).read_bytes()).decode()
-
-
 def imagem_dresscode(cima):
     """A imagem do dress code ocupa a largura da coluna de texto (992 px no computador, a largura do ecrã no telemóvel).
     width numérico + min/max-width:100% sobrevive ao Ctrl+C do Chrome e à colagem no Gmail (ver LEIA-ME)."""
     return f'''
           <tr>
             <td class="px" align="center" style="padding:{cima}px {LADO}px 0px {LADO}px; font-size:0; line-height:0; text-align:center;">
-              <img src="{_src('dresscode-casual-chic.jpg')}" width="992" alt="{ALT_DRESSCODE}" style="display:block; min-width:100%; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:24px;">
+              <img src="{src_imagem('dresscode')}" width="992" alt="{ALT_DRESSCODE}" style="display:block; min-width:100%; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:24px;">
             </td>
           </tr>'''
 
@@ -106,7 +96,7 @@ def logo_classe(cima):
           <tr>
             <td class="px" align="center" style="padding:{cima}px {LADO}px 0px {LADO}px; font-size:0; line-height:0; text-align:center;">
               <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0; text-align:center;">
-                <img src="{_src('classe-bar-logo.png')}" width="240" alt="Classe Bar" style="display:block; width:240px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:24px; line-height:30px;">
+                <img src="{src_imagem('classe-bar')}" width="240" alt="Classe Bar" style="display:block; width:240px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:24px; line-height:30px;">
               </td></tr></table>
             </td>
           </tr>'''

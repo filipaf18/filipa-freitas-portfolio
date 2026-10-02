@@ -29,8 +29,8 @@ class Folha {
   estados() { return this.linhas.map(l => l[3]); }
 }
 
-function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10 }) {
-  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0 };
+function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [] }) {
+  const e = { enviados: [], alertas: [], logs: [], sleeps: 0, gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {} };
   e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
     SpreadsheetApp: {
@@ -59,14 +59,15 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
       deleteTrigger: t => { e.gatilhos = e.gatilhos.filter(g => g !== t._g); },
     },
     Logger: { log: m => e.logs.push(m) },
-    Date: class extends Date { getHours() { return e.hora; } },       // hora do dia controlada pelo teste
+    Date: class extends Date { getHours() { return e.hora; } static now() { return e.agora; } },   // hora e relógio controlados pelo teste
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in e.props ? e.props[k] : null), setProperty: (k, v) => { e.props[k] = String(v); } }) },
     Math, String, RegExp, Error, Object, Array, JSON,
   };
   vm.createContext(c);
   vm.runInContext(codigo, c, { filename: 'EnvioPelaFolha.gs' });
   c.URL_FOLHA_INSTITUCIONAL = 'https://docs.google.com/spreadsheets/d/INSTITUCIONAL111/edit?usp=sharing';
   c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/GERAL222/edit?usp=sharing';
-  vm.runInContext(`RESERVA_QUOTA = ${reserva};`, c);
+  vm.runInContext(`RESERVA_QUOTA = ${reserva}; HORAS_SEM_RESERVA = ${horasSemReserva}; INICIO_DOS_ENVIOS = ${JSON.stringify(inicioDosEnvios)}; EMAILS_DE_TESTE = ${JSON.stringify(emailsDeTeste)};`, c);
   e.c = c; e.correr = js => vm.runInContext(js, c);
   return e;
 }
@@ -321,6 +322,67 @@ ok(/já na lista institucional .*: 1 \(linhas 2\)/.test(v), 'já institucional: 
 ok(/nomes com uma só palavra: 1/.test(v) && /maiúsculas\/minúsculas .*: 1/.test(v), 'nomes com uma palavra e em maiúsculas');
 ok(!/@|Ana|Eva|Rui/.test(v.replace(/Militantes Base|Convidados 50 anos/g, '')), 'não mostra nomes nem emails');
 ok(e.enviados.length === 0, 'não envia nada');
+
+// ------------------------------------------------------------------ 19. sem reserva nas primeiras 72 horas
+titulo('19. sem reserva nas primeiras 72 horas de envio; depois, reserva de 10');
+const H = 3600 * 1000;
+e = ambiente({ geral: pessoas(1000, 'g'), quota: 100, reserva: 10, horasSemReserva: 72 });
+e.correr('enviarConvites()');
+ok(e.enviados.length === 100, `1.º envio: ${e.enviados.length} (sem reserva, esperava 100)`);
+ok(e.props.inicioEnvio === String(e.agora), 'regista o momento do 1.º envio');
+e.usados = 0; e.agora += 24 * H; e.enviados.length = 0; e.correr('enviarConvites()');
+ok(e.enviados.length === 100, 'dia 2 (24 h): ainda sem reserva');
+e.usados = 0; e.agora += 47 * H; e.enviados.length = 0; e.correr('enviarConvites()');
+ok(e.enviados.length === 100, 'a 71 h: ainda sem reserva');
+e.usados = 0; e.agora += 2 * H; e.enviados.length = 0; e.correr('enviarConvites()');
+ok(e.enviados.length === 90, `a 73 h: reserva de 10 → ${e.enviados.length} (esperava 90)`);
+e = ambiente({ geral: pessoas(100, 'g'), quota: 100, reserva: 10, horasSemReserva: 72, inicioDosEnvios: '2026-09-29 10:00' });
+e.correr('enviarConvites()');
+ok(e.enviados.length === 90, 'INICIO_DOS_ENVIOS passado há mais de 72 h: já há reserva (' + e.enviados.length + ')');
+e = ambiente({ geral: pessoas(100, 'g'), quota: 100, reserva: 10, horasSemReserva: 72, inicioDosEnvios: '2026-10-02 12:00' });
+e.correr('enviarConvites()');
+ok(e.enviados.length === 100, 'INICIO_DOS_ENVIOS há ~22 h: sem reserva (' + e.enviados.length + ')');
+e = ambiente({ geral: pessoas(100, 'g'), quota: 100, reserva: 10, horasSemReserva: 72 });
+e.correr('verQuota()');
+ok(/não há reserva/.test(e.alertas[0]), 'antes do 1.º envio: verQuota diz que não há reserva');
+e.correr('enviarConvites()'); e.alertas.length = 0; e.usados = 0; e.agora += 80 * H; e.correr('verQuota()');
+ok(/Destes, 10 ficam de reserva/.test(e.alertas[0]), 'passadas as 72 horas: verQuota mostra a reserva de 10');
+
+titulo('20. o caso real com 72 h sem reserva: 21 dias (e 22 sem essa folga)');
+function simularDias(horasSemReserva) {
+  const inst = pessoas(100, 'i').map((p, k) => k < 74 ? [p[0], p[1], p[2], 'Enviado a 02/10/2026'] : p);
+  const ee = ambiente({ geral: pessoas(1894, 'g'), institucional: inst, quota: 100, reserva: 10, horasSemReserva });
+  ee.correr('ativarEnvioAutomatico()');
+  let dias = 0;
+  while (ee.gatilhos.length && dias < 60) { ee.usados = 0; dias++; ee.correr('envioAutomatico()'); ee.agora += 24 * H; }
+  return { ee, dias };
+}
+let d72 = simularDias(72), d0 = simularDias(0);
+ok(d72.dias === 21, `com 72 h sem reserva: ${d72.dias} dias (esperava 21)`);
+ok(d0.dias === 22, `sem essa folga: ${d0.dias} dias (esperava 22)`);
+ok(d72.ee.folhaGeral.estados().every(s => /^Enviado a /.test(s)) && d72.ee.folhaInst.estados().every(s => /^Enviado a /.test(s)), 'todas enviadas');
+const dest72 = d72.ee.enviados.map(m => m.to).filter(t => t !== 'jsd@exemplo.pt');
+ok(dest72.length === 1920 && unicos(dest72), 'ninguém repetido');
+e = ambiente({ geral: pessoas(1894, 'g'), institucional: pessoas(26, 'i'), quota: 100, reserva: 10, horasSemReserva: 72 });
+e.correr('verProgresso()');
+ok(/Faltam 1920 emails\. Estimativa: 21 dias/.test(e.alertas[0]) && /100 por dia nas primeiras 72 horas/.test(e.alertas[0]), 'verProgresso: ' + e.alertas[0].split('\n').pop());
+
+// ------------------------------------------------------------------ 21. emails de teste
+titulo('21. enviarTeste: 4 emails por endereço, sem tocar nas listas nem nos estados');
+e = ambiente({ geral: pessoas(3, 'g'), institucional: pessoas(2, 'i'), quota: 100, emailsDeTeste: ['eu@gmail.com', 'eu@icloud.com'] });
+e.correr('enviarTeste()');
+ok(e.enviados.length === 8 && e.usados === 8, `8 emails (${e.enviados.length})`);
+ok(e.enviados.slice(0, 4).every(m => m.to === 'eu@gmail.com') && e.enviados.slice(4).every(m => m.to === 'eu@icloud.com'), '4 para cada endereço');
+ok(e.enviados.every(m => m.subject === '[TESTE] 50 Anos JSD Famalicão · Jantar Comemorativo'), 'assunto com «[TESTE]»');
+ok(/Cara Maria Silva,/.test(e.enviados[0].htmlBody) && /Caro João Santos,/.test(e.enviados[1].htmlBody), 'geral: feminino e masculino');
+ok(/Estimada companheira Ana Costa,/.test(e.enviados[2].htmlBody) && /Estimado companheiro Rui Dias,/.test(e.enviados[3].htmlBody), 'institucional: feminino e masculino');
+ok(e.folhaGeral.estados().every(s => s === '') && e.folhaInst.estados().every(s => s === ''), 'as listas ficam intactas');
+ok(!('inicioEnvio' in e.props), 'o teste não começa a contar as 72 horas');
+ok(/Enviados 8 emails de teste para eu@gmail\.com, eu@icloud\.com/.test(e.alertas[0]), 'mensagem final: ' + e.alertas[0].split('\n')[0]);
+e = ambiente({ quota: 100 }); e.correr('enviarTeste()');
+ok(e.enviados.length === 4 && e.enviados.every(m => m.to === 'jsd@exemplo.pt'), 'sem endereços configurados: envia para a própria conta');
+e = ambiente({ quota: 100, emailsDeTeste: ['a@x.pt', 'b@x.pt', 'c@x.pt'] }); e.usados = 92; e.correr('enviarTeste()');
+ok(e.enviados.length === 0 && /não chega para 12/.test(e.alertas[0]), 'sem quota para tantos testes: avisa e não envia');
 
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);
 process.exit(erros ? 1 : 0);

@@ -13,7 +13,9 @@
  *  - Se a Google recusar um envio por limite, PÁRA e deixa a linha em branco. Antes escrevia «Erro» em todas as
  *    linhas seguintes e essas pessoas nunca mais eram tentadas. As linhas que já ficaram com
  *    «Erro: Service invoked too many times...» voltam a ser tentadas sozinhas.
- *  - RESERVA_QUOTA: guarda uns envios por dia para os lembretes de pagamento e as confirmações, que são mais urgentes.
+ *  - RESERVA_QUOTA: guarda 10 envios por dia para as confirmações de inscrição, que são mais urgentes. Nas primeiras
+ *    HORAS_SEM_RESERVA (72) depois de o script enviar o primeiro convite ainda não há inscrições e a reserva não se aplica.
+ *  - enviarTeste(): manda emails de teste (geral e institucional, feminino e masculino) para ti, sem tocar nas listas.
  *  - Quem já está na lista institucional não recebe também o convite geral, e emails repetidos na mesma lista
  *    só recebem uma vez (ficam marcados «Ignorado: …», sem gastar quota).
  *  - Trava para duas execuções ao mesmo tempo não enviarem duas vezes à mesma pessoa.
@@ -40,6 +42,9 @@ var URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL';                    // «
 var EXCLUIR_INSTITUCIONAIS_DA_GERAL = true;      // quem está na lista institucional não recebe o convite geral
 var QUOTA_DIARIA_DA_CONTA = 100;                 // só para a estimativa de dias: 100 numa conta Gmail pessoal, 1500 no Workspace
 var RESERVA_QUOTA = 10;                          // envios que ficam todos os dias para as confirmações de inscrição: 100 − 10 = 90 convites por dia
+var HORAS_SEM_RESERVA = 72;                      // nas primeiras horas de envio de convites não se guarda reserva (0 = guardar sempre)
+var INICIO_DOS_ENVIOS = '';                      // quando começaram os envios. '' = quando este script enviar o 1.º convite. Ex.: '2026-10-02 12:00'
+var EMAILS_DE_TESTE = [];                        // para onde vão os emails de teste; vazio = a conta que corre o script. Ex.: ['eu@gmail.com', 'eu@icloud.com']
 var LIMITE_POR_RONDA = 100;                      // máximo por execução
 var PAUSA_MS = 1000;                             // pausa entre emails
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
@@ -53,6 +58,7 @@ function onOpen() {
       .addItem('Enviar Lote - Convite Geral', 'enviarConvites')
       .addItem('Enviar Lote - Institucional', 'enviarConvitesInstitucionais')
       .addSeparator()
+      .addItem('Enviar emails de teste para mim', 'enviarTeste')
       .addItem('Verificar as listas (antes de enviar)', 'verificarListas')
       .addItem('Ver progresso (quantos faltam e quantos dias)', 'verProgresso')
       .addItem('Ver quanto ainda posso enviar hoje', 'verQuota')
@@ -178,7 +184,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir) {
   var linhas = a.porEnviar;
   if (!linhas.length) { res.paragem = 'concluida'; return res; }
 
-  var disponivel = MailApp.getRemainingDailyQuota() - RESERVA_QUOTA;
+  var disponivel = MailApp.getRemainingDailyQuota() - reservaAtual_();
   var podeEnviar = Math.min(LIMITE_POR_RONDA, disponivel);
   if (podeEnviar <= 0) { res.pendentes = linhas.length; res.paragem = 'quota'; return res; }
 
@@ -201,6 +207,7 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir) {
       MailApp.sendEmail({ to: email, subject: ASSUNTO, body: textoSimples_(html), htmlBody: html, name: NOME_REMETENTE });
       folha.getRange(i + 2, 4).setValue('Enviado a ' + agora);
       res.enviados++;
+      if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
       Utilities.sleep(PAUSA_MS);
     } catch (e) {
       if (erroDeQuota_(e)) { res.paragem = 'quota'; break; }   // a linha fica em branco: tenta-se na próxima ronda
@@ -285,11 +292,15 @@ function textoSimples_(html) {
 
 // ---------------------------------------------------------------- mensagens
 function resumo_(res) {
+  if (res.teste) {
+    return 'Enviados ' + res.enviados + ' emails de teste para ' + res.destinos.join(', ') + ' (convite geral e institucional, feminino e masculino).\n'
+         + 'Não alteram as listas. Confere o nome, o género («Cara»/«Caro»), as imagens e o aspeto no Gmail (web e app) e no iPhone.';
+  }
   var t = 'Enviou ' + res.enviados + ' emails nesta ronda.';
   if (res.ignorados) t += '\n' + res.ignorados + ' ignorados (email repetido ou já na lista institucional): ficam marcados «Ignorado».';
   if (res.erros) t += '\n' + res.erros + ' com erro (ver a coluna «Estado»).';
   if (res.paragem === 'quota') {
-    t += '\n\nA quota diária de envio da Google esgotou-se' + (RESERVA_QUOTA ? ' (ficam ' + RESERVA_QUOTA + ' de reserva para lembretes e confirmações)' : '')
+    t += '\n\nA quota diária de envio da Google esgotou-se' + (reservaAtual_() ? ' (ficam ' + reservaAtual_() + ' de reserva para as confirmações de inscrição)' : '')
        + '. As ' + res.pendentes + ' pessoas que faltam NÃO foram marcadas com erro: ficam para a próxima ronda, '
        + 'passadas cerca de 24 horas (ou deixa o envio automático ativo).';
   } else if (res.paragem === 'ronda') {
@@ -317,8 +328,73 @@ function avisar_(mensagem) {
 
 function verQuota() {
   avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje (o limite renova-se passadas cerca de 24 horas).\n'
-        + 'Destes, ' + RESERVA_QUOTA + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
+        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
+                           : 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n')
         + 'Conta: ' + Session.getEffectiveUser().getEmail());
+}
+
+/** Quando começaram os envios de convites, em ms: INICIO_DOS_ENVIOS, ou o momento em que este script enviou o 1.º; 0 se ainda não. */
+function inicioEnvio_() {
+  if (INICIO_DOS_ENVIOS) {
+    var d = new Date(String(INICIO_DOS_ENVIOS).replace(' ', 'T'));
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+  return Number(PropertiesService.getScriptProperties().getProperty('inicioEnvio')) || 0;
+}
+
+/** Guarda o momento do 1.º envio de convites (uma só vez). Os emails de teste não contam. */
+function registarInicioEnvio_() {
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('inicioEnvio')) props.setProperty('inicioEnvio', String(Date.now()));
+}
+
+/** Reserva em vigor: zero nas primeiras HORAS_SEM_RESERVA depois do 1.º convite enviado, RESERVA_QUOTA depois. */
+function reservaAtual_() {
+  if (HORAS_SEM_RESERVA <= 0) return RESERVA_QUOTA;
+  var inicio = inicioEnvio_();
+  if (!inicio || Date.now() - inicio < HORAS_SEM_RESERVA * 3600000) return 0;   // ainda não enviou nenhum, ou está nas primeiras horas
+  return RESERVA_QUOTA;
+}
+
+/** Dias que faltam para enviar «faltam» emails: sem reserva durante as horas iniciais e com reserva depois. */
+function estimarDias_(faltam) {
+  var comReserva = Math.max(1, QUOTA_DIARIA_DA_CONTA - RESERVA_QUOTA);
+  var livres = 0;
+  if (HORAS_SEM_RESERVA > 0) {
+    var inicio = inicioEnvio_();
+    var restante = inicio ? Math.max(0, HORAS_SEM_RESERVA * 3600000 - (Date.now() - inicio)) : HORAS_SEM_RESERVA * 3600000;
+    livres = Math.ceil(restante / 86400000);
+  }
+  var cabem = livres * QUOTA_DIARIA_DA_CONTA;
+  if (faltam <= cabem) return Math.ceil(faltam / QUOTA_DIARIA_DA_CONTA);
+  return livres + Math.ceil((faltam - cabem) / comReserva);
+}
+
+/**
+ * Emails de teste: para cada endereço de EMAILS_DE_TESTE (ou para a conta que corre o script), 4 emails, como os veria
+ * quem os recebe: convite geral e institucional, cada um para uma mulher e para um homem (com nomes inventados).
+ * Não toca nas listas nem nos estados. Gasta 4 da quota do dia por endereço. O assunto leva «[TESTE]».
+ */
+function enviarTeste() {
+  executar_(function () {
+    var destinos = EMAILS_DE_TESTE.filter(function (e) { return texto_(e) !== ''; });
+    if (!destinos.length) destinos = [Session.getEffectiveUser().getEmail()];
+    var casos = [['convite', 'Maria Teste Silva', 'feminino'], ['convite', 'João Teste Santos', 'masculino'],
+                 ['convite_institucional', 'Ana Teste Costa', 'feminino'], ['convite_institucional', 'Rui Teste Dias', 'masculino']];
+    var total = destinos.length * casos.length;
+    var quota = MailApp.getRemainingDailyQuota();
+    if (quota < total) throw new Error('A quota de hoje (' + quota + ') não chega para ' + total + ' emails de teste.');
+    var enviados = 0;
+    for (var d = 0; d < destinos.length; d++) {
+      for (var c = 0; c < casos.length; c++) {
+        var html = personalizar_(HtmlService.createHtmlOutputFromFile(casos[c][0]).getContent(), casos[c][0], casos[c][1], casos[c][2]);
+        MailApp.sendEmail({ to: destinos[d], subject: '[TESTE] ' + ASSUNTO, body: textoSimples_(html), htmlBody: html, name: NOME_REMETENTE });
+        enviados++;
+        Utilities.sleep(PAUSA_MS);
+      }
+    }
+    return { teste: true, enviados: enviados, destinos: destinos };
+  });
 }
 
 /** Rótulo de uma lista para mostrar ao utilizador: nome do ficheiro e do separador (para ele confirmar que é a lista certa). */
@@ -345,10 +421,10 @@ function verProgresso() {
         + a.enviados + ' enviados · ' + a.porEnviar.length + ' por enviar · '
         + (a.ignorados + a.novosIgnorados.length) + ' ignorados (repetidos / já institucionais) · ' + a.erros + ' com erro');
     }
-    var porDia = Math.max(1, QUOTA_DIARIA_DA_CONTA - RESERVA_QUOTA);
     linhas.push('');
-    linhas.push('Faltam ' + faltam + ' emails. A ' + porDia + ' por dia (quota de ' + QUOTA_DIARIA_DA_CONTA + ' menos ' + RESERVA_QUOTA + ' de reserva): '
-              + Math.ceil(faltam / porDia) + ' dias.');
+    linhas.push('Faltam ' + faltam + ' emails. Estimativa: ' + estimarDias_(faltam) + ' dias ('
+              + (HORAS_SEM_RESERVA > 0 ? QUOTA_DIARIA_DA_CONTA + ' por dia nas primeiras ' + HORAS_SEM_RESERVA + ' horas de envio, depois ' : '')
+              + Math.max(1, QUOTA_DIARIA_DA_CONTA - RESERVA_QUOTA) + ' por dia, com ' + RESERVA_QUOTA + ' de reserva).');
     avisar_(linhas.join('\n'));
   } catch (e) {
     avisar_('Erro: ' + e.message);
@@ -407,7 +483,8 @@ function ativarEnvioAutomatico() {
   desativarEnvioAutomatico();
   ScriptApp.newTrigger('envioAutomatico').timeBased().everyHours(1).create();
   avisar_('Envio automático ativado: de hora a hora, entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h, o script envia o que a quota da Google deixar '
-        + '(primeiro a lista institucional, depois a geral, guardando ' + RESERVA_QUOTA + ' envios por dia de reserva). '
+        + '(primeiro a lista institucional, depois a geral). Nas primeiras ' + HORAS_SEM_RESERVA + ' horas usa a quota toda; depois guarda '
+        + RESERVA_QUOTA + ' envios por dia de reserva para as confirmações. '
         + 'Desliga-se sozinho quando as listas acabarem. Podes ver o ponto da situação em «Ver progresso».');
 }
 
@@ -421,7 +498,7 @@ function desativarEnvioAutomatico() {
 function envioAutomatico() {
   var hora = new Date().getHours();
   if (hora < HORA_INICIO_ENVIO || hora >= HORA_FIM_ENVIO) return;                  // fora do horário de envio
-  if (MailApp.getRemainingDailyQuota() - RESERVA_QUOTA <= 0) return;               // sem quota: nem lê as folhas
+  if (MailApp.getRemainingDailyQuota() - reservaAtual_() <= 0) return;             // sem quota: nem lê as folhas
 
   var trava = LockService.getScriptLock();
   if (!trava.tryLock(30000)) { Logger.log('Já está um envio a decorrer.'); return; }

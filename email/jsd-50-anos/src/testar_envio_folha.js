@@ -34,7 +34,7 @@ class Folha {
   estados() { return this.linhas.map(l => l[3]); }
 }
 
-function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, rolante = false, semente = null, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', emailsDeTeste = [], omitirParte = null, modificarParte = {}, extraCodigo = [] }) {
+function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, falhaAposEnvios = null, quotaMentirosa = false, rolante = false, semente = null, reserva = 0, hora = 10, horasSemReserva = 0, inicioDosEnvios = '', intervalo = [60, 120], emailsDeTeste = [], omitirParte = null, modificarParte = {}, extraCodigo = [] }) {
   const e = { enviados: [], alertas: [], logs: [], sleeps: 0, pausas: [], gatilhos: [], travaOcupada: false, quota, usados: 0, hora, leituras: 0, agora: Date.UTC(2026, 9, 3, 10, 0), props: {}, marcas: [], registos: [], htmls: Object.assign({}, HTML) };
   e.folhaGeral = new Folha(geral, 'Militantes Base'); e.folhaInst = new Folha(institucional, 'Convidados 50 anos');
   const c = {
@@ -84,7 +84,8 @@ function ambiente({ geral = [], institucional = [], quota = 100, ecra = true, fa
   }
   c.URL_FOLHA_INSTITUCIONAL = 'https://docs.google.com/spreadsheets/d/INSTITUCIONAL111/edit?usp=sharing';
   c.URL_FOLHA_GERAL = 'https://docs.google.com/spreadsheets/d/GERAL222/edit?usp=sharing';
-  vm.runInContext(`RESERVA_QUOTA = ${reserva}; HORAS_SEM_RESERVA = ${horasSemReserva}; INICIO_DOS_ENVIOS = ${JSON.stringify(inicioDosEnvios)}; EMAILS_DE_TESTE = ${JSON.stringify(emailsDeTeste)};`, c);
+  try { e.padroes = JSON.parse(vm.runInContext('JSON.stringify({ reserva: RESERVA_QUOTA, min: INTERVALO_MIN_S, max: INTERVALO_MAX_S, pausa: PAUSA_AUTOMATICO_MS })', c)); } catch (x) { e.padroes = {}; }   // o que o script traz de fábrica
+  vm.runInContext(`INTERVALO_MIN_S = ${intervalo[0]}; INTERVALO_MAX_S = ${intervalo[1]}; RESERVA_QUOTA = ${reserva}; HORAS_SEM_RESERVA = ${horasSemReserva}; INICIO_DOS_ENVIOS = ${JSON.stringify(inicioDosEnvios)}; EMAILS_DE_TESTE = ${JSON.stringify(emailsDeTeste)};`, c);
   e.c = c; e.correr = js => vm.runInContext(js, c);
   return e;
 }
@@ -103,7 +104,7 @@ ok(e.enviados.length === 100, `enviou ${e.enviados.length}, esperava 100`);
 ok(e.folhaGeral.estados().filter(s => s === '').length === 50, 'as 50 que faltam devem ficar em branco');
 ok(!e.folhaGeral.estados().some(s => /^Erro/.test(s)), 'nenhuma linha deve ficar com «Erro»');
 ok(e.folhaGeral.estados().filter(s => /^Enviado a /.test(s)).length === 100, '100 linhas «Enviado a …»');
-ok(/quota diária/.test(e.alertas[0]) && /50 pessoas/.test(e.alertas[0]), 'o resumo diz que a quota acabou e quantas faltam');
+ok(/Google não deixa enviar mais/.test(e.alertas[0]) && /50 pessoas/.test(e.alertas[0]), 'o resumo diz que a quota acabou e quantas faltam');
 ok(e.sleeps === 99 && e.pausas.every(ms => ms === 10000), 'pausa de 10 s entre envios no envio manual (não depois do último)');
 
 titulo('2. no dia seguinte (quota renovada) envia só as 50 que faltam, sem duplicados');
@@ -143,7 +144,7 @@ e = ambiente({ geral: pessoas(60), quota: 100 }); e.usados = 72;
 e.correr('enviarConvites()');
 ok(e.enviados.length === 28, `enviou ${e.enviados.length}, esperava 28`);
 e.alertas.length = 0; e.correr('enviarConvites()');
-ok(e.enviados.length === 28 && /esgotou/.test(e.alertas[0]), 'com a quota a zero não tenta enviar e explica');
+ok(e.enviados.length === 28 && /Google não deixa enviar mais/.test(e.alertas[0]), 'com a quota a zero não tenta enviar e explica');
 
 // ------------------------------------------------------------------ 6. personalização com os HTML reais
 titulo('6. saudação e género, com os HTML reais (v7 geral e v8 institucional)');
@@ -483,7 +484,7 @@ if (modoPartes) {
   v = corre({ modificarParte: { [P]: t => t.replace(/\/\*\*(?:(?!\*\/)[^])*\*\/\nfunction inicioEnvio_\(\) \{[^]*?\n\}\n/, '') } });
   ok(v.includes(`Falta 1 função:\n  inicioEnvio_ (devia estar em ${P})`), `o teu caso, ${P} sem a inicioEnvio_: ` + (v.match(/Falta[^]*?\)/) || ['(não apanhou)'])[0].replace(/\n\s*/g, ' '));
   v = corre({ extraCodigo: [verificador, 'function processarEnvios(folha, nomeFicheiroHtml) { return 0; }'] });
-  ok(/processarEnvios \(tem 2 parâmetros, devia ter 4\)/.test(v) && /versão antiga/.test(v), 'cópia antiga de uma função a sobrepor-se: apanhada');
+  ok(/processarEnvios \(tem 2 parâmetros, devia ter 5\)/.test(v) && /versão antiga/.test(v), 'cópia antiga de uma função a sobrepor-se: apanhada');
   v = corre({ omitirParte: 'Parte1.gs' });
   ok(/onOpen \(devia estar em Código\.gs\)/.test(v), 'sem a Parte1: diz que é o Código.gs');
 }
@@ -599,9 +600,87 @@ titulo('26. envio manual: 10 segundos entre emails, e botões para enviar só o 
   x.correr('enviarUmInstitucional()');
   ok(x.enviados.length === 4 && /Estimado/.test(x.enviados[3].htmlBody) && x.enviados[3].to === 'i0@exemplo.pt', 'institucional: usa o convite institucional e a 1.ª da lista');
   x = ambiente({ geral: pessoas(3, 'g'), institucional: [], quota: 0 }); x.correr('enviarUmGeral()');
-  ok(x.enviados.length === 0 && /quota diária/.test(x.alertas[0]) && x.folhaGeral.estados().every(s => s === ''), 'sem quota: não envia nem marca ninguém');
+  ok(x.enviados.length === 0 && /Google não deixa enviar mais/.test(x.alertas[0]) && x.folhaGeral.estados().every(s => s === ''), 'sem quota: não envia nem marca ninguém');
   x = ambiente({ geral: pessoas(3, 'g'), institucional: [], quota: 8, reserva: 10, horasSemReserva: 72, inicioDosEnvios: '2026-09-20 10:00' }); x.correr('enviarUmGeral()');
   ok(x.enviados.length === 0, 'depois das 72 horas, com 8 de quota e 10 de reserva, não envia (a reserva também vale para 1 a 1)');
+}
+
+// ------------------------------------------------------------------ 27. sem reserva, e assim que há quota envia-se o mais depressa possível
+titulo('27. sem reserva e o mais depressa possível: assim que a Google deixa enviar 1 email, envia');
+{
+  const comTempo = x => {          // o relógio anda: o que o script espera (sleep) e 1,5 s por email enviado
+    const envia = x.c.MailApp.sendEmail;
+    x.c.Utilities.sleep = ms => { x.agora += ms; x.sleeps++; x.pausas.push(ms); };
+    x.c.MailApp.sendEmail = (...a) => { x.agora += 1500; return envia(...a); };
+    return x;
+  };
+  const tique = x => { x.agora += MIN; x.hora = new Date(x.agora).getUTCHours(); const t0 = x.agora; x.correr('envioAutomatico()'); return x.agora - t0; };
+  const convites = x => x.registos.filter(r => r.to !== 'jsd@exemplo.pt');
+  const rapido = o => { const x = comTempo(ambiente(Object.assign({ intervalo: [0, 0] }, o))); x.correr('ativarEnvioAutomatico()'); return x; };
+
+  // a) de fábrica: nenhuma reserva e sem intervalo entre emails
+  let x = ambiente({});
+  ok(x.padroes.reserva === 0 && x.padroes.min === 0 && x.padroes.max === 0 && x.padroes.pausa === 2000, `de fábrica: reserva ${x.padroes.reserva}, intervalo ${x.padroes.min}-${x.padroes.max} s, pausa ${x.padroes.pausa} ms`);
+
+  // b) quota de 100 e 300 por enviar: a 1.ª execução envia logo muitos (até aos 5 minutos), e no fim a quota fica a zero
+  x = rapido({ geral: pessoas(300, 'g'), quota: 100 });
+  const dur = tique(x), na1 = convites(x).length;
+  ok(na1 >= 70 && na1 <= 100 && x.pausas.every(ms => ms === 2000), `a 1.ª execução envia logo ${na1} emails, a 2 s uns dos outros`);
+  ok(dur < 5 * MIN + 15000 && dur < 6 * MIN, `e acaba antes dos 6 minutos da Google (${Math.round(dur / 1000)} s)`);
+  for (let i = 0; i < 5; i++) tique(x);
+  ok(convites(x).length === 100 && x.quota - x.usados === 0 && unicos(convites(x).map(r => r.to)), 'gasta a quota toda (100 de 100), sem reserva e sem repetir ninguém');
+  ok(/Estimado|Caro/.test(x.enviados[0].htmlBody) && comEstado27(x.folhaGeral, /^Enviado a/) === 100 && comEstado27(x.folhaGeral, /Erro/) === 0, 'cada um fica marcado «Enviado», nenhum «Erro»');
+
+  // c) sem quota não lê as folhas; ficando 1, envia logo esse 1 no minuto seguinte
+  const leituras = Folha.leituras; for (let i = 0; i < 5; i++) tique(x);
+  ok(convites(x).length === 100 && Folha.leituras === leituras, 'sem quota: não envia, nem sequer lê as folhas, mas volta a ver todos os minutos');
+  x.quota += 1;
+  tique(x);
+  ok(convites(x).length === 101 && x.quota - x.usados === 0, 'chega 1 de quota: no minuto seguinte esse email já foi enviado');
+
+  // d) quota que se vai libertando (24 h depois de cada envio): envia no 1.º minuto em que há 1 livre
+  x = rapido({ geral: pessoas(40, 'g'), quota: 5, rolante: true });
+  tique(x);
+  const marcas = x.marcas.slice(), primeira = marcas[0];
+  ok(marcas.length === 5, 'quota de 5: saem 5 de seguida');
+  let primeiraDepois = null, ultimoSem = null;
+  for (let i = 0; i < 26 * 60 && primeiraDepois === null; i++) { const antes = x.registos.length; tique(x); if (x.registos.length > antes) primeiraDepois = x.registos[antes].t; else ultimoSem = x.agora; }
+  ok(primeiraDepois !== null && primeiraDepois - (primeira + 24 * H) >= 0 && primeiraDepois - (primeira + 24 * H) <= MIN + 5000, `o 1.º email depois de esgotar sai ${Math.round((primeiraDepois - (primeira + 24 * H)) / 1000)} s depois de a Google libertar 1 lugar (nem um minuto de espera a mais)`);
+
+  // e) institucional primeiro; a geral começa no minuto seguinte
+  x = rapido({ geral: pessoas(3, 'g'), institucional: pessoas(3, 'i'), quota: 100 });
+  tique(x);
+  ok(convites(x).map(r => r.to).join() === 'i0@exemplo.pt,i1@exemplo.pt,i2@exemplo.pt', 'a institucional sai primeiro');
+  tique(x);
+  ok(convites(x).length === 6 && convites(x).slice(3).every(r => r.to.startsWith('g')), 'a geral sai no minuto seguinte');
+  tique(x);
+  ok(!x.gatilhos.some(g => g.fn === 'envioAutomatico') && x.enviados.filter(m => m.to === 'jsd@exemplo.pt' && /concluído/.test(m.subject)).length === 1, 'e depois conclui, com um só aviso');
+
+  // f) horário: fora das 8h–22h não envia; às 8h envia
+  x = rapido({ geral: pessoas(3, 'g'), quota: 100 });
+  x.agora = Date.UTC(2026, 9, 3, 22, 30); x.hora = 22; x.correr('envioAutomatico()');
+  const noite = convites(x).length;
+  x.agora = Date.UTC(2026, 9, 4, 6, 0); x.hora = 6; x.correr('envioAutomatico()');
+  const madrugada = convites(x).length;
+  x.agora = Date.UTC(2026, 9, 4, 8, 0); x.hora = 8; x.correr('envioAutomatico()');
+  ok(noite === 0 && madrugada === 0 && convites(x).length === 3, 'às 22h30 e às 6h não envia; às 8h envia');
+
+  // g) outra execução ainda a enviar: não duplica
+  x = rapido({ geral: pessoas(3, 'g'), quota: 100 }); x.travaOcupada = true; tique(x);
+  ok(convites(x).length === 0, 'com outra execução em curso, não envia (não há duplicados)');
+
+  // h) começou a falhar a meio de uma execução: regista a falha e faz pausa, sem marcar ninguém com erro
+  x = rapido({ geral: pessoas(10, 'g'), quota: 100 });
+  const orig = x.c.MailApp.sendEmail; let n27 = 0;
+  x.c.MailApp.sendEmail = (...a) => { if (n27++ >= 2) throw new Error('Exception: Service error: Mail'); return orig(...a); };
+  tique(x);
+  ok(convites(x).length === 2 && comEstado27(x.folhaGeral, /Erro/) === 0 && x.props.falhasSeguidas === '1' && /Service error: Mail/.test(x.props.ultimoErro), 'saem 2, depois falha: o erro fica registado e ninguém é marcado «Erro»');
+
+  // i) com intervalo configurado (60–120 s) continua a haver um email de cada vez
+  x = comTempo(ambiente({ geral: pessoas(10, 'g'), quota: 100, intervalo: [60, 120], semente: 7 })); x.correr('ativarEnvioAutomatico()'); tique(x);
+  ok(convites(x).length === 1 && x.pausas.length === 0, 'com INTERVALO 60–120 o envio automático volta a ser de um em um, com intervalo');
+
+  function comEstado27(f, re) { return f.estados().filter(e => re.test(e)).length; }
 }
 
 console.log(erros ? `\n${erros} FALHAS em ${n} verificações` : `\nTudo certo: ${n} verificações.`);

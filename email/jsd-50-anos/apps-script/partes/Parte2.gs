@@ -2,27 +2,15 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_2 = true;
 
-/** Os dois endereços têm de estar preenchidos e apontar para ficheiros DIFERENTES (senão enviava-se o convite errado). */
-function validarUrls_() {
-  var faltam = [];
-  if (URL_FOLHA_INSTITUCIONAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_INSTITUCIONAL');
-  if (URL_FOLHA_GERAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_GERAL');
-  if (faltam.length) throw new Error('Falta o URL da lista (' + faltam.join(' e ') + '): preenche no início do script.');
-  var id = function (u) { var m = /\/d\/([a-zA-Z0-9_-]+)/.exec(u); return m ? m[1] : u; };
-  if (id(URL_FOLHA_INSTITUCIONAL) === id(URL_FOLHA_GERAL)) {
-    throw new Error('A lista institucional e a lista geral apontam para o MESMO ficheiro. Confirma os dois endereços no início do script '
-                  + '(institucional = «Convidados 50 anos», geral = «Militantes Base»).');
-  }
-}
-
 // ---------------------------------------------------------------- motor de envio
 /**
  * Envia a uma lista. Colunas da folha: A nome · B email · C género · D estado (vazio = por enviar).
- * «maximo» (opcional): quantos emails, no máximo, nesta chamada (o envio automático passa 1).
+ * «maximo» (opcional): quantos emails, no máximo, nesta chamada. «pausaMs» (opcional): pausa entre emails (por defeito PAUSA_MS).
  * Devolve {enviados, erros, ignorados, pendentes, paragem}; paragem: 'quota' | 'ronda' | 'tempo' | 'concluida' | 'sem-dados'.
  */
-function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
+function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo, pausaMs) {
   var inicio = Date.now();
+  var pausa = pausaMs === undefined ? PAUSA_MS : pausaMs;
   var res = { enviados: 0, erros: 0, ignorados: 0, pendentes: 0, paragem: '' };
   var ultimaLinha = folha.getLastRow();
   if (ultimaLinha < 2) { res.paragem = 'sem-dados'; return res; }
@@ -83,9 +71,23 @@ function processarEnvios(folha, nomeFicheiroHtml, excluir, maximo) {
       break;
     }
     if (res.enviados === 1) registarInicioEnvio_();   // começa a contar as horas sem reserva (só na 1.ª vez)
-    if (res.enviados < podeEnviar) Utilities.sleep(PAUSA_MS);
+    if (res.enviados < podeEnviar && pausa > 0) Utilities.sleep(pausa);
   }
   res.pendentes = linhas.length - res.enviados - res.erros;
   if (!res.paragem) res.paragem = res.pendentes > 0 ? 'ronda' : 'concluida';
   return res;
+}
+
+/** Versão em texto simples do HTML (a outra parte do email, para quem não vê HTML). */
+function textoSimples_(html) {
+  return html
+    .replace(/<(style|head)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<div style="display:none;[\s\S]*?<\/div>/i, '')
+    .replace(/<br\s*\/?>|<\/tr>|<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(parseInt(n, 10)); })
+    .replace(/&amp;/g, '&')
+    .split('\n').map(function (l) { return l.replace(/[ \t ]+/g, ' ').trim(); }).join('\n')
+    .replace(/\n{3,}/g, '\n\n').trim();
 }

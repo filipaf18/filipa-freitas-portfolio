@@ -13,7 +13,7 @@ import pathlib, re, sys
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 ORIGEM = AQUI / 'apps-script' / 'EnvioPelaFolha.gs'
-MAX_LINHAS = 92
+MAX_LINHAS = 94
 
 
 def blocos(linhas):

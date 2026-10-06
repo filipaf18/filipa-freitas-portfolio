@@ -2,22 +2,6 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_6 = true;
 
-/** Corre um envio com a trava, e mostra o resumo (ou regista-o, se não houver ecrã, como nos acionadores). */
-function executar_(envio) {
-  var trava = LockService.getScriptLock();
-  if (!trava.tryLock(30000)) {
-    avisar_('Já está um envio a decorrer. Espera que termine e volta a tentar.');
-    return;
-  }
-  try {
-    avisar_(resumo_(envio()));
-  } catch (e) {
-    avisar_('Erro: ' + e.message);
-  } finally {
-    trava.releaseLock();
-  }
-}
-
 /** Quantos faltam em cada lista, quantos já foram, e quantos dias levará a acabar. Não envia nada. */
 function verProgresso() {
   try {
@@ -39,6 +23,23 @@ function verProgresso() {
                                  : ' Ainda não há envios que cheguem para estimar os dias (o ritmo depende da quota da Google).'));
     if (problemaAtual_()) linhas.push('', '⚠ ' + problemaAtual_());
     avisar_(linhas.join('\n'));
+  } catch (e) {
+    avisar_('Erro: ' + e.message);
+  }
+}
+
+/**
+ * Confere as listas ANTES de enviar, sem enviar nada nem mostrar nomes: género por reconhecer (seria tratado como
+ * masculino), emails inválidos, emails repetidos, geral já na institucional, nomes sem apelido ou em maiúsculas.
+ * Indica os números das linhas da folha (corrige à mão) em vez dos dados.
+ */
+function verificarListas() {
+  try {
+    var instituicao = folhaInstitucional_(), geral = folhaGeral_();
+    var dInst = dadosDe_(instituicao), dGeral = dadosDe_(geral);
+    var texto = [descreverLista_('Institucional ' + nomeDaLista_(URL_FOLHA_INSTITUCIONAL, instituicao), dInst, {}),
+                 descreverLista_('Geral ' + nomeDaLista_(URL_FOLHA_GERAL, geral), dGeral, mapaEmails_(dInst))];
+    avisar_(texto.join('\n\n'));
   } catch (e) {
     avisar_('Erro: ' + e.message);
   }

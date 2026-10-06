@@ -2,6 +2,10 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_8 = true;
 
+function enviarUmInstitucional() {
+  executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}, 1); });
+}
+
 function folhaGeral_() {
   validarUrls_();
   return SpreadsheetApp.openByUrl(URL_FOLHA_GERAL).getSheets()[0];
@@ -29,10 +33,12 @@ function texto_(v) {
   return (v === null || v === undefined ? '' : v).toString().trim();
 }
 
-/** Troca a primeira ocorrência, sem que «$» no nome seja tratado como código de substituição. */
-function trocar_(texto, de, para) {
-  var p = texto.indexOf(de);
-  return p === -1 ? texto : texto.substring(0, p) + para + texto.substring(p + de.length);
+function verQuota() {
+  avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails agora. O envio automático volta a ver de minuto a minuto e envia assim que a Google deixar enviar 1.\n'
+        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
+           : RESERVA_QUOTA > 0 ? 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n'
+           : 'Não há reserva: os convites usam tudo o que a Google deixar.\n')
+        + 'Conta: ' + Session.getEffectiveUser().getEmail());
 }
 
 /** Guarda o momento do 1.º envio de convites (uma só vez). Os emails de teste não contam. */
@@ -58,13 +64,6 @@ function nomeDaLista_(url, folha) {
 function dadosDe_(folha) {
   var ultima = folha.getLastRow();
   return ultima < 2 ? [] : folha.getRange(2, 1, ultima - 1, 4).getValues();
-}
-
-function desativarEnvioAutomatico() {
-  ScriptApp.getProjectTriggers().forEach(function (g) {
-    if (g.getHandlerFunction() === 'envioAutomatico') ScriptApp.deleteTrigger(g);
-  });
-  PropertiesService.getScriptProperties().deleteProperty('acionador');
 }
 
 /** Intervalo até ao próximo email, em segundos: sorteado entre INTERVALO_MIN_S e INTERVALO_MAX_S. */

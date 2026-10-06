@@ -7,7 +7,8 @@
  * Listas: institucional «Convidados 50 anos» (HTML «convite_institucional») e geral «Militantes Base» (HTML «convite»).
  * Colunas: A Nome · B Email · C Género · D estado (vazio = por enviar); linha 1 = cabeçalho. As listas podem crescer.
  * Não assume nenhum limite diário: envia enquanto a quota real da Google deixar (lida em cada envio) e pára quando recusar.
- * Envio automático: um email de cada vez, com 1 a 2 minutos de intervalo, entre as 8h e as 22h. Documentação: LEIA-ME.md.
+ * Envio automático: de minuto a minuto vê se a Google deixa enviar e, havendo quota (nem que seja 1 email), envia logo, o mais
+ * depressa possível, entre as 8h e as 22h. Sem reserva. Documentação: LEIA-ME.md.
  */
 
 // ---------------------------------------------------------------- configuração
@@ -16,15 +17,16 @@ var NOME_REMETENTE = 'JSD Famalicão';
 var URL_FOLHA_INSTITUCIONAL = 'COLA_AQUI_O_URL_DA_LISTA_INSTITUCIONAL';   // «Convidados 50 anos»
 var URL_FOLHA_GERAL = 'COLA_AQUI_O_URL_DA_LISTA_GERAL';                    // «Militantes Base»
 var EXCLUIR_INSTITUCIONAIS_DA_GERAL = true;      // quem está na lista institucional não recebe o convite geral
-var RESERVA_QUOTA = 10;                          // envios que ficam sempre por usar na quota da Google, para as confirmações de inscrição
-var HORAS_SEM_RESERVA = 72;                      // nas primeiras horas de envio de convites não se guarda reserva (0 = guardar sempre)
+var RESERVA_QUOTA = 0;                           // envios que ficam sempre por usar na quota da Google. 0 = nenhum: usa tudo o que a Google deixar. Ex.: 10, para as confirmações
+var HORAS_SEM_RESERVA = 72;                      // só conta com RESERVA_QUOTA > 0: nas primeiras horas de envio de convites não se guarda reserva (0 = guardar sempre)
 var INICIO_DOS_ENVIOS = '';                      // quando começaram os envios. '' = quando este script enviar o 1.º convite. Ex.: '2026-10-02 12:00'
 var EMAILS_DE_TESTE = [];                        // para onde vão os emails de teste; vazio = a conta que corre o script. Ex.: ['eu@gmail.com', 'eu@icloud.com']
 var LIMITE_POR_RONDA = 0;                        // máximo de emails por clique em «Enviar Lote» (0 = sem limite: só a quota e o tempo)
 var PAUSA_MS = 10000;                            // pausa entre emails no envio manual em lote (10 s: cerca de 25 a 30 emails por clique em 5 minutos)
 var PAUSA_TESTE_MS = 1000;                       // pausa entre os emails de teste
-var INTERVALO_MIN_S = 60;                        // envio automático: intervalo entre emails, sorteado entre estes dois valores (segundos)
-var INTERVALO_MAX_S = 120;                       // o acionador corre de minuto a minuto, por isso o intervalo real é de 1 ou 2 minutos
+var INTERVALO_MIN_S = 0;                         // envio automático: intervalo entre emails, sorteado entre estes dois valores (segundos).
+var INTERVALO_MAX_S = 0;                         // 0 e 0 = o mais depressa possível. Para 1 a 2 minutos entre cada email: 60 e 120
+var PAUSA_AUTOMATICO_MS = 2000;                  // envio automático «o mais depressa possível»: pausa entre emails dentro da mesma execução
 var TEMPO_MAXIMO_MS = 5 * 60 * 1000;             // a Google pára os scripts aos 6 minutos: pára aos 5 e continua depois
 var HORA_INICIO_ENVIO = 8;                       // o envio automático só envia entre estas horas (hora do script)
 var HORA_FIM_ENVIO = 22;                         // …até às 22h (não envia a partir das 22h00)
@@ -84,9 +86,9 @@ function diagnosticar() {
   diagnostico();
 }
 
-function verQuota() {
-  avisar_('Ainda podes enviar ' + MailApp.getRemainingDailyQuota() + ' emails hoje (o limite renova-se passadas cerca de 24 horas).\n'
-        + (reservaAtual_() ? 'Destes, ' + reservaAtual_() + ' ficam de reserva (RESERVA_QUOTA) e não são usados pelo envio dos convites.\n'
-                           : 'Neste momento não há reserva (primeiras ' + HORAS_SEM_RESERVA + ' horas de envio): os convites podem usar tudo.\n')
-        + 'Conta: ' + Session.getEffectiveUser().getEmail());
+function desativarEnvioAutomatico() {
+  ScriptApp.getProjectTriggers().forEach(function (g) {
+    if (g.getHandlerFunction() === 'envioAutomatico') ScriptApp.deleteTrigger(g);
+  });
+  PropertiesService.getScriptProperties().deleteProperty('acionador');
 }

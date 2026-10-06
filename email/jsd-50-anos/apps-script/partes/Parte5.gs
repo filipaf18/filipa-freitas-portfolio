@@ -2,10 +2,6 @@
 // Não alterar. Faz parte do mesmo código que as outras partes.
 var PARTE_5 = true;
 
-function enviarUmInstitucional() {
-  executar_(function () { return processarEnvios(folhaInstitucional_(), 'convite_institucional', {}, 1); });
-}
-
 // ---------------------------------------------------------------- personalização (igual à versão anterior)
 function personalizar_(modelo, nomeFicheiroHtml, nomeCompleto, genero) {
   var partes = nomeProprio_(nomeCompleto).split(/\s+/);
@@ -31,6 +27,12 @@ function personalizar_(modelo, nomeFicheiroHtml, nomeCompleto, genero) {
     : [[/o\(a\)/g, 'o'], [/a\(o\)/g, 'o'], [/\(a\)/g, ''], [/\(o\)/g, 'o'], [/O\(A\)/g, 'O'], [/A\(O\)/g, 'O'], [/\(A\)/g, ''], [/\(O\)/g, 'O']];
   for (var t = 0; t < trocas.length; t++) html = html.replace(trocas[t][0], trocas[t][1]);
   return html;
+}
+
+/** Troca a primeira ocorrência, sem que «$» no nome seja tratado como código de substituição. */
+function trocar_(texto, de, para) {
+  var p = texto.indexOf(de);
+  return p === -1 ? texto : texto.substring(0, p) + para + texto.substring(p + de.length);
 }
 
 /**

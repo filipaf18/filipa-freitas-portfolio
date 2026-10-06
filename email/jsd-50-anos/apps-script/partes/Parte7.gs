@@ -7,6 +7,19 @@ function enviarUmGeral() {
   executar_(function () { return processarEnvios(folhaGeral_(), 'convite', emailsInstitucionais_(), 1); });
 }
 
+/** Os dois endereços têm de estar preenchidos e apontar para ficheiros DIFERENTES (senão enviava-se o convite errado). */
+function validarUrls_() {
+  var faltam = [];
+  if (URL_FOLHA_INSTITUCIONAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_INSTITUCIONAL');
+  if (URL_FOLHA_GERAL.indexOf('COLA_AQUI') !== -1) faltam.push('URL_FOLHA_GERAL');
+  if (faltam.length) throw new Error('Falta o URL da lista (' + faltam.join(' e ') + '): preenche no início do script.');
+  var id = function (u) { var m = /\/d\/([a-zA-Z0-9_-]+)/.exec(u); return m ? m[1] : u; };
+  if (id(URL_FOLHA_INSTITUCIONAL) === id(URL_FOLHA_GERAL)) {
+    throw new Error('A lista institucional e a lista geral apontam para o MESMO ficheiro. Confirma os dois endereços no início do script '
+                  + '(institucional = «Convidados 50 anos», geral = «Militantes Base»).');
+  }
+}
+
 /** Emails da lista institucional (para não lhes enviar também o convite geral). Vazio se estiver desligado. */
 function emailsInstitucionais_() {
   if (!EXCLUIR_INSTITUCIONAIS_DA_GERAL) return {};
@@ -32,20 +45,6 @@ function nomeProprio_(nome) {
     if (k > 0 && particulas[p]) return p;
     return p.replace(/(^|[-'])([a-zà-ÿ])/g, function (m, a, b) { return a + b.toUpperCase(); });
   }).join(' ');
-}
-
-/** Versão em texto simples do HTML (a outra parte do email, para quem não vê HTML). */
-function textoSimples_(html) {
-  return html
-    .replace(/<(style|head)[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<div style="display:none;[\s\S]*?<\/div>/i, '')
-    .replace(/<br\s*\/?>|<\/tr>|<\/p>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(parseInt(n, 10)); })
-    .replace(/&amp;/g, '&')
-    .split('\n').map(function (l) { return l.replace(/[ \t ]+/g, ' ').trim(); }).join('\n')
-    .replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /** Mostra a mensagem num ecrã e, se não houver (acionadores), regista-a. */
@@ -84,8 +83,11 @@ function ativarEnvioAutomatico() {
   props.deleteProperty('proximoEnvio');
   limparFalhas_();
   ScriptApp.newTrigger('envioAutomatico').timeBased().everyMinutes(1).create();
-  avisar_('Envio automático ativado: entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h o script envia um email de cada vez, com 1 a 2 minutos de intervalo '
-        + '(primeiro a lista institucional, depois a geral), enquanto a Google deixar. Quando a quota acabar pára e retoma sozinho quando ela for libertada. '
-        + 'Nas primeiras ' + HORAS_SEM_RESERVA + ' horas usa a quota toda; depois deixa sempre ' + RESERVA_QUOTA + ' por usar, para as confirmações. '
+  avisar_('Envio automático ativado: entre as ' + HORA_INICIO_ENVIO + 'h e as ' + HORA_FIM_ENVIO + 'h o script vê de minuto a minuto se a Google deixa enviar e, havendo quota (nem que seja para 1 email), '
+        + (INTERVALO_MAX_S <= 0 ? 'envia logo, o mais depressa possível (' + PAUSA_AUTOMATICO_MS / 1000 + ' s entre emails), até a quota acabar. '
+                                : 'envia um email de cada vez, com ' + INTERVALO_MIN_S + ' a ' + INTERVALO_MAX_S + ' segundos de intervalo. ')
+        + 'Primeiro a lista institucional, depois a geral. '
+        + (RESERVA_QUOTA > 0 ? 'Nas primeiras ' + HORAS_SEM_RESERVA + ' horas usa a quota toda; depois deixa sempre ' + RESERVA_QUOTA + ' por usar, para as confirmações. '
+                             : 'Não deixa nenhuma quota de reserva. ')
         + 'Desliga-se sozinho quando as listas acabarem. «Ver progresso» mostra o ponto da situação.');
 }

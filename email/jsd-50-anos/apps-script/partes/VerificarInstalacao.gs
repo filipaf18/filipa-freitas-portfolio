@@ -3,14 +3,14 @@
 // Confere se TODAS as funções do script estão no projeto e se não há uma cópia antiga de alguma (número de parâmetros diferente).
 function verificarFuncoes() {
   var esperadas = {
-    1: 'onOpen/0 enviarConvites/0 enviarConvitesInstitucionais/0 partesEmFalta_/0 diagnosticar/0 verQuota/0',
-    2: 'validarUrls_/0 processarEnvios/4',
+    1: 'onOpen/0 enviarConvites/0 enviarConvitesInstitucionais/0 partesEmFalta_/0 diagnosticar/0 desativarEnvioAutomatico/0',
+    2: 'processarEnvios/5 textoSimples_/1',
     3: 'analisar_/2 diagnostico/0',
-    4: 'resumo_/1 verificarListas/0 envioAutomatico/0',
-    5: 'enviarUmInstitucional/0 personalizar_/4 enviarTeste/0 descreverLista_/3',
-    6: 'executar_/1 verProgresso/0 registarFalha_/2 concluir_/1',
-    7: 'enviarUmGeral/0 emailsInstitucionais_/0 mapaEmails_/1 nomeProprio_/1 textoSimples_/1 avisar_/1 inicioEnvio_/0 enviadosNas24h_/1 ativarEnvioAutomatico/0',
-    8: 'folhaGeral_/0 folhaInstitucional_/0 porEnviar_/1 erroDeQuota_/1 emailValido_/1 texto_/1 trocar_/3 registarInicioEnvio_/0 reservaAtual_/0 nomeDaLista_/2 dadosDe_/1 desativarEnvioAutomatico/0 intervaloSorteado_/0 limparFalhas_/0 problemaAtual_/0'
+    4: 'executar_/1 resumo_/1 envioAutomatico/0',
+    5: 'personalizar_/4 trocar_/3 enviarTeste/0 descreverLista_/3',
+    6: 'verProgresso/0 verificarListas/0 registarFalha_/2 concluir_/1',
+    7: 'enviarUmGeral/0 validarUrls_/0 emailsInstitucionais_/0 mapaEmails_/1 nomeProprio_/1 avisar_/1 inicioEnvio_/0 enviadosNas24h_/1 ativarEnvioAutomatico/0',
+    8: 'enviarUmInstitucional/0 folhaGeral_/0 folhaInstitucional_/0 porEnviar_/1 erroDeQuota_/1 emailValido_/1 texto_/1 verQuota/0 registarInicioEnvio_/0 reservaAtual_/0 nomeDaLista_/2 dadosDe_/1 intervaloSorteado_/0 limparFalhas_/0 problemaAtual_/0'
   };
   var faltam = [], antigas = [], total = 0;
   for (var parte in esperadas) {

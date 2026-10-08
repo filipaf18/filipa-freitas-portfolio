@@ -9,7 +9,7 @@ Feito com o mesmo modelo dos convites dos 50 anos (`email/jsd-50-anos`, versões
 | `convite-institucional.html` | convidados institucionais | Estimado(a) companheiro(a), | Com os melhores cumprimentos, | Convite · Politicamente Falando #02 |
 | `convite-geral.html` | militantes (trata por «tu») | Caro(a) companheiro(a), | Até lá, | Politicamente Falando #02 · Justiça em Portugal |
 
-Layout: banner «POLITICAMENTE FALANDO / convite» (o topo do convite da 1.ª sessão) a toda a largura → barra com o degradê da marca → «SESSÃO #02» e o tema com o degradê, letra a letra → traço laranja → saudação e carta → fotos dos oradores (do cartaz), com nome e cargo em texto → fecho, despedida e assinatura da Daniela Torres → data, hora e local entre dois filetes (o local abre o Google Maps) → rodapé com o logo dos 50 anos. Pré-visualizações em `previas/`.
+Layout: banner «POLITICAMENTE FALANDO / convite» (o topo do convite da 1.ª sessão) a toda a largura → barra com o degradê da marca → «SESSÃO #02» e o tema em três linhas curtas («Justiça em Portugal.» / «Conformada» / «ou reformada?») com o degradê, letra a letra → traço laranja → saudação e carta → fotos dos oradores (do cartaz), com nome e cargo em texto → fecho, despedida e assinatura da Daniela Torres → data, hora e local, uma linha de tabela cada, entre dois filetes que são as bordas da tabela (o local abre o Google Maps) → rodapé com o logo dos 50 anos. Pré-visualizações em `previas/`.
 
 ## Como enviar
 
@@ -33,13 +33,29 @@ A saudação mantém «Estimado(a) companheiro(a),» e «Caro(a) companheiro(a),
 
 - Textos: dicionário `CONVITES` em `src/gerar.py`; data, hora e local em `dados()`; oradores em `ORADORES`; tema em `TEMA`.
 - Imagens: recortes em `src/preparar_imagens.py`, a partir de `originais/` (o cartaz da 2.ª sessão e o convite da 1.ª).
-- Depois: `python3 src/preparar_imagens.py && python3 src/gerar.py`, e para rever `NODE_PATH=$(npm root -g) node src/previas.cjs` (refaz `previas/` e confirma que nada sai do ecrã em 8 larguras, de 320 a 1400 px, com e sem o `<style>` que o Gmail descarta ao colar).
+- Depois: `python3 src/preparar_imagens.py && python3 src/gerar.py` e, para rever, `NODE_PATH=$(npm root -g) node src/previas.cjs` (pré-visualizações) e `NODE_PATH=$(npm root -g) node src/verificar.cjs` (copiar e colar, ver abaixo).
+
+### O que o Gmail faz ao colar (e as regras que daí vêm)
+
+A caixa de escrita do Gmail é uma caixa editável do Chrome. Ao colar, o Chrome reescreve o HTML, e o que muda foi medido copiando e colando de verdade no Chromium (`src/verificar.cjs`):
+
+- **Larguras em % no `style` passam a píxeis fixos**, medidos na largura da caixa de escrita: `width:50%` → `width:254px`, `width:100%` → `width:240px`. Foi isto que, na 1.ª versão, alargava o bloco dos oradores e descentrava o email no telemóvel. **Regra:** percentagens só no atributo `width="…"` e em `max-width`/`min-width`, que chegam intactos.
+- `white-space:nowrap` passa a `text-wrap-mode:nowrap` e `text-decoration` passa a `text-decoration-line`, propriedades que o Gmail não conhece. **Regra:** sem `nowrap` (o tema está em linhas curtas que cabem em 320 px), e a morada é sublinhada de propósito (fica igual se o Gmail ignorar a propriedade).
+- `text-align:center` desaparece das células que já têm `align="center"` (fica o atributo, que o Gmail respeita).
+- O `<head>`, o `<style>` e o texto de pré-visualização escondido desaparecem.
+- Copiando com Ctrl+A / Ctrl+C, o Chrome também troca espaços por `&nbsp;` (o texto deixa de poder partir).
+
+Para não depender de truques que um cliente pode ignorar: os filetes da data são bordas da tabela; as barras e o traço têm `font-size`/`line-height` iguais à altura (e não 0); a assinatura tem largura e altura nos atributos.
 
 ## Verificado
 
-- Em 320, 360, 375, 390, 414, 768, 1024 e 1400 px, tal como é e como fica colado no Gmail (sem `<head>`): sem deslocamento horizontal, nenhum elemento fora do ecrã, nenhuma imagem partida.
-- O tema fica em 2 linhas no computador e nos telemóveis a partir de 375 px; colado no Gmail (sem o `<style>`, letra maior), passa a 3 linhas no telemóvel («Conformada ou / reformada?»).
-- Não foi testado num Gmail real nem num iPhone: envia um teste antes.
+`src/verificar.cjs` copia e cola de verdade no Chromium, para uma caixa editável como a do Gmail: pelo botão de `copiar-convites.html` (com a caixa a 500, 640 e 1000 px) e com Ctrl+A / Ctrl+C no convite aberto (computador e telemóvel), e usa também o HTML original (envio por script). Mostra cada resultado como o Gmail o mostra (sem `<style>` nem classes) em 9 larguras, de 320 a 1400 px, e ainda sem `align` nas tabelas, sem `align` nas células, sem `margin:0 auto`, sem `text-align`, com a letra 25 % maior, sem `font-size:0` e sem `display:block` nas imagens. Mede: transbordo horizontal, banner e barras de ponta a ponta, texto centrado no eixo da página, texto à esquerda (e assinatura) na margem dos filetes, filetes simétricos, traço e logo no eixo, fotos iguais, simétricas e centradas, nome e cargo debaixo de cada foto, imagens carregadas e sem deformação.
+
+Resultado: **98 casos sem falhas**, desvio máximo de 0,01 px. A única exceção (registada, não corrigida) é copiar com Ctrl+A / Ctrl+C **e** ter a letra 25 % maior num ecrã de 320 px: «Justiça em Portugal.» deixa de poder partir e sai 42 px do ecrã. Com o botão «Copiar convite» não acontece.
+
+Capturas do email colado: `previas/colado-botao-telemovel.png`, `previas/colado-botao-computador.png` (e `colado-ctrl-c-*`).
+
+**Limite:** não há Gmail real nem iPhone neste ambiente. O que o Gmail faz depois do Chrome (ao enviar e ao mostrar o email) é simulado. Envia sempre um teste para ti e vê-o no telemóvel e no computador.
 
 ## A confirmar
 

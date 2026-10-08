@@ -41,7 +41,12 @@ const VARIANTES = {
   'sem margin:0 auto': semCss(/margin:\s*0(px)?\s+auto;?/g),
   'sem text-align': semCss(/text-align:\s*\w+;?/g),
   'letra 25% maior': amplia,
+  'sem font-size:0 nem line-height:0 (info)': semCss(/(font-size:\s*0(px)?|line-height:\s*0(px)?)\s*;?/g),
+  'sem display:block nas imagens (info)': (h) => h.replace(/(<img\b[^>]*?style="[^"]*?)display:\s*block;?/g, '$1'),
 };
+// combinações que só se registam: o caminho errado (Ctrl+C troca os espaços do tema por &nbsp;) com letra 25 % maior
+// num ecrã de 320 px, e os clientes que ignorassem font-size:0 ou display:block (as barras e o traço engrossam).
+const informativo = (fonte, variante) => variante.includes('(info)') || (fonte.includes(' B:') && variante === 'letra 25% maior');
 const documento = (corpo) => `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0">${corpo}</body></html>`;
 
 // ---------------------------------------------------------------- medições
@@ -56,15 +61,21 @@ const MEDIR = () => {
     if (b.width > 0 && b.height > 0 && (b.right > W + 0.5 || b.left < -0.5)) add('elemento fora do ecrã', Math.max(b.right - W, -b.left), `${el.tagName} ${curto(el.alt || el.textContent)}`);
   }
   const imgs = [...document.images];
-  for (const i of imgs) if (!i.complete || !i.naturalWidth) add('imagem partida', 99, i.alt);
+  for (const i of imgs) {
+    if (!i.complete || !i.naturalWidth) { add('imagem partida', 99, i.alt); continue; }
+    const b = R(i);
+    add('imagens sem deformação (%)', Math.abs((b.width / b.height) / (i.naturalWidth / i.naturalHeight) - 1) * 100, i.alt);
+  }
   const img = (alt) => imgs.find((i) => i.alt.startsWith(alt));
   const banner = img('Politicamente Falando');
   if (banner) { const b = R(banner); add('banner de ponta a ponta', Math.abs(b.left) + Math.abs(b.right - W), ''); }
   for (const td of document.querySelectorAll('td[height="6"]')) { const b = R(td); add('barras de ponta a ponta', Math.abs(b.left) + Math.abs(b.right - W), ''); }
   let margem = null;
-  for (const td of document.querySelectorAll('td[height="1"]')) {
-    const b = R(td); add('filetes: margens iguais', Math.abs(b.left - (W - b.right)), ''); margem = margem ?? b.left;
+  // filetes da data: as bordas de cima e de baixo da tabela dos dados
+  for (const t of [...document.querySelectorAll('table')].filter((t) => parseFloat(getComputedStyle(t).borderTopWidth) > 0)) {
+    const b = R(t); add('filetes: margens iguais', Math.abs(b.left - (W - b.right)), ''); margem = margem ?? b.left;
   }
+  if (margem === null) add('filetes da data em falta', 99, '');
   for (const td of document.querySelectorAll('td[height="2"]')) { const b = R(td); add('traço no eixo', Math.abs((b.left + b.right) / 2 - eixo), ''); }
   const logo = img('50 anos JSD');
   if (logo) { const b = R(logo); add('logo no eixo', Math.abs((b.left + b.right) / 2 - eixo), ''); }
@@ -112,7 +123,7 @@ const MEDIR = () => {
   }
   return res;
 };
-const LIMITE = (classe) => (/texto|nome/.test(classe) ? TOL.texto : TOL.caixa);
+const LIMITE = (classe) => (/texto|nome|deformação/.test(classe) ? TOL.texto : TOL.caixa);
 
 // ---------------------------------------------------------------- copiar e colar de verdade
 async function colar(ctx, larguraCaixa) {
@@ -161,6 +172,7 @@ async function colar(ctx, larguraCaixa) {
       const doc = nomeVar === 'original' ? html : documento(fn(gmail(html)));
       const pior = {};
       const ws = nomeVar === 'Gmail' || nomeVar === 'original' ? LARGURAS : LARGURAS_VARIANTES;
+      const recorte = nomeVar.startsWith('sem font-size') && fonte === 'institucional A: botão, caixa de 640 px';
       for (const w of ws) {
         await page.setViewportSize({ width: w, height: 900 });
         await page.setContent(doc, { waitUntil: 'load' });
@@ -171,12 +183,14 @@ async function colar(ctx, larguraCaixa) {
           const nome = `previas/colado-${fonte.includes(' A:') ? 'botao' : 'ctrl-c'}-${w === 375 ? 'telemovel' : 'computador'}.png`;
           await page.screenshot({ path: path.join(AQUI, nome), fullPage: true });
         }
+        if (recorte && w === 375) await page.screenshot({ path: path.join(AQUI, 'previas/colado-sem-font-size-0-telemovel.png'), fullPage: true });
       }
       const maus = Object.entries(pior).filter(([c, [d]]) => d > LIMITE(c) + 1e-6);
       const max = Math.max(0, ...Object.values(pior).map(([d]) => d));
-      console.log(`${maus.length ? 'FALHA' : 'ok   '} ${fonte} · ${nomeVar}: ${Object.keys(pior).length} verificações, desvio máx. ${max.toFixed(2)} px`);
+      const info = informativo(fonte, nomeVar);
+      console.log(`${maus.length ? (info ? 'info ' : 'FALHA') : 'ok   '} ${fonte} · ${nomeVar}: ${Object.keys(pior).length} verificações, desvio máx. ${max.toFixed(2)} px`);
       for (const [c, [d, onde]] of maus.sort((x, y) => y[1][0] - x[1][0])) console.log(`        ${c}: ${d.toFixed(2)} px em ${onde}`);
-      falhas += maus.length ? 1 : 0;
+      falhas += maus.length && !info ? 1 : 0;
       resumo.push(maus.length);
     }
   }

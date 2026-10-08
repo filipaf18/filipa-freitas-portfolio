@@ -11,6 +11,8 @@ Regras de construção (para sobreviver à colagem no Gmail e ao telemóvel), he
 - NUNCA uma largura em % no style (width:50%, width:100%): ao colar, o Chrome (e por isso o Gmail) troca-a pelos píxeis
   que mede na caixa de escrita (width:50% → width:254px) e no telemóvel o bloco fica mais largo do que o ecrã.
   Percentagens só no atributo width="…" ou em max-width/min-width, que chegam intactos (verificado em src/verificar.cjs);
+- barras e traço com font-size/line-height iguais à altura (e não 0): a altura não depende de o cliente respeitar
+  font-size:0; os filetes da data são bordas da tabela;
 - nada de white-space:nowrap (ao colar passa a text-wrap-mode, que o Gmail não conhece): textos que não podem partir
   são divididos em linhas curtas que cabem num ecrã de 320 px.
 
@@ -23,7 +25,7 @@ Gera (a partir de email/politicamente-falando-02/):
 Uso: python3 src/preparar_imagens.py && python3 src/gerar.py
 """
 import base64, html as _html, json, pathlib, re
-from PIL import ImageFont
+from PIL import Image, ImageFont
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 IMG = AQUI / 'imagens'
@@ -57,7 +59,7 @@ TEMA = [('Justiça em Portugal.', 400), ('Conformada', 800), ('ou reformada?', 8
 FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
 DEGRADE = 'linear-gradient(90deg,#0E87D9 0%,#1EBCE8 25%,#54CFC9 40%,#F8B451 60%,#F86420 100%)'
 LADO = 24
-ESCURO, TEXTO, MUTED, AZUL, LARANJA = '#14181F', '#3A3F47', '#646B75', '#0B72B8', '#F86420'
+ESCURO, TEXTO, MUTED, AZUL, LARANJA, FILETE = '#14181F', '#3A3F47', '#646B75', '#0B72B8', '#F86420', '#DCE1E8'
 CORPO = f'font-size:16px; line-height:27px; color:{TEXTO};'
 FORTE = f'style="color:{ESCURO};"'
 PONTO = f'<span style="color:{LARANJA};">&nbsp;·&nbsp;</span>'
@@ -115,24 +117,13 @@ def linha(html, cima=0, baixo=0, estilo=CORPO, alinhar='left', classe='t-corpo')
           </tr>'''
 
 
-def filete(cima=0, baixo=0, cor='#DCE1E8'):
-    return f'''
-          <tr>
-            <td class="px" style="padding:{cima}px {LADO}px {baixo}px {LADO}px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td height="1" bgcolor="{cor}" style="height:1px; background-color:{cor}; font-size:0; line-height:0;">&nbsp;</td></tr>
-              </table>
-            </td>
-          </tr>'''
-
-
 def traco(cima=0, baixo=0):
     """Traço curto laranja, centrado."""
     return f'''
           <tr>
             <td align="center" style="padding:{cima}px {LADO}px {baixo}px {LADO}px; text-align:center;">
               <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                <tr><td width="56" height="2" bgcolor="{LARANJA}" style="width:56px; height:2px; background-color:{LARANJA}; font-size:0; line-height:0;">&nbsp;</td></tr>
+                <tr><td width="56" height="2" bgcolor="{LARANJA}" style="width:56px; height:2px; background-color:{LARANJA}; font-size:2px; line-height:2px;">&nbsp;</td></tr>
               </table>
             </td>
           </tr>'''
@@ -215,22 +206,40 @@ def oradores(embutir):
           </tr>'''
 
 
+ASSINATURA_PX = 190
+
+
 def assinatura(embutir):
     nome, cargo = ASSINANTE
+    w, h = Image.open(IMG / IMAGENS['assinatura'][0]).size
+    alt = round(ASSINATURA_PX * h / w)
     return f'''
           <tr>
-            <td class="px" align="left" style="padding:14px {LADO}px 0 {LADO}px; font-size:0; line-height:0; text-align:left;"><img src="{src_imagem('assinatura', embutir)}" width="190" alt="Assinatura de {nome}" style="display:block; width:190px; max-width:100%; height:auto; border:0; outline:none; color:{AZUL}; font-family:{FONT}; font-size:14px; line-height:20px;"></td>
+            <td class="px" align="left" style="padding:14px {LADO}px 0 {LADO}px; font-size:0; line-height:0; text-align:left;"><img src="{src_imagem('assinatura', embutir)}" width="{ASSINATURA_PX}" height="{alt}" alt="Assinatura de {nome}" style="display:block; width:{ASSINATURA_PX}px; height:{alt}px; border:0; outline:none; color:{AZUL}; font-family:{FONT}; font-size:14px; line-height:20px;"></td>
           </tr>''' + linha(nome, 8, 0, f'font-size:16px; line-height:24px; font-weight:700; color:{ESCURO};') + \
         linha(cargo, 2, 0, f'font-size:14px; line-height:21px; color:{MUTED};', classe='t-cargo')
 
 
 def dados():
-    """Data, hora e local em três linhas centradas entre dois filetes finos."""
-    return filete(40, 0) + linha(
-        f'<strong {FORTE}>Sexta-feira, 16&nbsp;de&nbsp;outubro de&nbsp;2026</strong><br>'
-        f'21h00{PONTO}<strong {FORTE}>Casa da Juventude</strong><br>'
-        f'<a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Vila Nova de&nbsp;Famalicão</a>',
-        24, 24, f'font-size:15px; line-height:29px; color:{TEXTO};', 'center', 't-dados') + filete(0, 48)
+    """Data, hora e local: três linhas centradas, cada uma na sua linha de tabela (sem <br>), entre dois filetes que são
+    as bordas da própria tabela. Sem o truque do &nbsp; com font-size:0 / line-height:0 (se um cliente o ignorar, o
+    filete de 1 px passa a uma faixa da altura de uma linha de texto)."""
+    def dado(html, cima, baixo):
+        return f'''
+                <tr>
+                  <td class="t-dados" align="center" style="padding:{cima}px 0 {baixo}px 0; font-family:{FONT}; font-size:15px; line-height:26px; color:{TEXTO}; text-align:center;">{html}</td>
+                </tr>'''
+    return f'''
+          <tr>
+            <td class="px" style="padding:40px {LADO}px 48px {LADO}px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {FILETE}; border-bottom:1px solid {FILETE};">''' + \
+        dado(f'<strong {FORTE}>Sexta-feira, 16&nbsp;de&nbsp;outubro de&nbsp;2026</strong>', 24, 0) + \
+        dado(f'21h00{PONTO}<strong {FORTE}>Casa da Juventude</strong>', 3, 0) + \
+        dado(f'<a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Vila Nova de&nbsp;Famalicão</a>', 3, 24) + \
+        '''
+              </table>
+            </td>
+          </tr>'''
 
 
 # ------------------------------------------------------------------ página
@@ -240,7 +249,7 @@ CSS_TELEMOVEL = '''
       .t-corpo     { font-size:18px !important; line-height:30px !important; }
       .t-orador    { font-size:17px !important; line-height:23px !important; }
       .t-cargo     { font-size:14px !important; line-height:20px !important; }
-      .t-dados     { font-size:17px !important; line-height:31px !important; }
+      .t-dados     { font-size:17px !important; line-height:28px !important; }
       .t-rodape    { font-size:14px !important; line-height:22px !important; }
       .t-rodape-p  { font-size:13px !important; line-height:20px !important; }
       .orador      { padding-left:6px !important; padding-right:6px !important; }'''
@@ -250,7 +259,7 @@ def pagina(t, embutir, largura=1040):
     estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
     barra = f'''
     <tr>
-      <td height="6" bgcolor="{LARANJA}" style="height:6px; font-size:0; line-height:0; background-color:{LARANJA}; background-image:{DEGRADE};">&nbsp;</td>
+      <td height="6" bgcolor="{LARANJA}" style="height:6px; font-size:6px; line-height:6px; background-color:{LARANJA}; background-image:{DEGRADE};">&nbsp;</td>
     </tr>'''
     corpo = ''.join([
         linha(sem_rasto('SESSÃO #02'), 44, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta'),

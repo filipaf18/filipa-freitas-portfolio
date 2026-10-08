@@ -44,7 +44,7 @@ IMG = AQUI / 'imagens'
 # por isso a imagem nunca muda depois de o email sair. Se as imagens forem carregadas para o site, basta trocar
 # PASTA_IMAGENS por 'https://jsdfamalicao.pt/convite/politicamente-falando-02'.
 # Ao mudar uma imagem: preparar_imagens.py, commit e push, e pôr aqui o novo commit.
-COMMIT_IMAGENS = '3dda03e6e1fa0632f2f436b3b1e4de92fb027883'
+COMMIT_IMAGENS = 'fc9480b6441d888f8c6e8f81069dbf58c20c0fbe'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/politicamente-falando-02/imagens'
 IMAGENS = {   # nome → (ficheiro local, endereço público)
     'banner': ('banner.jpg', f'{PASTA_IMAGENS}/banner.jpg'),

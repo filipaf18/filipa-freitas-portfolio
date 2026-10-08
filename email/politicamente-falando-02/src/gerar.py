@@ -8,6 +8,11 @@ Regras de construção (para sobreviver à colagem no Gmail e ao telemóvel), he
 - tudo inline; o <style> só aumenta a letra em ecrãs até 600 px (o Gmail descarta-o ao colar e o email continua legível);
 - cada bloco de texto é uma linha de tabela e os espaços são padding de <td> (nada de margin);
 - larguras fluidas: tabelas com width="100%" (atributo); imagens com width numérico de reserva + max-width:100% no style.
+- NUNCA uma largura em % no style (width:50%, width:100%): ao colar, o Chrome (e por isso o Gmail) troca-a pelos píxeis
+  que mede na caixa de escrita (width:50% → width:254px) e no telemóvel o bloco fica mais largo do que o ecrã.
+  Percentagens só no atributo width="…" ou em max-width/min-width, que chegam intactos (verificado em src/verificar.cjs);
+- nada de white-space:nowrap (ao colar passa a text-wrap-mode, que o Gmail não conhece): textos que não podem partir
+  são divididos em linhas curtas que cabem num ecrã de 320 px.
 
 Gera (a partir de email/politicamente-falando-02/):
 - convite-institucional.html e convite-geral.html: imagens embutidas (abrem em qualquer lado, sem internet);
@@ -46,7 +51,7 @@ def src_imagem(nome, embutir):
 # ------------------------------------------------------------------ evento
 SITE = 'https://jsdfamalicao.pt'
 MAPA = 'https://www.google.com/maps/search/?api=1&amp;query=Casa+da+Juventude,+Vila+Nova+de+Famalic%C3%A3o'   # «&» já escapado
-TEMA = [('Justiça em Portugal.', 400), ('Conformada ou reformada?', 800)]
+TEMA = [('Justiça em Portugal.', 400), ('Conformada', 800), ('ou reformada?', 800)]
 
 # ------------------------------------------------------------------ estilo
 FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
@@ -135,11 +140,14 @@ def traco(cima=0, baixo=0):
 
 # ------------------------------------------------------------------ tema com o degradê da marca, letra a letra
 # O texto em degradê do CSS não funciona no Gmail: cada letra leva a cor do degradê na sua posição horizontal, com a
-# mesma escala nas duas linhas (centradas), como se o degradê pintasse o bloco. As cores claras do meio são escurecidas
+# mesma escala nas três linhas (centradas), como se o degradê pintasse o bloco. Três linhas curtas, com o mesmo tamanho
+# no computador e no telemóvel: a mais larga («Justiça em Portugal.», 236 px a 26 px) cabe num ecrã de 320 px, por isso
+# o tema nunca precisa de partir, com ou sem o <style> (que o Gmail descarta ao colar), e mesmo que o Chrome troque os
+# espaços por &nbsp; ao copiar. As cores claras do meio são escurecidas
 # só o necessário para terem contraste de 3:1 sobre branco (texto grande). Larguras medidas com a Liberation Sans,
 # que tem as mesmas medidas da Arial/Helvetica.
 PARAGENS = [(0, '#0E87D9'), (.25, '#1EBCE8'), (.40, '#54CFC9'), (.60, '#F8B451'), (1, '#F86420')]
-TEMA_PX, TEMA_PX_TELEMOVEL = 30, 24
+TEMA_PX = 26
 _LETRA = {400: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
           800: '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'}
 
@@ -178,8 +186,7 @@ def tema():
                 letras.append(f'<span style="color:{cor_degrade(min(1, (x + w / 2) / total))};">{_html.escape(l)}</span>')
                 x += w
             x += fontes[peso].getlength(' ')
-            # cada palavra inteira: num ecrã estreito a linha só parte nos espaços
-            palavras.append(f'<span style="white-space:nowrap;">{"".join(letras)}</span>')
+            palavras.append(''.join(letras))
         linhas.append(f'<span style="font-weight:{peso};">{" ".join(palavras)}</span>')
     return linha('<br>'.join(linhas), 14, 0,
                  f'font-size:{TEMA_PX}px; line-height:{TEMA_PX + 8}px; color:{ESCURO};', 'center', 't-tema')
@@ -189,9 +196,9 @@ def tema():
 def oradores(embutir):
     def celula(chave, nome, cargo, padding):
         return f'''
-                  <td class="orador" width="50%" valign="top" align="center" style="width:50%; padding:{padding}; text-align:center; vertical-align:top;">
+                  <td class="orador" width="50%" valign="top" align="center" style="padding:{padding}; text-align:center; vertical-align:top;">
                     <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:240px; margin:0 auto;">
-                      <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img src="{src_imagem(chave, embutir)}" width="240" alt="{nome}" style="display:block; width:100%; max-width:240px; height:auto; border:0; outline:none; border-radius:6px; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr>
+                      <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img src="{src_imagem(chave, embutir)}" width="240" alt="{nome}" style="display:block; max-width:100%; height:auto; border:0; outline:none; border-radius:6px; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr>
                       <tr><td class="t-orador" align="center" style="padding-top:14px; font-family:{FONT}; font-size:16px; line-height:22px; font-weight:700; color:{ESCURO}; text-align:center;">{nome}</td></tr>
                       <tr><td class="t-cargo" align="center" style="padding-top:4px; font-family:{FONT}; font-size:14px; line-height:20px; color:{MUTED}; text-align:center;">{cargo}</td></tr>
                     </table>
@@ -222,7 +229,7 @@ def dados():
     return filete(40, 0) + linha(
         f'<strong {FORTE}>Sexta-feira, 16&nbsp;de&nbsp;outubro de&nbsp;2026</strong><br>'
         f'21h00{PONTO}<strong {FORTE}>Casa da Juventude</strong><br>'
-        f'<a href="{MAPA}" style="color:{MUTED}; text-decoration:none;">Vila Nova de&nbsp;Famalicão</a>',
+        f'<a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Vila Nova de&nbsp;Famalicão</a>',
         24, 24, f'font-size:15px; line-height:29px; color:{TEXTO};', 'center', 't-dados') + filete(0, 48)
 
 
@@ -230,14 +237,13 @@ def dados():
 CSS_TELEMOVEL = '''
       .px          { padding-left:22px !important; padding-right:22px !important; }
       .t-etiqueta  { font-size:13px !important; line-height:18px !important; }
-      .t-tema      { font-size:%dpx !important; line-height:%dpx !important; }
       .t-corpo     { font-size:18px !important; line-height:30px !important; }
       .t-orador    { font-size:17px !important; line-height:23px !important; }
       .t-cargo     { font-size:14px !important; line-height:20px !important; }
       .t-dados     { font-size:17px !important; line-height:31px !important; }
       .t-rodape    { font-size:14px !important; line-height:22px !important; }
       .t-rodape-p  { font-size:13px !important; line-height:20px !important; }
-      .orador      { padding-left:6px !important; padding-right:6px !important; }''' % (TEMA_PX_TELEMOVEL, TEMA_PX_TELEMOVEL + 7)
+      .orador      { padding-left:6px !important; padding-right:6px !important; }'''
 
 
 def pagina(t, embutir, largura=1040):

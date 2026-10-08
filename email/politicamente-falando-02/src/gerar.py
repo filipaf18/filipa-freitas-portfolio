@@ -21,7 +21,7 @@ Regras de construção (para sobreviver à colagem no Gmail e ao telemóvel), he
 - nada de white-space:nowrap (ao colar passa a text-wrap-mode, que o Gmail não conhece): textos que não podem partir
   são divididos em linhas curtas que cabem num ecrã de 320 px.
 
-Todas as imagens vão por endereço (nunca embutidas em base64): o HTML fica com ~15 KB e o Gmail não tem de converter
+Nenhuma imagem tem ligação (clicar numa imagem não abre nada). Todas as imagens vão por endereço (nunca embutidas em base64): o HTML fica com ~15 KB e o Gmail não tem de converter
 imagens ao colar nem ao enviar.
 
 Gera (a partir de email/politicamente-falando-02/):
@@ -44,7 +44,7 @@ IMG = AQUI / 'imagens'
 # por isso a imagem nunca muda depois de o email sair. Se as imagens forem carregadas para o site, basta trocar
 # PASTA_IMAGENS por 'https://jsdfamalicao.pt/convite/politicamente-falando-02'.
 # Ao mudar uma imagem: preparar_imagens.py, commit e push, e pôr aqui o novo commit.
-COMMIT_IMAGENS = '8cadf147690b62a96e2219c7adfee143dd9a14f2'
+COMMIT_IMAGENS = 'ead3be1e30028ec3a06bc1bbb81c266d593f37b1'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/politicamente-falando-02/imagens'
 IMAGENS = {   # nome → (ficheiro local, endereço público)
     'banner': ('banner.jpg', f'{PASTA_IMAGENS}/banner.jpg'),
@@ -311,10 +311,8 @@ def pagina(t, largura=1040):
 
     <tr>
       <td align="center" bgcolor="#61799F" style="background-color:#61799F; font-size:0; line-height:0; text-align:center;">
-        <a href="{SITE}" style="text-decoration:none;">
-          <img src="{src_imagem('banner')}" width="640" alt="Politicamente Falando. Convite."
-               style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
-        </a>
+        <img src="{src_imagem('banner')}" width="640" alt="Politicamente Falando. Convite."
+             style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
       </td>
     </tr>{barra}
 

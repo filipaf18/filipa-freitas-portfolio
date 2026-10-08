@@ -33,13 +33,21 @@ As do GitHub são os ficheiros da pasta `imagens/` deste repositório (público)
 
 ### Banner
 
-O convite da 1.ª sessão chegou como um JPEG de 1600 px muito comprimido: contornos ondulados e com halos, e o laranja do «convite» esborratado. Além disso, o recorte tem só 1200 px, menos do que um ecrã de computador. `src/preparar_imagens.py` reconstrói-o ao dobro (2400 × 800, ~220 KB), como um designer redesenharia um logótipo:
-1. Lê a forma das letras do original, ampliado 4×.
-2. Vetoriza-a com o potrace (`pip install potracer`): as mesmas letras, convertidas em retas e curvas, sem o serrilhado da compressão.
-3. Desenha as letras a 9600 px e reduz para 2400 px, para os contornos ficarem suaves.
-4. Mantém o fundo do original, ampliado; debaixo das letras e dos halos, preenche-o com as cores à volta.
+O convite da 1.ª sessão chegou como um JPEG de 1600 px muito comprimido: contornos ondulados e com halos, e o laranja do «convite» esborratado (a compressão guarda a cor a metade da resolução). Além disso, o recorte tem só 1200 px, menos do que um ecrã de computador. `src/preparar_imagens.py` reconstrói-o ao dobro (2400 × 800, ~220 KB):
+
+- **«POLITICAMENTE FALANDO» (branco), vetorizado:**
+  1. a forma das letras é lida do original ampliado 4×;
+  2. o potrace (`pip install potracer`) converte-a em retas e curvas, as mesmas letras sem serrilhado;
+  3. as letras são desenhadas a 9600 px e reduzidas para 2400 px.
+- **«convite» (laranja, caligráfico), sem vetorização:** vetorizado ficava grosso e irregular.
+  - A forma vem do *brilho* do original, que a compressão guarda à resolução total. Não há cortes e a cor é o laranja do original.
+  - Mantém a caligrafia e os traços finos e grossos, sem a franja azul que a compressão deixou à volta.
+  - Onde o «convite» toca nas letras brancas (o «t» cruza o «D» e o «O»), ficam os píxeis do original, tal e qual.
+- **Fundo:** é o do original, ampliado. Debaixo das letras e dos halos é preenchido com as cores à volta.
 
 O JPEG fica sem subamostragem de cor. Comparação em `previas/banner-antes-agora.png`. **Com o ficheiro original do designer (PNG ou PDF), o banner ficaria ainda melhor**: basta pô-lo em `originais/convite-01.jpg` (ou ajustar o recorte) e correr os scripts.
+
+**Nenhuma imagem tem ligação:** clicar no banner, nas fotos, na assinatura ou no logo não abre nada. As únicas ligações são de texto: a morada (Google Maps) e `jsdfamalicao.pt` no rodapé.
 
 **Pelo script de envio dos 50 anos (Apps Script, a partir das listas):**
 1. As imagens já estão online (ver «Imagens: sempre por endereço»).

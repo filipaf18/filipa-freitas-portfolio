@@ -1,0 +1,437 @@
+"""Convite por email · Politicamente Falando #02 · «Justiça em Portugal. Conformada ou reformada?»
+
+Mesmo modelo dos convites dos 50 anos (email/jsd-50-anos, versões v7/v8, no ramo claude/jsd-famalicao-dinner-email-uo5ccm):
+banner a toda a largura → barra com o degradê da marca → etiqueta e tema → carta → oradores → assinatura → dados
+entre dois filetes → rodapé com o logo dos 50 anos.
+
+Regras de construção (para sobreviver à colagem no Gmail e ao telemóvel), herdadas dos 50 anos:
+- tudo inline; o <style> só aumenta a letra em ecrãs até 600 px (o Gmail descarta-o ao colar e o email continua legível);
+- cada bloco de texto é uma linha de tabela e os espaços são padding de <td> (nada de margin);
+- larguras fluidas: tabelas com width="100%" (atributo); imagens com width numérico de reserva + max-width:100% no style.
+
+Gera (a partir de email/politicamente-falando-02/):
+- convite-institucional.html e convite-geral.html: imagens embutidas (abrem em qualquer lado, sem internet);
+- copiar-convites.html: página que põe o email na área de transferência, para colar no Gmail;
+- apps-script/convite_institucional.html e apps-script/convite.html: imagens por endereço, para o script de envio
+  pela folha dos 50 anos (que procura ficheiros HTML com estes nomes).
+
+Uso: python3 src/preparar_imagens.py && python3 src/gerar.py
+"""
+import base64, html as _html, json, pathlib, re
+from PIL import ImageFont
+
+AQUI = pathlib.Path(__file__).resolve().parent.parent
+IMG = AQUI / 'imagens'
+
+# ------------------------------------------------------------------ imagens
+# Endereços para o envio por script (o Gmail não mostra imagens embutidas num email enviado por script).
+# As da pasta imagens/ têm de ser carregadas para URL_PASTA antes do envio; o logo é o mesmo já publicado para os 50 anos.
+URL_PASTA = 'https://jsdfamalicao.pt/convite/politicamente-falando-02'
+IMAGENS = {   # nome → (ficheiro local, tipo, endereço público)
+    'banner': ('banner.jpg', 'image/jpeg', f'{URL_PASTA}/banner.jpg'),
+    'eva': ('orador-eva-bras-pinho.jpg', 'image/jpeg', f'{URL_PASTA}/orador-eva-bras-pinho.jpg'),
+    'alvaro': ('orador-alvaro-oliveira.jpg', 'image/jpeg', f'{URL_PASTA}/orador-alvaro-oliveira.jpg'),
+    'assinatura': ('assinatura-daniela-torres.png', 'image/png', f'{URL_PASTA}/assinatura-daniela-torres.png'),
+    'logo': ('logo-50-anos.png', 'image/png', 'https://jsdfamalicao.pt/convite/logo-50-anos.png'),
+}
+
+
+def src_imagem(nome, embutir):
+    ficheiro, mime, url = IMAGENS[nome]
+    if not embutir:
+        return url
+    return f'data:{mime};base64,' + base64.b64encode((IMG / ficheiro).read_bytes()).decode()
+
+
+# ------------------------------------------------------------------ evento
+SITE = 'https://jsdfamalicao.pt'
+MAPA = 'https://www.google.com/maps/search/?api=1&amp;query=Casa+da+Juventude,+Vila+Nova+de+Famalic%C3%A3o'   # «&» já escapado
+TEMA = [('Justiça em Portugal.', 400), ('Conformada ou reformada?', 800)]
+
+# ------------------------------------------------------------------ estilo
+FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
+DEGRADE = 'linear-gradient(90deg,#0E87D9 0%,#1EBCE8 25%,#54CFC9 40%,#F8B451 60%,#F86420 100%)'
+LADO = 24
+ESCURO, TEXTO, MUTED, AZUL, LARANJA = '#14181F', '#3A3F47', '#646B75', '#0B72B8', '#F86420'
+CORPO = f'font-size:16px; line-height:27px; color:{TEXTO};'
+FORTE = f'style="color:{ESCURO};"'
+PONTO = f'<span style="color:{LARANJA};">&nbsp;·&nbsp;</span>'
+
+# ------------------------------------------------------------------ textos
+ASSINANTE = ('Daniela Torres', 'Presidente da Comissão Política da JSD&nbsp;Famalicão')
+ORADORES = [('eva', 'Eva Brás Pinho', 'Deputada da XVII&nbsp;Legislatura'),
+            ('alvaro', 'Álvaro Oliveira', 'Advogado')]
+TEMA_TXT = '«Justiça em Portugal. Conformada ou reformada?»'
+
+CONVITES = {
+    'institucional': dict(
+        ficheiro='convite-institucional.html', apps_script='convite_institucional.html',
+        rotulo='Convite institucional', assunto='Convite · Politicamente Falando #02',
+        titulo='Politicamente Falando #02 · Convite',
+        preheader='Justiça em Portugal. Conformada ou reformada? Sexta-feira, 16 de outubro, às 21h00, na Casa da Juventude.',
+        saudacao='Estimado(a) companheiro(a),',
+        paragrafos=[
+            f'A Juventude Social Democrata de Vila Nova de Famalicão tem a honra de o(a) convidar para a segunda sessão da iniciativa <strong {FORTE}>Politicamente Falando</strong>, subordinada ao tema <strong {FORTE}>{TEMA_TXT}</strong>.',
+            f'Esta sessão contará com a participação de <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da XVII&nbsp;Legislatura, e de <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, promovendo um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
+        ],
+        fecho='Contamos com a sua presença.',
+        despedida='Com os melhores cumprimentos,',
+        rodape_extra='',
+    ),
+    'geral': dict(
+        ficheiro='convite-geral.html', apps_script='convite.html',
+        rotulo='Convite geral (militantes)', assunto='Politicamente Falando #02 · Justiça em Portugal',
+        titulo='Politicamente Falando #02 · Justiça em Portugal',
+        preheader='Justiça em Portugal. Conformada ou reformada? Sexta-feira, 16 de outubro, às 21h00, na Casa da Juventude.',
+        saudacao='Caro(a) companheiro(a),',
+        paragrafos=[
+            f'A JSD Famalicão convida-te para a segunda sessão do <strong {FORTE}>Politicamente Falando</strong>, desta vez dedicada ao tema <strong {FORTE}>{TEMA_TXT}</strong>.',
+            f'Vamos contar com <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da XVII&nbsp;Legislatura, e com <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, para um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
+        ],
+        fecho='Traz as tuas perguntas e vem fazer parte da conversa. Contamos contigo!',
+        despedida='Até lá,',
+        rodape_extra=f'''
+          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:{MUTED}; text-align:center;">Recebes este convite por fazeres parte da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>''',
+    ),
+}
+
+
+# ------------------------------------------------------------------ peças (as mesmas dos 50 anos)
+def sem_rasto(texto):
+    """Última letra sem letter-spacing: o espaço a seguir a ela desviava o texto centrado para a esquerda."""
+    return f'{texto[:-1]}<span style="letter-spacing:0;">{texto[-1]}</span>'
+
+
+def linha(html, cima=0, baixo=0, estilo=CORPO, alinhar='left', classe='t-corpo'):
+    """Um bloco de texto = uma linha de tabela; o espaço vem do padding da célula."""
+    return f'''
+          <tr>
+            <td class="px {classe}" align="{alinhar}" style="padding:{cima}px {LADO}px {baixo}px {LADO}px; font-family:{FONT}; {estilo} text-align:{alinhar};">{html}</td>
+          </tr>'''
+
+
+def filete(cima=0, baixo=0, cor='#DCE1E8'):
+    return f'''
+          <tr>
+            <td class="px" style="padding:{cima}px {LADO}px {baixo}px {LADO}px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td height="1" bgcolor="{cor}" style="height:1px; background-color:{cor}; font-size:0; line-height:0;">&nbsp;</td></tr>
+              </table>
+            </td>
+          </tr>'''
+
+
+def traco(cima=0, baixo=0):
+    """Traço curto laranja, centrado."""
+    return f'''
+          <tr>
+            <td align="center" style="padding:{cima}px {LADO}px {baixo}px {LADO}px; text-align:center;">
+              <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                <tr><td width="56" height="2" bgcolor="{LARANJA}" style="width:56px; height:2px; background-color:{LARANJA}; font-size:0; line-height:0;">&nbsp;</td></tr>
+              </table>
+            </td>
+          </tr>'''
+
+
+# ------------------------------------------------------------------ tema com o degradê da marca, letra a letra
+# O texto em degradê do CSS não funciona no Gmail: cada letra leva a cor do degradê na sua posição horizontal, com a
+# mesma escala nas duas linhas (centradas), como se o degradê pintasse o bloco. As cores claras do meio são escurecidas
+# só o necessário para terem contraste de 3:1 sobre branco (texto grande). Larguras medidas com a Liberation Sans,
+# que tem as mesmas medidas da Arial/Helvetica.
+PARAGENS = [(0, '#0E87D9'), (.25, '#1EBCE8'), (.40, '#54CFC9'), (.60, '#F8B451'), (1, '#F86420')]
+TEMA_PX, TEMA_PX_TELEMOVEL = 30, 24
+_LETRA = {400: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+          800: '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'}
+
+
+def _luminancia(c):
+    f = lambda v: v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (f(v / 255) for v in c)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def cor_degrade(t, contraste=3.0):
+    for (t0, c0), (t1, c1) in zip(PARAGENS, PARAGENS[1:]):
+        if t <= t1:
+            u = (t - t0) / (t1 - t0)
+            a, b = (int(c0[i:i + 2], 16) for i in (1, 3, 5)), (int(c1[i:i + 2], 16) for i in (1, 3, 5))
+            c = [x + (y - x) * u for x, y in zip(a, b)]
+            break
+    k = 1.0
+    while 1.05 / (_luminancia([v * k for v in c]) + 0.05) < contraste:
+        k -= 0.005
+    return '#%02X%02X%02X' % tuple(round(v * k) for v in c)
+
+
+def tema():
+    fontes = {p: ImageFont.truetype(f, 1000) for p, f in _LETRA.items()}
+    larguras = [fontes[p].getlength(t) for t, p in TEMA]
+    total = max(larguras)
+    linhas = []
+    for (txt, peso), largura in zip(TEMA, larguras):
+        x = (total - largura) / 2                      # linhas centradas: o degradê é o do bloco
+        palavras = []
+        for palavra in txt.split(' '):
+            letras = []
+            for l in palavra:
+                w = fontes[peso].getlength(l)
+                letras.append(f'<span style="color:{cor_degrade(min(1, (x + w / 2) / total))};">{_html.escape(l)}</span>')
+                x += w
+            x += fontes[peso].getlength(' ')
+            # cada palavra inteira: num ecrã estreito a linha só parte nos espaços
+            palavras.append(f'<span style="white-space:nowrap;">{"".join(letras)}</span>')
+        linhas.append(f'<span style="font-weight:{peso};">{" ".join(palavras)}</span>')
+    return linha('<br>'.join(linhas), 14, 0,
+                 f'font-size:{TEMA_PX}px; line-height:{TEMA_PX + 8}px; color:{ESCURO};', 'center', 't-tema')
+
+
+# ------------------------------------------------------------------ blocos
+def oradores(embutir):
+    def celula(chave, nome, cargo, padding):
+        return f'''
+                  <td class="orador" width="50%" valign="top" align="center" style="width:50%; padding:{padding}; text-align:center; vertical-align:top;">
+                    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:240px; margin:0 auto;">
+                      <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img src="{src_imagem(chave, embutir)}" width="240" alt="{nome}" style="display:block; width:100%; max-width:240px; height:auto; border:0; outline:none; border-radius:6px; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr>
+                      <tr><td class="t-orador" align="center" style="padding-top:14px; font-family:{FONT}; font-size:16px; line-height:22px; font-weight:700; color:{ESCURO}; text-align:center;">{nome}</td></tr>
+                      <tr><td class="t-cargo" align="center" style="padding-top:4px; font-family:{FONT}; font-size:14px; line-height:20px; color:{MUTED}; text-align:center;">{cargo}</td></tr>
+                    </table>
+                  </td>'''
+    (c1, n1, k1), (c2, n2, k2) = ORADORES
+    return f'''
+          <tr>
+            <td class="px" align="center" style="padding:30px {LADO}px 0 {LADO}px; text-align:center;">
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:528px; margin:0 auto;">
+                <tr>{celula(c1, n1, k1, '0 10px 0 0')}{celula(c2, n2, k2, '0 0 0 10px')}
+                </tr>
+              </table>
+            </td>
+          </tr>'''
+
+
+def assinatura(embutir):
+    nome, cargo = ASSINANTE
+    return f'''
+          <tr>
+            <td class="px" align="left" style="padding:14px {LADO}px 0 {LADO}px; font-size:0; line-height:0; text-align:left;"><img src="{src_imagem('assinatura', embutir)}" width="190" alt="Assinatura de {nome}" style="display:block; width:190px; max-width:100%; height:auto; border:0; outline:none; color:{AZUL}; font-family:{FONT}; font-size:14px; line-height:20px;"></td>
+          </tr>''' + linha(nome, 8, 0, f'font-size:16px; line-height:24px; font-weight:700; color:{ESCURO};') + \
+        linha(cargo, 2, 0, f'font-size:14px; line-height:21px; color:{MUTED};', classe='t-cargo')
+
+
+def dados():
+    """Data, hora e local em três linhas centradas entre dois filetes finos."""
+    return filete(40, 0) + linha(
+        f'<strong {FORTE}>Sexta-feira, 16&nbsp;de&nbsp;outubro de&nbsp;2026</strong><br>'
+        f'21h00{PONTO}<strong {FORTE}>Casa da Juventude</strong><br>'
+        f'<a href="{MAPA}" style="color:{MUTED}; text-decoration:none;">Vila Nova de&nbsp;Famalicão</a>',
+        24, 24, f'font-size:15px; line-height:29px; color:{TEXTO};', 'center', 't-dados') + filete(0, 48)
+
+
+# ------------------------------------------------------------------ página
+CSS_TELEMOVEL = '''
+      .px          { padding-left:22px !important; padding-right:22px !important; }
+      .t-etiqueta  { font-size:13px !important; line-height:18px !important; }
+      .t-tema      { font-size:%dpx !important; line-height:%dpx !important; }
+      .t-corpo     { font-size:18px !important; line-height:30px !important; }
+      .t-orador    { font-size:17px !important; line-height:23px !important; }
+      .t-cargo     { font-size:14px !important; line-height:20px !important; }
+      .t-dados     { font-size:17px !important; line-height:31px !important; }
+      .t-rodape    { font-size:14px !important; line-height:22px !important; }
+      .t-rodape-p  { font-size:13px !important; line-height:20px !important; }
+      .orador      { padding-left:6px !important; padding-right:6px !important; }''' % (TEMA_PX_TELEMOVEL, TEMA_PX_TELEMOVEL + 7)
+
+
+def pagina(t, embutir, largura=1040):
+    estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
+    barra = f'''
+    <tr>
+      <td height="6" bgcolor="{LARANJA}" style="height:6px; font-size:0; line-height:0; background-color:{LARANJA}; background-image:{DEGRADE};">&nbsp;</td>
+    </tr>'''
+    corpo = ''.join([
+        linha(sem_rasto('SESSÃO #02'), 44, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta'),
+        tema(),
+        traco(24, 0),
+        linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
+        *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
+        oradores(embutir),
+        linha(t['fecho'], 30, 0),
+        linha(t['despedida'], 24, 0),
+        assinatura(embutir),
+        dados(),
+    ])
+    return f'''<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>{t['titulo']}</title>
+  <style>
+    /* Em ecrãs até 600 px (telemóveis) a letra aumenta. As medidas inline continuam a ser a base. */
+    body {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }}
+    :root {{ color-scheme:light only; supported-color-schemes:light only; }}
+    a[x-apple-data-detectors] {{ color:inherit !important; text-decoration:none !important; font-size:inherit !important; font-family:inherit !important; font-weight:inherit !important; line-height:inherit !important; }}
+    @media only screen and (max-width:600px) {{{CSS_TELEMOVEL}
+    }}
+  </style>
+</head>
+
+<!-- Gerado por src/gerar.py. Banner e barras a toda a largura; texto numa coluna de até {largura} px. -->
+
+<body style="margin:0; padding:0; background-color:#FFFFFF;">
+
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#FFFFFF;">
+    {t['preheader']}
+    &#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; color-scheme:light only;">
+
+    <tr>
+      <td align="center" bgcolor="#61799F" style="background-color:#61799F; font-size:0; line-height:0; text-align:center;">
+        <a href="{SITE}" style="text-decoration:none;">
+          <img src="{src_imagem('banner', embutir)}" width="640" alt="Politicamente Falando. Convite."
+               style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
+        </a>
+      </td>
+    </tr>{barra}
+
+    <tr>
+      <td align="center" style="padding:0; text-align:center;">
+        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">
+{corpo}
+        </table>
+      </td>
+    </tr>
+{barra}
+
+    <tr>
+      <td class="px" align="center" bgcolor="#F5F7FA" style="background-color:#F5F7FA; padding:36px {LADO}px 32px {LADO}px; font-family:{FONT}; text-align:center;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0;"><img src="{src_imagem('logo', embutir)}" width="170" alt="50 anos JSD Famalicão" style="display:block; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr></table></td></tr>
+          <tr><td class="t-rodape" align="center" style="padding-top:22px; font-family:{FONT}; font-size:12px; line-height:19px; color:{MUTED}; text-align:center;">Juventude Social Democrata de Vila&nbsp;Nova de&nbsp;Famalicão<br><a href="{SITE}" style="color:{ESCURO}; text-decoration:underline;">jsdfamalicao.pt</a></td></tr>{t['rodape_extra']}
+        </table>
+      </td>
+    </tr>
+
+  </table>
+
+</body>
+</html>
+'''
+
+
+def texto_simples(doc):
+    """Versão em texto simples (vai junto do HTML ao copiar, para sítios que não aceitam HTML)."""
+    corpo = re.sub(r'<!--.*?-->', '', doc, flags=re.S)
+    corpo = re.sub(r'<(style|head)[^>]*>.*?</\1>', '', corpo, flags=re.S)
+    corpo = re.sub(r'<div style="display:none;.*?</div>', '', corpo, flags=re.S)
+    corpo = re.sub(r'<br\s*/?>|</tr>|</p>', '\n', corpo)
+    corpo = _html.unescape(re.sub(r'<[^>]+>', '', corpo)).replace(' ', ' ')
+    linhas = [re.sub(r'[ \t]+', ' ', l).strip() for l in corpo.splitlines()]
+    return re.sub(r'\n{3,}', '\n\n', '\n'.join(linhas)).strip()
+
+
+# ------------------------------------------------------------------ página para copiar sem estragar o layout
+# Com Ctrl+A / Ctrl+C numa página aberta, o Chrome fixa as larguras fluidas em píxeis (a largura da janela) e o email
+# chega ao telemóvel mais largo do que o ecrã. Esta página põe na área de transferência o HTML ORIGINAL de cada convite.
+def pagina_copiar(docs):
+    dados_js = {k: {'html': h, 'texto': texto_simples(h), 'assunto': CONVITES[k]['assunto']} for k, h in docs.items()}
+    js = json.dumps(dados_js, ensure_ascii=False).replace('</', '<\\/')
+    cartoes = ''.join(f'''
+    <section class="cartao">
+      <h2>{CONVITES[k]['rotulo']}</h2>
+      <p class="assunto">Assunto: <strong>{CONVITES[k]['assunto']}</strong></p>
+      <div class="botoes">
+        <button type="button" data-copiar="{k}">Copiar convite</button>
+        <button type="button" class="secundario" data-assunto="{k}">Copiar assunto</button>
+      </div>
+      <p class="estado" id="estado-{k}" aria-live="polite"></p>
+      <iframe title="Pré-visualização: {CONVITES[k]['rotulo']}" data-previa="{k}" loading="lazy"></iframe>
+    </section>''' for k in docs)
+    return f'''<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Copiar convites · Politicamente Falando #02</title>
+  <style>
+    body {{ margin:0; background:#F2F4F7; color:#14181F; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; }}
+    main {{ max-width:1100px; margin:0 auto; padding:32px 16px 48px; }}
+    h1 {{ font-size:24px; margin:0 0 8px; }}
+    ol {{ line-height:1.6; padding-left:20px; margin:0 0 16px; }}
+    .aviso {{ color:#646B75; margin:0 0 24px; }}
+    .grelha {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:24px; }}
+    .cartao {{ background:#FFFFFF; border:1px solid #DCE1E8; border-radius:8px; padding:20px; min-width:0; }}
+    h2 {{ font-size:18px; margin:0; }}
+    .assunto {{ color:#3A3F47; font-size:14px; margin:6px 0 14px; overflow-wrap:anywhere; }}
+    .botoes {{ display:flex; gap:10px; flex-wrap:wrap; }}
+    button {{ font:inherit; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:14px; color:#14181F; background:#F86420;
+              background-image:linear-gradient(90deg,#F8B451,#F86420); border:0; border-radius:4px; padding:14px 22px; cursor:pointer; flex:1 1 auto; }}
+    button.secundario {{ background:#FFFFFF; background-image:none; border:1px solid #DCE1E8; flex:0 1 auto; }}
+    button:focus-visible {{ outline:3px solid #0B72B8; outline-offset:2px; }}
+    .estado {{ min-height:20px; font-size:14px; color:#1E7A3C; margin:10px 0; }}
+    iframe {{ width:100%; height:640px; border:1px solid #DCE1E8; border-radius:6px; background:#FFFFFF; }}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Copiar convites · Politicamente Falando #02</h1>
+  <ol>
+    <li>Clica em <strong>Copiar convite</strong> no convite que queres enviar.</li>
+    <li>No Gmail, abre uma <strong>Nova mensagem</strong>, clica no corpo e cola com <strong>Ctrl+V</strong> (⌘+V no Mac). Copia também o assunto.</li>
+    <li>Põe os destinatários em <strong>Cco</strong> e envia primeiro um teste para ti (vê no telemóvel e no computador).</li>
+  </ol>
+  <p class="aviso">Não copies o convite aberto no browser com Ctrl+A / Ctrl+C: o browser fixa as larguras em píxeis e o email fica desformatado no telemóvel.</p>
+  <div class="grelha">{cartoes}
+  </div>
+</main>
+<script>
+  const CONVITES = {js};
+  function copiar(tipo, texto, estado, mensagem) {{
+    let feito = false;
+    const aoCopiar = (e) => {{
+      if (tipo === 'html') e.clipboardData.setData('text/html', texto.html);
+      e.clipboardData.setData('text/plain', tipo === 'html' ? texto.texto : texto);
+      e.preventDefault(); feito = true;
+    }};
+    document.addEventListener('copy', aoCopiar, {{ once: true }});
+    try {{ document.execCommand('copy'); }} catch (_) {{}}
+    document.removeEventListener('copy', aoCopiar);
+    if (feito) {{ estado.textContent = mensagem; return; }}
+    const partes = tipo === 'html'
+      ? {{ 'text/html': new Blob([texto.html], {{ type: 'text/html' }}), 'text/plain': new Blob([texto.texto], {{ type: 'text/plain' }}) }}
+      : {{ 'text/plain': new Blob([texto], {{ type: 'text/plain' }}) }};
+    if (navigator.clipboard && window.ClipboardItem) {{
+      navigator.clipboard.write([new ClipboardItem(partes)])
+        .then(() => {{ estado.textContent = mensagem; }})
+        .catch(() => {{ estado.textContent = 'Não foi possível copiar automaticamente neste browser. Usa o Chrome.'; }});
+    }} else {{
+      estado.textContent = 'Não foi possível copiar automaticamente neste browser. Usa o Chrome.';
+    }}
+  }}
+  document.querySelectorAll('button[data-copiar]').forEach((b) => b.addEventListener('click', () =>
+    copiar('html', CONVITES[b.dataset.copiar], document.getElementById('estado-' + b.dataset.copiar), 'Convite copiado. Agora cola no Gmail com Ctrl+V.')));
+  document.querySelectorAll('button[data-assunto]').forEach((b) => b.addEventListener('click', () =>
+    copiar('texto', CONVITES[b.dataset.assunto].assunto, document.getElementById('estado-' + b.dataset.assunto), 'Assunto copiado.')));
+  document.querySelectorAll('iframe[data-previa]').forEach((f) => {{ f.srcdoc = CONVITES[f.dataset.previa].html; }});
+</script>
+</body>
+</html>
+'''
+
+
+if __name__ == '__main__':
+    embutidos = {}
+    (AQUI / 'apps-script').mkdir(exist_ok=True)
+    for chave, t in CONVITES.items():
+        embutidos[chave] = pagina(t, embutir=True)
+        (AQUI / t['ficheiro']).write_text(embutidos[chave], encoding='utf-8')
+        por_endereco = pagina(t, embutir=False)
+        (AQUI / 'apps-script' / t['apps_script']).write_text(por_endereco, encoding='utf-8')
+        print(f"{t['ficheiro']}: {len(embutidos[chave].encode()) // 1024} KB · apps-script/{t['apps_script']}: {len(por_endereco.encode()) // 1024} KB")
+    (AQUI / 'copiar-convites.html').write_text(pagina_copiar(embutidos), encoding='utf-8')
+    print('copiar-convites.html')

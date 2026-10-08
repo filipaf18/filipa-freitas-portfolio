@@ -33,7 +33,13 @@ As do GitHub são os ficheiros da pasta `imagens/` deste repositório (público)
 
 ### Banner
 
-O convite da 1.ª sessão chegou como um JPEG de 1600 px muito comprimido: halos à volta das letras e o laranja do «convite» esborratado. Além disso, o recorte tem só 1200 px, menos do que um ecrã de computador. `src/preparar_imagens.py` reconstrói-o ao dobro (2400 × 800, ~200 KB): amplia o fundo e preenche-o debaixo das letras; depois redesenha «POLITICAMENTE FALANDO» e «convite» com contornos nítidos, a partir da forma das letras do original; grava sem subamostragem de cor. **Com o ficheiro original do designer (PNG ou PDF), o banner ficaria ainda melhor**: basta pô-lo em `originais/convite-01.jpg` (ou ajustar o recorte) e correr os scripts.
+O convite da 1.ª sessão chegou como um JPEG de 1600 px muito comprimido: contornos ondulados e com halos, e o laranja do «convite» esborratado. Além disso, o recorte tem só 1200 px, menos do que um ecrã de computador. `src/preparar_imagens.py` reconstrói-o ao dobro (2400 × 800, ~220 KB), como um designer redesenharia um logótipo:
+1. Lê a forma das letras do original, ampliado 4×.
+2. Vetoriza-a com o potrace (`pip install potracer`): as mesmas letras, convertidas em retas e curvas, sem o serrilhado da compressão.
+3. Desenha as letras a 9600 px e reduz para 2400 px, para os contornos ficarem suaves.
+4. Mantém o fundo do original, ampliado; debaixo das letras e dos halos, preenche-o com as cores à volta.
+
+O JPEG fica sem subamostragem de cor. Comparação em `previas/banner-antes-agora.png`. **Com o ficheiro original do designer (PNG ou PDF), o banner ficaria ainda melhor**: basta pô-lo em `originais/convite-01.jpg` (ou ajustar o recorte) e correr os scripts.
 
 **Pelo script de envio dos 50 anos (Apps Script, a partir das listas):**
 1. As imagens já estão online (ver «Imagens: sempre por endereço»).

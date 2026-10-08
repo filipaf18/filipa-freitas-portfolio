@@ -59,7 +59,7 @@ PONTO = f'<span style="color:{LARANJA};">&nbsp;·&nbsp;</span>'
 
 # ------------------------------------------------------------------ textos
 ASSINANTE = ('Daniela Torres', 'Presidente da Comissão Política da JSD&nbsp;Famalicão')
-ORADORES = [('eva', 'Eva Brás Pinho', 'Deputada da XVII&nbsp;Legislatura'),
+ORADORES = [('eva', 'Eva Brás Pinho', 'Deputada da Assembleia da República'),
             ('alvaro', 'Álvaro Oliveira', 'Advogado')]
 TEMA_TXT = '«Justiça em Portugal. Conformada ou reformada?»'
 
@@ -72,7 +72,7 @@ CONVITES = {
         saudacao='Estimado(a) companheiro(a),',
         paragrafos=[
             f'A Juventude Social Democrata de Vila Nova de Famalicão tem a honra de o(a) convidar para a segunda sessão da iniciativa <strong {FORTE}>Politicamente Falando</strong>, subordinada ao tema <strong {FORTE}>{TEMA_TXT}</strong>.',
-            f'Esta sessão contará com a participação de <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da XVII&nbsp;Legislatura, e de <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, promovendo um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
+            f'Esta sessão contará com a participação de <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da Assembleia da República, e de <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, promovendo um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
         ],
         fecho='Contamos com a sua presença.',
         despedida='Com os melhores cumprimentos,',
@@ -86,7 +86,7 @@ CONVITES = {
         saudacao='Caro(a) companheiro(a),',
         paragrafos=[
             f'A JSD Famalicão convida-te para a segunda sessão do <strong {FORTE}>Politicamente Falando</strong>, desta vez dedicada ao tema <strong {FORTE}>{TEMA_TXT}</strong>.',
-            f'Vamos contar com <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da XVII&nbsp;Legislatura, e com <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, para um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
+            f'Vamos contar com <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da Assembleia da República, e com <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, para um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
         ],
         fecho='Traz as tuas perguntas e vem fazer parte da conversa. Contamos contigo!',
         despedida='Até lá,',

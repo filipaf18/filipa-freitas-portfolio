@@ -1,6 +1,6 @@
 # Convite por email · Politicamente Falando #02
 
-**«Justiça em Portugal. Conformada ou reformada?»** · sexta-feira, 16 de outubro de 2026, 21h00 · Casa da Juventude · com Eva Brás Pinho (Deputada da XVII Legislatura) e Álvaro Oliveira (Advogado).
+**«Justiça em Portugal. Conformada ou reformada?»** · sexta-feira, 16 de outubro de 2026, 21h00 · Casa da Juventude · com Eva Brás Pinho (Deputada da Assembleia da República) e Álvaro Oliveira (Advogado).
 
 Feito com o mesmo modelo dos convites dos 50 anos (`email/jsd-50-anos`, versões v7/v8, no ramo `claude/jsd-famalicao-dinner-email-uo5ccm`). O texto segue o convite da 1.ª sessão («O Sistema Político Português»), assinado pela Daniela Torres.
 

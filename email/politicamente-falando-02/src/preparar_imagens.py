@@ -32,8 +32,11 @@ cartaz = Image.open(ORIG / 'cartaz-02.jpg').convert('RGB')       # 1024 × 1280
 # 2. o potrace (potracer) converte essa forma em retas e curvas: as mesmas letras, sem serrilhado;
 # 3. as letras são desenhadas a 9600 px e reduzidas a 2400 px (contornos suaves e limpos);
 # 4. o fundo é o do original, ampliado; debaixo das letras (e dos halos) é preenchido com as cores à volta.
-# Branco: «POLITICAMENTE FALANDO»; laranja: «convite», desenhado por cima (cruza o «O» de «FALANDO»). JPEG sem
-# subamostragem de cor.
+# Isto vale para «POLITICAMENTE FALANDO» (branco). O «convite» (laranja, caligráfico, com traços finos e grossos) não é
+# vetorizado, que o deixava grosso e irregular: a sua forma vem do BRILHO do original, que a compressão guarda à
+# resolução total (só a cor fica a metade), sem cortes, e é pintado com o laranja do original — a mesma caligrafia, sem
+# a franja azul que a compressão deixou à volta. Onde o «convite» toca nas letras brancas (o «t» cruza o «D» e o «O»),
+# ficam os píxeis do original, tal e qual. JPEG sem subamostragem de cor.
 ESCALA, TRACO, SUPER = 2, 4, 4          # saída a 2×; forma lida a 4×; desenho sobreamostrado 4× (9600 px)
 recorte = convite.crop((200, 34, 1400, 434))
 L0, A0 = recorte.size
@@ -99,8 +102,9 @@ def desenha(forma, turdsize):
 
 
 alfa_branco = desenha(branco_forma, 40)
-alfa_laranja = desenha(laranja_forma, 20)
 LARANJA_CONVITE = np.array([225, 120, 54], np.float32)               # mediana do laranja do original
+# zona do laranja (só para tirar o «convite» original do fundo)
+alfa_laranja = np.asarray(Image.fromarray(laranja_forma.astype(np.uint8) * 255).resize((L, A), Image.BOX)).astype(np.float32) / 255
 
 # 4. fundo do original, sem as letras nem os halos
 grande = np.asarray(recorte.resize((L, A), Image.LANCZOS)).astype(np.float32)
@@ -121,7 +125,26 @@ transicao = desfoca(1 - fora, 2)[..., None]
 fundo = grande * (1 - transicao) + fundo * transicao
 
 final = fundo * (1 - alfa_branco[..., None]) + 255 * alfa_branco[..., None]
-final = final * (1 - alfa_laranja[..., None]) + LARANJA_CONVITE * alfa_laranja[..., None]
+
+# 5. «convite»: opacidade pelo brilho do original (à resolução do original), ampliada sem cortes
+LUMA = np.array([0.299, 0.587, 0.114], np.float32)
+original = np.asarray(recorte).astype(np.float32)
+brilho = original @ LUMA
+brilho_laranja = float(LARANJA_CONVITE @ LUMA)
+reduz = lambda a: np.asarray(Image.fromarray(np.clip(a * 255, 0, 255).astype(np.uint8)).resize((L0, A0), Image.BOX)).astype(np.float32) / 255
+brilho_fundo = np.asarray(Image.fromarray(np.clip(fundo, 0, 255).astype(np.uint8)).resize((L0, A0), Image.BOX)).astype(np.float32) @ LUMA
+sobre_branco = reduz(alfa_branco)
+zona = dilata(desfoca(original[..., 0] - original[..., 2], 1.0) > 15, 3)          # onde há laranja (pela cor), com margem
+opac = (np.clip((brilho - brilho_fundo) / np.maximum(brilho_laranja - brilho_fundo, 20), 0, 1) * (1 - sobre_branco) +
+        np.clip((255 - brilho) / (255 - brilho_laranja), 0, 1) * sobre_branco) * desfoca(zona.astype(np.float32), 1.0)
+opac = np.asarray(Image.fromarray((opac * 255).astype(np.uint8)).resize((L, A), Image.LANCZOS)).astype(np.float32)[..., None] / 255
+final = final * (1 - opac) + LARANJA_CONVITE * opac
+
+# 6. onde o «convite» toca nas letras brancas: os píxeis do original, tal e qual (com uma transição suave)
+zona_grande = np.asarray(Image.fromarray(zona.astype(np.uint8) * 255).resize((L, A), Image.NEAREST)) > 127
+cruz = dilata(zona_grande, 4) & dilata(alfa_branco > 0.5, 12)
+M = np.clip(desfoca(dilata(cruz, 4).astype(np.float32), 2.5) * 1.6, 0, 1)[..., None]
+final = final * (1 - M) + np.asarray(recorte.resize((L, A), Image.LANCZOS)).astype(np.float32) * M
 banner = Image.fromarray(np.clip(final + 0.5, 0, 255).astype(np.uint8))
 banner.save(IMG / 'banner.jpg', quality=90, subsampling=0, optimize=True, progressive=True)
 media = banner.resize((1, 1), Image.BOX).getpixel((0, 0))

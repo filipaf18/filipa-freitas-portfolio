@@ -2,7 +2,23 @@
 // depois de colado no Gmail (sem o <head>, logo sem o <style> responsivo).
 // Uso (a partir de email/politicamente-falando-02/): NODE_PATH=$(npm root -g) node src/previas.cjs
 const { chromium } = require('playwright');
-const { readFileSync } = require('node:fs');
+const fs = require('node:fs');
+const path = require('node:path');
+const { readFileSync } = fs;
+const AQUI = path.resolve(__dirname, '..');
+
+// As imagens vão por endereço (GitHub e jsdfamalicao.pt). Aqui cada endereço é respondido com o ficheiro igual da pasta
+// imagens/ (o site não é acessível deste ambiente); qualquer outro pedido à rede é bloqueado.
+const IMAGENS_LOCAIS = path.join(AQUI, 'imagens');
+async function imagensLocais(alvo) {
+  await alvo.route('**/*', (route) => {
+    const url = route.request().url();
+    if (!url.startsWith('http')) return route.continue();
+    const ficheiro = path.join(IMAGENS_LOCAIS, decodeURIComponent(url.split('?')[0].split('/').pop()));
+    if (fs.existsSync(ficheiro)) return route.fulfill({ path: ficheiro });
+    return route.abort();
+  });
+}
 
 (async () => {
 
@@ -18,6 +34,7 @@ for (const nome of CONVITES) {
   for (const [versao, html] of [['original', original], ['colado', colado]]) {
     for (const largura of LARGURAS) {
       const page = await browser.newPage({ viewport: { width: largura, height: 900 }, deviceScaleFactor: 1 });
+      await imagensLocais(page);
       await page.setContent(html, { waitUntil: 'load' });
       const r = await page.evaluate(() => {
         const W = document.documentElement.clientWidth;

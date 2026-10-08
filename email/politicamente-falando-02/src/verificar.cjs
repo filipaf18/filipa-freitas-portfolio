@@ -20,6 +20,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const AQUI = path.resolve(__dirname, '..');
+
+// As imagens vão por endereço (GitHub e jsdfamalicao.pt). Aqui cada endereço é respondido com o ficheiro igual da pasta
+// imagens/ (o site não é acessível deste ambiente); qualquer outro pedido à rede é bloqueado.
+const IMAGENS_LOCAIS = path.join(AQUI, 'imagens');
+async function imagensLocais(alvo) {
+  await alvo.route('**/*', (route) => {
+    const url = route.request().url();
+    if (!url.startsWith('http')) return route.continue();
+    const ficheiro = path.join(IMAGENS_LOCAIS, decodeURIComponent(url.split('?')[0].split('/').pop()));
+    if (fs.existsSync(ficheiro)) return route.fulfill({ path: ficheiro });
+    return route.abort();
+  });
+}
 const CONVITES = { institucional: 'convite-institucional.html', geral: 'convite-geral.html' };
 const LARGURAS = [320, 360, 375, 390, 414, 600, 768, 1024, 1400];
 const LARGURAS_VARIANTES = [320, 375, 768, 1400];
@@ -43,6 +56,9 @@ const VARIANTES = {
   'letra 25% maior': amplia,
   'sem font-size:0 nem line-height:0 (info)': semCss(/(font-size:\s*0(px)?|line-height:\s*0(px)?)\s*;?/g),
   'sem display:block nas imagens (info)': (h) => h.replace(/(<img\b[^>]*?style="[^"]*?)display:\s*block;?/g, '$1'),
+  'sem width nas tabelas (info)': semAttr('table', 'width'),
+  'sem cellpadding/cellspacing/border (info)': (h) => semAttr('table', 'border')(semAttr('table', 'cellspacing')(semAttr('table', 'cellpadding')(h))),
+  'sem atributos de largura/altura nas imagens (info)': (h) => semAttr('img', 'height')(semAttr('img', 'width')(h)),
 };
 // combinações que só se registam: o caminho errado (Ctrl+C troca os espaços do tema por &nbsp;) com letra 25 % maior
 // num ecrã de 320 px, e os clientes que ignorassem font-size:0 ou display:block (as barras e o traço engrossam).
@@ -72,7 +88,7 @@ const MEDIR = () => {
   for (const td of document.querySelectorAll('td[height="6"]')) { const b = R(td); add('barras de ponta a ponta', Math.abs(b.left) + Math.abs(b.right - W), ''); }
   let margem = null;
   // filetes da data: as bordas de cima e de baixo da tabela dos dados
-  for (const t of [...document.querySelectorAll('table')].filter((t) => parseFloat(getComputedStyle(t).borderTopWidth) > 0)) {
+  for (const t of [...document.querySelectorAll('table, div')].filter((t) => parseFloat(getComputedStyle(t).borderTopWidth) > 0)) {
     const b = R(t); add('filetes: margens iguais', Math.abs(b.left - (W - b.right)), ''); margem = margem ?? b.left;
   }
   if (margem === null) add('filetes da data em falta', 99, '');
@@ -93,10 +109,12 @@ const MEDIR = () => {
   }
   const signature = img('Assinatura');
   if (signature && margem !== null) add('texto à esquerda na margem dos filetes', Math.abs(R(signature).left - margem), 'assinatura');
-  for (const td of document.querySelectorAll('td')) {
+  // células e linhas de texto em <div> (a data): cada uma medida pela sua própria tinta
+  for (const td of document.querySelectorAll('td, div')) {
+    if (td.tagName === 'DIV' && (td.querySelector('div') || !td.closest('td'))) continue;
     const rects = [];
     const w = document.createTreeWalker(td, NodeFilter.SHOW_TEXT, { acceptNode: (n) =>
-      (n.textContent.replace(/[\s ]/g, '') && n.parentElement.closest('td') === td) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+      (n.textContent.replace(/[\s ]/g, '') && n.parentElement.closest('td, div') === td) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
     let n;
     while ((n = w.nextNode())) {
       const rg = document.createRange(); rg.selectNodeContents(n);
@@ -111,7 +129,7 @@ const MEDIR = () => {
       else linhas.push({ l: q.l, r: q.r, m, s: q.s });
     }
     const alinh = getComputedStyle(td).textAlign;
-    const orador = !!td.closest('table').closest('td') && [eva, alv].some((f) => f && f.closest('table') === td.closest('table'));
+    const orador = td.tagName === 'TD' && !!td.closest('table').closest('td') && [eva, alv].some((f) => f && f.closest('table') === td.closest('table'));
     for (const L of linhas) {
       if (alinh === 'center' || alinh === '-webkit-center') {
         if (orador) {
@@ -142,6 +160,7 @@ async function colar(ctx, larguraCaixa) {
 (async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
+  await imagensLocais(ctx);
   const fontes = {};       // `${convite} ${fonte}` → HTML colado (ou original)
   for (const [chave, ficheiro] of Object.entries(CONVITES)) {
     for (const caixa of [500, 640, 1000]) {
@@ -162,7 +181,7 @@ async function colar(ctx, larguraCaixa) {
     fontes[`${chave} script (HTML original)`] = fs.readFileSync(path.join(AQUI, ficheiro), 'utf8');
   }
 
-  const page = await browser.newPage();
+  const page = await ctx.newPage();
   const resumo = [];
   let falhas = 0;
   for (const [fonte, html] of Object.entries(fontes)) {

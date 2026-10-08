@@ -12,42 +12,51 @@ Regras de construção (para sobreviver à colagem no Gmail e ao telemóvel), he
   que mede na caixa de escrita (width:50% → width:254px) e no telemóvel o bloco fica mais largo do que o ecrã.
   Percentagens só no atributo width="…" ou em max-width/min-width, que chegam intactos (verificado em src/verificar.cjs);
 - barras e traço com font-size/line-height iguais à altura (e não 0): a altura não depende de o cliente respeitar
-  font-size:0; os filetes da data são bordas da tabela;
+  font-size:0;
+- nada que dependa do atributo width das tabelas para ficar no sítio (um cliente pode retirá-lo e a tabela encolhe e
+  encosta à esquerda): a data é um <div> com os filetes como bordas, o rodapé e as tabelas interiores centram-se com
+  align + margin:0 auto, e o email tem min-width:100%;
+- a célula à volta da coluna de texto não centra por herança: cada bloco centrado tem a sua centragem (que o Chrome
+  mantém ao colar, por não ser redundante);
 - nada de white-space:nowrap (ao colar passa a text-wrap-mode, que o Gmail não conhece): textos que não podem partir
   são divididos em linhas curtas que cabem num ecrã de 320 px.
 
+Todas as imagens vão por endereço (nunca embutidas em base64): o HTML fica com ~15 KB e o Gmail não tem de converter
+imagens ao colar nem ao enviar.
+
 Gera (a partir de email/politicamente-falando-02/):
-- convite-institucional.html e convite-geral.html: imagens embutidas (abrem em qualquer lado, sem internet);
+- convite-institucional.html e convite-geral.html;
 - copiar-convites.html: página que põe o email na área de transferência, para colar no Gmail;
-- apps-script/convite_institucional.html e apps-script/convite.html: imagens por endereço, para o script de envio
-  pela folha dos 50 anos (que procura ficheiros HTML com estes nomes).
+- apps-script/convite_institucional.html e apps-script/convite.html: o mesmo HTML, com os nomes que o script de envio
+  pela folha dos 50 anos procura.
 
 Uso: python3 src/preparar_imagens.py && python3 src/gerar.py
 """
-import base64, html as _html, json, pathlib, re
+import html as _html, json, pathlib, re
 from PIL import Image, ImageFont
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 IMG = AQUI / 'imagens'
 
 # ------------------------------------------------------------------ imagens
-# Endereços para o envio por script (o Gmail não mostra imagens embutidas num email enviado por script).
-# As da pasta imagens/ têm de ser carregadas para URL_PASTA antes do envio; o logo é o mesmo já publicado para os 50 anos.
-URL_PASTA = 'https://jsdfamalicao.pt/convite/politicamente-falando-02'
-IMAGENS = {   # nome → (ficheiro local, tipo, endereço público)
-    'banner': ('banner.jpg', 'image/jpeg', f'{URL_PASTA}/banner.jpg'),
-    'eva': ('orador-eva-bras-pinho.jpg', 'image/jpeg', f'{URL_PASTA}/orador-eva-bras-pinho.jpg'),
-    'alvaro': ('orador-alvaro-oliveira.jpg', 'image/jpeg', f'{URL_PASTA}/orador-alvaro-oliveira.jpg'),
-    'assinatura': ('assinatura-daniela-torres.png', 'image/png', f'{URL_PASTA}/assinatura-daniela-torres.png'),
-    'logo': ('logo-50-anos.png', 'image/png', 'https://jsdfamalicao.pt/convite/logo-50-anos.png'),
+# Sempre por endereço. O logo é o dos 50 anos, já publicado no site. As outras estão na pasta imagens/ deste repositório
+# (público) e são servidas pelo GitHub com o tipo certo (image/jpeg, image/png); o endereço aponta para um commit fixo,
+# por isso a imagem nunca muda depois de o email sair. Se as imagens forem carregadas para o site, basta trocar
+# PASTA_IMAGENS por 'https://jsdfamalicao.pt/convite/politicamente-falando-02'.
+# Ao mudar uma imagem: preparar_imagens.py, commit e push, e pôr aqui o novo commit.
+COMMIT_IMAGENS = '3dda03e6e1fa0632f2f436b3b1e4de92fb027883'
+PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/politicamente-falando-02/imagens'
+IMAGENS = {   # nome → (ficheiro local, endereço público)
+    'banner': ('banner.jpg', f'{PASTA_IMAGENS}/banner.jpg'),
+    'eva': ('orador-eva-bras-pinho.jpg', f'{PASTA_IMAGENS}/orador-eva-bras-pinho.jpg'),
+    'alvaro': ('orador-alvaro-oliveira.jpg', f'{PASTA_IMAGENS}/orador-alvaro-oliveira.jpg'),
+    'assinatura': ('assinatura-daniela-torres.png', f'{PASTA_IMAGENS}/assinatura-daniela-torres.png'),
+    'logo': ('logo-50-anos.png', 'https://jsdfamalicao.pt/convite/logo-50-anos.png'),
 }
 
 
-def src_imagem(nome, embutir):
-    ficheiro, mime, url = IMAGENS[nome]
-    if not embutir:
-        return url
-    return f'data:{mime};base64,' + base64.b64encode((IMG / ficheiro).read_bytes()).decode()
+def src_imagem(nome):
+    return IMAGENS[nome][1]
 
 
 # ------------------------------------------------------------------ evento
@@ -184,12 +193,12 @@ def tema():
 
 
 # ------------------------------------------------------------------ blocos
-def oradores(embutir):
+def oradores():
     def celula(chave, nome, cargo, padding):
         return f'''
                   <td class="orador" width="50%" valign="top" align="center" style="padding:{padding}; text-align:center; vertical-align:top;">
                     <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:240px; margin:0 auto;">
-                      <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img src="{src_imagem(chave, embutir)}" width="240" alt="{nome}" style="display:block; max-width:100%; height:auto; border:0; outline:none; border-radius:6px; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr>
+                      <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img src="{src_imagem(chave)}" width="240" alt="{nome}" style="display:block; max-width:100%; height:auto; border:0; outline:none; border-radius:6px; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr>
                       <tr><td class="t-orador" align="center" style="padding-top:14px; font-family:{FONT}; font-size:16px; line-height:22px; font-weight:700; color:{ESCURO}; text-align:center;">{nome}</td></tr>
                       <tr><td class="t-cargo" align="center" style="padding-top:4px; font-family:{FONT}; font-size:14px; line-height:20px; color:{MUTED}; text-align:center;">{cargo}</td></tr>
                     </table>
@@ -209,35 +218,31 @@ def oradores(embutir):
 ASSINATURA_PX = 190
 
 
-def assinatura(embutir):
+def assinatura():
     nome, cargo = ASSINANTE
     w, h = Image.open(IMG / IMAGENS['assinatura'][0]).size
     alt = round(ASSINATURA_PX * h / w)
     return f'''
           <tr>
-            <td class="px" align="left" style="padding:14px {LADO}px 0 {LADO}px; font-size:0; line-height:0; text-align:left;"><img src="{src_imagem('assinatura', embutir)}" width="{ASSINATURA_PX}" height="{alt}" alt="Assinatura de {nome}" style="display:block; width:{ASSINATURA_PX}px; height:{alt}px; border:0; outline:none; color:{AZUL}; font-family:{FONT}; font-size:14px; line-height:20px;"></td>
+            <td class="px" align="left" style="padding:14px {LADO}px 0 {LADO}px; font-size:0; line-height:0; text-align:left;"><img src="{src_imagem('assinatura')}" width="{ASSINATURA_PX}" height="{alt}" alt="Assinatura de {nome}" style="display:block; width:{ASSINATURA_PX}px; height:{alt}px; border:0; outline:none; color:{AZUL}; font-family:{FONT}; font-size:14px; line-height:20px;"></td>
           </tr>''' + linha(nome, 8, 0, f'font-size:16px; line-height:24px; font-weight:700; color:{ESCURO};') + \
         linha(cargo, 2, 0, f'font-size:14px; line-height:21px; color:{MUTED};', classe='t-cargo')
 
 
 def dados():
-    """Data, hora e local: três linhas centradas, cada uma na sua linha de tabela (sem <br>), entre dois filetes que são
-    as bordas da própria tabela. Sem o truque do &nbsp; com font-size:0 / line-height:0 (se um cliente o ignorar, o
-    filete de 1 px passa a uma faixa da altura de uma linha de texto)."""
-    def dado(html, cima, baixo):
-        return f'''
-                <tr>
-                  <td class="t-dados" align="center" style="padding:{cima}px 0 {baixo}px 0; font-family:{FONT}; font-size:15px; line-height:26px; color:{TEXTO}; text-align:center;">{html}</td>
-                </tr>'''
+    """Data, hora e local: três linhas centradas num bloco <div> entre dois filetes, que são as bordas do próprio bloco.
+    Um <div> ocupa a largura toda sem precisar do atributo width (que um cliente pode retirar: uma tabela sem ele encolhe
+    até à largura do texto e encosta à esquerda, com os filetes do tamanho do texto). Cada linha é um <div> com
+    text-align:center próprio; nada depende de &nbsp; com font-size:0 nem de <br>."""
+    linha_css = f'text-align:center; font-family:{FONT}; font-size:15px; line-height:26px; color:{TEXTO};'
     return f'''
           <tr>
             <td class="px" style="padding:40px {LADO}px 48px {LADO}px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {FILETE}; border-bottom:1px solid {FILETE};">''' + \
-        dado(f'<strong {FORTE}>Sexta-feira, 16&nbsp;de&nbsp;outubro de&nbsp;2026</strong>', 24, 0) + \
-        dado(f'21h00{PONTO}<strong {FORTE}>Casa da Juventude</strong>', 3, 0) + \
-        dado(f'<a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Vila Nova de&nbsp;Famalicão</a>', 3, 24) + \
-        '''
-              </table>
+              <div style="border-top:1px solid {FILETE}; border-bottom:1px solid {FILETE}; padding:24px 0; text-align:center;">
+                <div class="t-dados" style="{linha_css}"><strong {FORTE}>Sexta-feira, 16&nbsp;de&nbsp;outubro de&nbsp;2026</strong></div>
+                <div class="t-dados" style="padding-top:3px; {linha_css}">21h00{PONTO}<strong {FORTE}>Casa da Juventude</strong></div>
+                <div class="t-dados" style="padding-top:3px; {linha_css}"><a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Vila Nova de&nbsp;Famalicão</a></div>
+              </div>
             </td>
           </tr>'''
 
@@ -255,7 +260,7 @@ CSS_TELEMOVEL = '''
       .orador      { padding-left:6px !important; padding-right:6px !important; }'''
 
 
-def pagina(t, embutir, largura=1040):
+def pagina(t, largura=1040):
     estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
     barra = f'''
     <tr>
@@ -267,10 +272,10 @@ def pagina(t, embutir, largura=1040):
         traco(24, 0),
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
-        oradores(embutir),
+        oradores(),
         linha(t['fecho'], 30, 0),
         linha(t['despedida'], 24, 0),
-        assinatura(embutir),
+        assinatura(),
         dados(),
     ])
     return f'''<!DOCTYPE html>
@@ -302,19 +307,19 @@ def pagina(t, embutir, largura=1040):
     &#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; color-scheme:light only;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="min-width:100%; background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; color-scheme:light only;">
 
     <tr>
       <td align="center" bgcolor="#61799F" style="background-color:#61799F; font-size:0; line-height:0; text-align:center;">
         <a href="{SITE}" style="text-decoration:none;">
-          <img src="{src_imagem('banner', embutir)}" width="640" alt="Politicamente Falando. Convite."
+          <img src="{src_imagem('banner')}" width="640" alt="Politicamente Falando. Convite."
                style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
         </a>
       </td>
     </tr>{barra}
 
     <tr>
-      <td align="center" style="padding:0; text-align:center;">
+      <td style="padding:0;">
         <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">
 {corpo}
         </table>
@@ -324,8 +329,8 @@ def pagina(t, embutir, largura=1040):
 
     <tr>
       <td class="px" align="center" bgcolor="#F5F7FA" style="background-color:#F5F7FA; padding:36px {LADO}px 32px {LADO}px; font-family:{FONT}; text-align:center;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0;"><img src="{src_imagem('logo', embutir)}" width="170" alt="50 anos JSD Famalicão" style="display:block; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr></table></td></tr>
+        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+          <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0;"><img src="{src_imagem('logo')}" width="170" alt="50 anos JSD Famalicão" style="display:block; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr></table></td></tr>
           <tr><td class="t-rodape" align="center" style="padding-top:22px; font-family:{FONT}; font-size:12px; line-height:19px; color:{MUTED}; text-align:center;">Juventude Social Democrata de Vila&nbsp;Nova de&nbsp;Famalicão<br><a href="{SITE}" style="color:{ESCURO}; text-decoration:underline;">jsdfamalicao.pt</a></td></tr>{t['rodape_extra']}
         </table>
       </td>
@@ -440,13 +445,13 @@ def pagina_copiar(docs):
 
 
 if __name__ == '__main__':
-    embutidos = {}
+    gerados = {}
     (AQUI / 'apps-script').mkdir(exist_ok=True)
     for chave, t in CONVITES.items():
-        embutidos[chave] = pagina(t, embutir=True)
-        (AQUI / t['ficheiro']).write_text(embutidos[chave], encoding='utf-8')
-        por_endereco = pagina(t, embutir=False)
-        (AQUI / 'apps-script' / t['apps_script']).write_text(por_endereco, encoding='utf-8')
-        print(f"{t['ficheiro']}: {len(embutidos[chave].encode()) // 1024} KB · apps-script/{t['apps_script']}: {len(por_endereco.encode()) // 1024} KB")
-    (AQUI / 'copiar-convites.html').write_text(pagina_copiar(embutidos), encoding='utf-8')
+        gerados[chave] = pagina(t)
+        assert 'data:image' not in gerados[chave]
+        (AQUI / t['ficheiro']).write_text(gerados[chave], encoding='utf-8')
+        (AQUI / 'apps-script' / t['apps_script']).write_text(gerados[chave], encoding='utf-8')
+        print(f"{t['ficheiro']} e apps-script/{t['apps_script']}: {len(gerados[chave].encode()) // 1024} KB")
+    (AQUI / 'copiar-convites.html').write_text(pagina_copiar(gerados), encoding='utf-8')
     print('copiar-convites.html')

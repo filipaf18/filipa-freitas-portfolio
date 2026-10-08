@@ -52,7 +52,7 @@ for (const e of enviados) {
   if (!html.includes('<!DOCTYPE html>') || !html.includes('<head>')) falha('o HTML devia chegar completo, com <head>');
   if (/data:image/.test(html)) falha('sobrou uma imagem data:');
   const permitidas = ['https://jsdfamalicao.pt/convite/capa-evento-email.png', 'https://jsdfamalicao.pt/convite/dresscode.png',
-                      'https://jsdfamalicao.pt/convite/logo-50-anos.png'];       // IMAGENS_ONLINE em src/comum.py
+                      'https://jsdfamalicao.pt/convite/logo-50-anos.png', 'https://jsdfamalicao.pt/convite/logo-classe.png'];   // IMAGENS_ONLINE em src/comum.py
   for (const m of html.matchAll(/src="(https?:[^"]+)"/g)) if (!permitidas.includes(m[1])) falha('imagem externa não prevista: ' + m[1]);
   const usados = [...new Set([...html.matchAll(/src="cid:([^"]+)"/g)].map(m => m[1]))].sort();
   const anexados = Object.keys(imagens).sort();

@@ -28,7 +28,7 @@ Layout: o banner «Jantar Comemorativo» a toda a largura, as barras, a tipograf
 
 **After party:** o logótipo do Classe e a frase «Se quiseres prolongar a noite, o Classe Bar espera-nos a partir das 01h30, com entrada gratuita para todos os convidados.» (versão institucional: «Para quem desejar prolongar a noite, o Classe Bar acolherá os convidados a partir das 01h30, com entrada gratuita para os mesmos.»). Os textos do email foram fornecidos pela JSD Famalicão; estão no dicionário `CONFIRMACOES` de `src/gerar_confirmacao.py`. O ficheiro recebido (`dresscode/originais/classe-bar-logo-original.jpg`) trazia o axadrezado «de transparência» desenhado nos próprios píxeis, por isso `src/preparar_logo_classe.py` extrai as letras douradas para `dresscode/classe-bar-logo.png`, com fundo realmente transparente (funciona em fundo branco, cinzento e escuro). Para trocar o logo, substituir o original e correr `python3 src/preparar_logo_classe.py && python3 src/gerar_confirmacao.py`. **Falta a morada do Classe Bar** (o email não a inclui).
 
-**Tamanho e Gmail:** o HTML sem imagens tem cerca de 15 KB; com banner, logo, a imagem do dress code e o logo do Classe embutidos tem cerca de 262 KB. O limite de ~102 KB do Gmail aplica-se ao HTML da mensagem, e os convites anteriores já levam dezenas de KB de imagens embutidas e chegam bem: o Gmail converte as imagens coladas em anexos embutidos. Mesmo assim, **envia um teste e confirma que a mensagem não aparece cortada** («[Mensagem cortada] Ver a mensagem completa») e que as imagens aparecem. Se falhar, publicar os ficheiros de `dresscode/` num endereço público e preencher `IMAGENS_URL` em `src/gerar_confirmacao.py`: o HTML passa a referir as imagens por endereço e fica leve.
+**Tamanho e Gmail:** as 4 imagens (banner, mood board do dress code, logo do rodapé e logo do Classe) vão por endereço (ver «Imagens por endereço»), por isso cada HTML tem cerca de 14 KB, bem abaixo dos ~102 KB a partir dos quais o Gmail corta a mensagem. As imagens têm de estar publicadas nesses endereços para aparecerem no Gmail.
 
 **Verificado:** a 320, 360, 390 e 1400 px, com e sem `<style>`, sem deslocamento horizontal; `python3 src/verificar_alinhamento.py --rapido v11-confirmacao-geral.html v12-confirmacao-institucional.html` sem falhas (desvio máximo 0,75 px).
 
@@ -68,7 +68,7 @@ Os seis HTML (`v7` a `v12`) referem as imagens por endereço e já não as traze
 | Banner | `https://jsdfamalicao.pt/convite/capa-evento-email.png` |
 | Dress code (confirmação, v11/v12) | `https://jsdfamalicao.pt/convite/dresscode.png` |
 | Logo do rodapé | `https://jsdfamalicao.pt/convite/logo-50-anos.png` |
-| Logo do Classe Bar (confirmação, v11/v12) | **ainda embutido em base64**: por agora não aparece no Gmail se o email for enviado por script. Quando houver endereço, pô-lo em `IMAGENS_ONLINE['classe-bar']` |
+| Logo do Classe Bar (confirmação, v11/v12) | `https://jsdfamalicao.pt/convite/logo-classe.png` (o ficheiro local equivalente é `dresscode/classe-bar-logo.png`, com fundo transparente) |
 
 Os endereços estão em `IMAGENS_ONLINE`, em `src/comum.py` (para mudar uma imagem, muda aí e volta a correr `gerar_final.py`, `gerar_lembrete.py` e `gerar_confirmacao.py`). `JSD_IMAGENS=base64 python3 src/gerar_final.py` gera tudo com as imagens embutidas, para ver o email sem internet.
 
@@ -82,17 +82,17 @@ Os endereços estão em `IMAGENS_ONLINE`, em `src/comum.py` (para mudar uma imag
 
 **A solução, sem alojar nada num site (alternativa aos endereços acima):** o parâmetro `inlineImages` do Apps Script. O HTML refere `<img src="cid:banner">` e as imagens seguem anexadas ao próprio email (multipart/related); o Gmail mostra-as no sítio certo e sem pedir «Mostrar imagens». Como o HTML sai com ~13 KB (sem as imagens), deixa também de haver o corte do Gmail aos 102 KB (a confirmação v11/v12 tinha 261 KB com as imagens dentro).
 
-**Ficheiros** (em `apps-script/`, gerados por `python3 src/gerar_apps_script.py` a partir dos HTML v7 a v12; com as imagens por endereço, só o logo do Classe Bar, no 3.º email, segue ainda como anexo `cid:`, e `Imagens.gs` fica vazio):
+**Ficheiros** (em `apps-script/`, gerados por `python3 src/gerar_apps_script.py` a partir dos HTML v7 a v12; com as imagens todas por endereço, nenhum email leva anexos `cid:` e `Imagens.gs` e `ImagensDressCode.gs` ficam vazios):
 
 | Ficheiro | Para quê |
 | --- | --- |
 | `Enviar.gs` | `enviarEmail(destinatario, chave)` e `testeParaMim()`; assuntos e imagens de cada email |
 | `Convites.gs` | o HTML e o texto simples dos seis emails |
 | `Imagens.gs` | banner e logo em base64; `imagensInline(nomes)` devolve os blobs para o `inlineImages` |
-| `ImagensDressCode.gs` | imagens da confirmação (v11/v12); só é preciso para esse email |
+| `ImagensDressCode.gs` | imagens da confirmação (v11/v12) em base64; hoje vazio, porque o logo do Classe também já tem endereço |
 | `html/*.html` | o mesmo HTML, um ficheiro por email, para quem já tem o seu script |
 
-**Como usar:** em script.google.com, cola `Enviar.gs`, `Convites.gs` e `Imagens.gs` (e `ImagensDressCode.gs` para o 3.º email) num projeto, corre `testeParaMim()` e autoriza. Chegam seis emails de teste à tua conta: vê-os no Gmail (web e app) e no iPhone. Depois usa `enviarEmail(destinatario, 'convite-geral')` no teu envio (chaves: `convite-geral`, `convite-institucional`, `lembrete-geral`, `lembrete-institucional`, `confirmacao-geral`, `confirmacao-institucional`). Se já tens um script teu, a alteração é só esta: usa o HTML de `html/` e acrescenta `inlineImages: imagensInline(['banner', 'logo'])` às opções do envio (o 3.º email usa também `'dresscode'` e `'classe-bar'`). Se os nomes `enviarEmail`, `EMAILS` ou `REMETENTE` já existirem no teu projeto, muda-os.
+**Como usar:** em script.google.com, cola `Enviar.gs`, `Convites.gs` e `Imagens.gs` (e `ImagensDressCode.gs`, que hoje está vazio) num projeto, corre `testeParaMim()` e autoriza. Chegam seis emails de teste à tua conta: vê-os no Gmail (web e app) e no iPhone. Depois usa `enviarEmail(destinatario, 'convite-geral')` no teu envio (chaves: `convite-geral`, `convite-institucional`, `lembrete-geral`, `lembrete-institucional`, `confirmacao-geral`, `confirmacao-institucional`). Se já tens um script teu, a alteração é só esta: usa o HTML de `html/` e acrescenta `inlineImages: imagensInline(['banner', 'logo'])` às opções do envio (o 3.º email usa também `'dresscode'` e `'classe-bar'`). Se os nomes `enviarEmail`, `EMAILS` ou `REMETENTE` já existirem no teu projeto, muda-os.
 
 ### Limite diário de envio do Apps Script («Service invoked too many times for one day: email»)
 

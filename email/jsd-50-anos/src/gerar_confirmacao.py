@@ -17,8 +17,7 @@ from gerar_final import *          # comum.py, mote(), MUTED, MAPA_LINK, ASSINAT
 
 SITE_50 = 'https://jsdfamalicao.pt/50-anos'     # o banner leva ao site (já não há nada para «inscrever»)
 
-# As imagens (banner, dress code e logo do rodapé) vão por endereço, ver IMAGENS_ONLINE em comum.py. O logo do Classe
-# Bar continua embutido em base64 até haver um endereço (pô-lo em IMAGENS_ONLINE['classe-bar']).
+# As imagens (banner, dress code, logo do rodapé e logo do Classe Bar) vão por endereço, ver IMAGENS_ONLINE em comum.py.
 
 # ------------------------------------------------------------------ textos (registo geral e institucional)
 CONFIRMACOES = {

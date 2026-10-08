@@ -24,9 +24,9 @@ const EMAILS = {
   // 2.º email · lembrete do pagamento, institucionais
   'lembrete-institucional': { assunto: "50 Anos JSD Famalicão · Pagamento da inscrição", imagens: [] },
   // 3.º email · inscrição confirmada, militantes
-  'confirmacao-geral': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: ["classe-bar"] },
+  'confirmacao-geral': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: [] },
   // 3.º email · inscrição confirmada, institucionais
-  'confirmacao-institucional': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: ["classe-bar"] }
+  'confirmacao-institucional': { assunto: "50 Anos JSD Famalicão · Inscrição confirmada", imagens: [] }
 };
 
 /**

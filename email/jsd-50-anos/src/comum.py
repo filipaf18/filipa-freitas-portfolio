@@ -16,13 +16,13 @@ LOGO = base64.b64encode((AQUI / 'logo-50-anos.jpg').read_bytes()).decode()   # f
 
 # Imagens das versões finais (v7 a v12), por endereço: o Gmail não mostra imagens embutidas (base64) num email enviado por
 # script, e por endereço o HTML também fica leve (~13 KB, bem abaixo dos 102 KB a partir dos quais o Gmail corta).
-# nome → endereço público; None = fica embutida em base64 (é o caso do logo do Classe Bar, por agora).
+# nome → endereço público; None = fica embutida em base64.
 URL_BASE = 'https://jsdfamalicao.pt/convite'
 IMAGENS_ONLINE = {
     'banner': f'{URL_BASE}/capa-evento-email.png',
     'dresscode': f'{URL_BASE}/dresscode.png',
     'logo': f'{URL_BASE}/logo-50-anos.png',
-    'classe-bar': None,
+    'classe-bar': f'{URL_BASE}/logo-classe.png',
 }
 # ficheiro local equivalente (para embutir) e tipo. JSD_IMAGENS=base64 gera tudo com as imagens embutidas, útil para ver
 # o email sem ligação à internet (os ficheiros locais não são necessariamente iguais aos publicados no site).

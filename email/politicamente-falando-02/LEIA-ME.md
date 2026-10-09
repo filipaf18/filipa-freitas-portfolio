@@ -25,7 +25,7 @@ Os nomes, os cargos e a data também vão no texto: no telemóvel, o texto do ba
 ## Como enviar
 
 **Colando no Gmail:**
-1. Abre `copiar-convites.html` no Chrome.
+1. Abre no Chrome `copiar-convite-institucional.html` ou `copiar-convite-geral.html`, um convite por página. `copiar-convites.html` tem os dois.
 2. Clica em **Copiar convite** no convite que queres (institucional ou geral) e em **Copiar assunto**.
 3. No Gmail: **Nova mensagem** → clica no corpo → **Ctrl+V** (⌘+V no Mac). Destinatários em **Cco**. Envia primeiro um teste para ti e abre-o no telemóvel.
 

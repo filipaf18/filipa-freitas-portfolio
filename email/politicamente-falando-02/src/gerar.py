@@ -27,7 +27,8 @@ imagens ao colar nem ao enviar.
 
 Gera (a partir de email/politicamente-falando-02/):
 - convite-institucional.html e convite-geral.html;
-- copiar-convites.html: página que põe o email na área de transferência, para colar no Gmail;
+- copiar-convites.html: página que põe o email na área de transferência, para colar no Gmail (os dois convites);
+  copiar-convite-institucional.html e copiar-convite-geral.html: o mesmo, um convite por página;
 - apps-script/convite_institucional.html e apps-script/convite.html: o mesmo HTML, com os nomes que o script de envio
   pela folha dos 50 anos procura.
 
@@ -371,3 +372,7 @@ if __name__ == '__main__':
         print(f"{t['ficheiro']} e apps-script/{t['apps_script']}: {len(gerados[chave].encode()) // 1024} KB")
     (AQUI / 'copiar-convites.html').write_text(pagina_copiar(gerados), encoding='utf-8')
     print('copiar-convites.html')
+    # uma página por convite, para não haver dúvidas sobre qual se está a copiar
+    for chave in gerados:
+        (AQUI / f'copiar-convite-{chave}.html').write_text(pagina_copiar({chave: gerados[chave]}), encoding='utf-8')
+        print(f'copiar-convite-{chave}.html')

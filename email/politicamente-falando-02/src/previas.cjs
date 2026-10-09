@@ -22,7 +22,7 @@ async function imagensLocais(alvo) {
 
 (async () => {
 
-const CONVITES = ['convite-institucional', 'convite-geral'];
+const CONVITES = ['convite-institucional'];
 const LARGURAS = [320, 360, 375, 390, 414, 768, 1024, 1400];
 const PREVIAS = { telemovel: 375, desktop: 1400 };
 

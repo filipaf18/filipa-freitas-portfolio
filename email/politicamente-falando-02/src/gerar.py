@@ -1,8 +1,9 @@
 """Convite por email · Politicamente Falando #02 · «Justiça em Portugal. Conformada ou reformada?»
 
-Mesmo modelo dos convites dos 50 anos (email/jsd-50-anos, versões v7/v8, no ramo claude/jsd-famalicao-dinner-email-uo5ccm):
-banner a toda a largura → barra com o degradê da marca → etiqueta e tema → carta → oradores → assinatura → dados
-entre dois filetes → rodapé com o logo dos 50 anos.
+Só o convite institucional. Mesmo modelo dos convites dos 50 anos (email/jsd-50-anos, versões v7/v8, no ramo
+claude/jsd-famalicao-dinner-email-uo5ccm): banner da sessão a toda a largura (com o título, o tema, a data, o local e os
+oradores) → barra com o degradê da marca → «CONVITE» e traço → carta → assinatura → data, hora e local entre dois
+filetes → rodapé com o logo dos 50 anos.
 
 Regras de construção (para sobreviver à colagem no Gmail e ao telemóvel), herdadas dos 50 anos:
 - tudo inline; o <style> só aumenta a letra em ecrãs até 600 px (o Gmail descarta-o ao colar e o email continua legível);
@@ -25,15 +26,14 @@ Nenhuma imagem tem ligação (clicar numa imagem não abre nada). Todas as image
 imagens ao colar nem ao enviar.
 
 Gera (a partir de email/politicamente-falando-02/):
-- convite-institucional.html e convite-geral.html;
+- convite-institucional.html;
 - copiar-convites.html: página que põe o email na área de transferência, para colar no Gmail;
-- apps-script/convite_institucional.html e apps-script/convite.html: o mesmo HTML, com os nomes que o script de envio
-  pela folha dos 50 anos procura.
+- apps-script/convite_institucional.html: o mesmo HTML, com o nome que o script de envio pela folha dos 50 anos procura.
 
 Uso: python3 src/preparar_imagens.py && python3 src/gerar.py
 """
 import html as _html, json, pathlib, re
-from PIL import Image, ImageFont
+from PIL import Image
 
 AQUI = pathlib.Path(__file__).resolve().parent.parent
 IMG = AQUI / 'imagens'
@@ -48,8 +48,6 @@ COMMIT_IMAGENS = 'ead3be1e30028ec3a06bc1bbb81c266d593f37b1'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/politicamente-falando-02/imagens'
 IMAGENS = {   # nome → (ficheiro local, endereço público)
     'banner': ('banner.jpg', f'{PASTA_IMAGENS}/banner.jpg'),
-    'eva': ('orador-eva-bras-pinho.jpg', f'{PASTA_IMAGENS}/orador-eva-bras-pinho.jpg'),
-    'alvaro': ('orador-alvaro-oliveira.jpg', f'{PASTA_IMAGENS}/orador-alvaro-oliveira.jpg'),
     'assinatura': ('assinatura-daniela-torres.png', f'{PASTA_IMAGENS}/assinatura-daniela-torres.png'),
     'logo': ('logo-50-anos.png', 'https://jsdfamalicao.pt/convite/logo-50-anos.png'),
 }
@@ -62,7 +60,6 @@ def src_imagem(nome):
 # ------------------------------------------------------------------ evento
 SITE = 'https://jsdfamalicao.pt'
 MAPA = 'https://www.google.com/maps/search/?api=1&amp;query=Casa+da+Juventude,+Vila+Nova+de+Famalic%C3%A3o'   # «&» já escapado
-TEMA = [('Justiça em Portugal.', 400), ('Conformada', 800), ('ou reformada?', 800)]
 
 # ------------------------------------------------------------------ estilo
 FONT = "Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif"
@@ -75,8 +72,6 @@ PONTO = f'<span style="color:{LARANJA};">&nbsp;·&nbsp;</span>'
 
 # ------------------------------------------------------------------ textos
 ASSINANTE = ('Daniela Torres', 'Presidente da Comissão Política da JSD&nbsp;Famalicão')
-ORADORES = [('eva', 'Eva Brás Pinho', 'Deputada da Assembleia da República'),
-            ('alvaro', 'Álvaro Oliveira', 'Advogado')]
 TEMA_TXT = '«Justiça em Portugal. Conformada ou reformada?»'
 
 CONVITES = {
@@ -88,26 +83,11 @@ CONVITES = {
         saudacao='Estimado(a) companheiro(a),',
         paragrafos=[
             f'A Juventude Social Democrata de Vila Nova de Famalicão tem a honra de o(a) convidar para a segunda sessão da iniciativa <strong {FORTE}>Politicamente Falando</strong>, subordinada ao tema <strong {FORTE}>{TEMA_TXT}</strong>.',
-            f'Esta sessão contará com a participação de <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da Assembleia da República, e de <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, promovendo um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
+            f'Esta sessão contará com a participação de <strong {FORTE}>Eva Brás Pinho</strong>, Deputada à Assembleia da República, e de <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, promovendo um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
         ],
         fecho='Contamos com a sua presença.',
         despedida='Com os melhores cumprimentos,',
         rodape_extra='',
-    ),
-    'geral': dict(
-        ficheiro='convite-geral.html', apps_script='convite.html',
-        rotulo='Convite geral (militantes)', assunto='Politicamente Falando #02 · Justiça em Portugal',
-        titulo='Politicamente Falando #02 · Justiça em Portugal',
-        preheader='Justiça em Portugal. Conformada ou reformada? Sexta-feira, 16 de outubro, às 21h00, na Casa da Juventude.',
-        saudacao='Caro(a) companheiro(a),',
-        paragrafos=[
-            f'A JSD Famalicão convida-te para a segunda sessão do <strong {FORTE}>Politicamente Falando</strong>, desta vez dedicada ao tema <strong {FORTE}>{TEMA_TXT}</strong>.',
-            f'Vamos contar com <strong {FORTE}>Eva Brás Pinho</strong>, Deputada da Assembleia da República, e com <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, para um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
-        ],
-        fecho='Traz as tuas perguntas e vem fazer parte da conversa. Contamos contigo!',
-        despedida='Até lá,',
-        rodape_extra=f'''
-          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:{MUTED}; text-align:center;">Recebes este convite por fazeres parte da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>''',
     ),
 }
 
@@ -138,83 +118,7 @@ def traco(cima=0, baixo=0):
           </tr>'''
 
 
-# ------------------------------------------------------------------ tema com o degradê da marca, letra a letra
-# O texto em degradê do CSS não funciona no Gmail: cada letra leva a cor do degradê na sua posição horizontal, com a
-# mesma escala nas três linhas (centradas), como se o degradê pintasse o bloco. Três linhas curtas, com o mesmo tamanho
-# no computador e no telemóvel: a mais larga («Justiça em Portugal.», 236 px a 26 px) cabe num ecrã de 320 px, por isso
-# o tema nunca precisa de partir, com ou sem o <style> (que o Gmail descarta ao colar), e mesmo que o Chrome troque os
-# espaços por &nbsp; ao copiar. As cores claras do meio são escurecidas
-# só o necessário para terem contraste de 3:1 sobre branco (texto grande). Larguras medidas com a Liberation Sans,
-# que tem as mesmas medidas da Arial/Helvetica.
-PARAGENS = [(0, '#0E87D9'), (.25, '#1EBCE8'), (.40, '#54CFC9'), (.60, '#F8B451'), (1, '#F86420')]
-TEMA_PX = 26
-_LETRA = {400: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-          800: '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'}
-
-
-def _luminancia(c):
-    f = lambda v: v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
-    r, g, b = (f(v / 255) for v in c)
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-
-def cor_degrade(t, contraste=3.0):
-    for (t0, c0), (t1, c1) in zip(PARAGENS, PARAGENS[1:]):
-        if t <= t1:
-            u = (t - t0) / (t1 - t0)
-            a, b = (int(c0[i:i + 2], 16) for i in (1, 3, 5)), (int(c1[i:i + 2], 16) for i in (1, 3, 5))
-            c = [x + (y - x) * u for x, y in zip(a, b)]
-            break
-    k = 1.0
-    while 1.05 / (_luminancia([v * k for v in c]) + 0.05) < contraste:
-        k -= 0.005
-    return '#%02X%02X%02X' % tuple(round(v * k) for v in c)
-
-
-def tema():
-    fontes = {p: ImageFont.truetype(f, 1000) for p, f in _LETRA.items()}
-    larguras = [fontes[p].getlength(t) for t, p in TEMA]
-    total = max(larguras)
-    linhas = []
-    for (txt, peso), largura in zip(TEMA, larguras):
-        x = (total - largura) / 2                      # linhas centradas: o degradê é o do bloco
-        palavras = []
-        for palavra in txt.split(' '):
-            letras = []
-            for l in palavra:
-                w = fontes[peso].getlength(l)
-                letras.append(f'<span style="color:{cor_degrade(min(1, (x + w / 2) / total))};">{_html.escape(l)}</span>')
-                x += w
-            x += fontes[peso].getlength(' ')
-            palavras.append(''.join(letras))
-        linhas.append(f'<span style="font-weight:{peso};">{" ".join(palavras)}</span>')
-    return linha('<br>'.join(linhas), 14, 0,
-                 f'font-size:{TEMA_PX}px; line-height:{TEMA_PX + 8}px; color:{ESCURO};', 'center', 't-tema')
-
-
 # ------------------------------------------------------------------ blocos
-def oradores():
-    def celula(chave, nome, cargo, padding):
-        return f'''
-                  <td class="orador" width="50%" valign="top" align="center" style="padding:{padding}; text-align:center; vertical-align:top;">
-                    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:240px; margin:0 auto;">
-                      <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img src="{src_imagem(chave)}" width="240" alt="{nome}" style="display:block; max-width:100%; height:auto; border:0; outline:none; border-radius:6px; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr>
-                      <tr><td class="t-orador" align="center" style="padding-top:14px; font-family:{FONT}; font-size:16px; line-height:22px; font-weight:700; color:{ESCURO}; text-align:center;">{nome}</td></tr>
-                      <tr><td class="t-cargo" align="center" style="padding-top:4px; font-family:{FONT}; font-size:14px; line-height:20px; color:{MUTED}; text-align:center;">{cargo}</td></tr>
-                    </table>
-                  </td>'''
-    (c1, n1, k1), (c2, n2, k2) = ORADORES
-    return f'''
-          <tr>
-            <td class="px" align="center" style="padding:30px {LADO}px 0 {LADO}px; text-align:center;">
-              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:528px; margin:0 auto;">
-                <tr>{celula(c1, n1, k1, '0 10px 0 0')}{celula(c2, n2, k2, '0 0 0 10px')}
-                </tr>
-              </table>
-            </td>
-          </tr>'''
-
-
 ASSINATURA_PX = 190
 
 
@@ -252,12 +156,11 @@ CSS_TELEMOVEL = '''
       .px          { padding-left:22px !important; padding-right:22px !important; }
       .t-etiqueta  { font-size:13px !important; line-height:18px !important; }
       .t-corpo     { font-size:18px !important; line-height:30px !important; }
-      .t-orador    { font-size:17px !important; line-height:23px !important; }
       .t-cargo     { font-size:14px !important; line-height:20px !important; }
       .t-dados     { font-size:17px !important; line-height:28px !important; }
       .t-rodape    { font-size:14px !important; line-height:22px !important; }
       .t-rodape-p  { font-size:13px !important; line-height:20px !important; }
-      .orador      { padding-left:6px !important; padding-right:6px !important; }'''
+'''
 
 
 def pagina(t, largura=1040):
@@ -267,12 +170,11 @@ def pagina(t, largura=1040):
       <td height="6" bgcolor="{LARANJA}" style="height:6px; font-size:6px; line-height:6px; background-color:{LARANJA}; background-image:{DEGRADE};">&nbsp;</td>
     </tr>'''
     corpo = ''.join([
-        linha(sem_rasto('SESSÃO #02'), 44, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta'),
-        tema(),
+        # o banner já diz «Politicamente Falando #02», o tema, a data e quem participa: aqui só «CONVITE» e o traço
+        linha(sem_rasto('CONVITE'), 44, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta'),
         traco(24, 0),
         linha(t['saudacao'], 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(t['paragrafos'])],
-        oradores(),
         linha(t['fecho'], 30, 0),
         linha(t['despedida'], 24, 0),
         assinatura(),
@@ -310,8 +212,8 @@ def pagina(t, largura=1040):
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="min-width:100%; background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; color-scheme:light only;">
 
     <tr>
-      <td align="center" bgcolor="#61799F" style="background-color:#61799F; font-size:0; line-height:0; text-align:center;">
-        <img src="{src_imagem('banner')}" width="640" alt="Politicamente Falando. Convite."
+      <td align="center" bgcolor="#565459" style="background-color:#565459; font-size:0; line-height:0; text-align:center;">
+        <img src="{src_imagem('banner')}" width="640" alt="Politicamente Falando #02. Justiça em Portugal. Conformada ou reformada? 16 de outubro, 21h00, Casa da Juventude, Famalicão. Com Eva Brás Pinho, Deputada à Assembleia da República, e Álvaro Oliveira, Advogado."
              style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
       </td>
     </tr>{barra}

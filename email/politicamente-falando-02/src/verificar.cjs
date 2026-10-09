@@ -33,7 +33,7 @@ async function imagensLocais(alvo) {
     return route.abort();
   });
 }
-const CONVITES = { institucional: 'convite-institucional.html' };
+const CONVITES = { institucional: 'convite-institucional.html', geral: 'convite-geral.html' };
 const LARGURAS = [320, 360, 375, 390, 414, 600, 768, 1024, 1400];
 const LARGURAS_VARIANTES = [320, 375, 768, 1400];
 const TOL = { caixa: 0.5, texto: 1 };

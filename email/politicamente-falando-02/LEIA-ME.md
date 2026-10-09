@@ -2,11 +2,14 @@
 
 **«Justiça em Portugal. Conformada ou reformada?»** · sexta-feira, 16 de outubro de 2026, 21h00 · Casa da Juventude · com Eva Brás Pinho (Deputada à Assembleia da República) e Álvaro Oliveira (Advogado).
 
-Só o **convite institucional** (`convite-institucional.html`), feito com o mesmo modelo dos convites dos 50 anos (`email/jsd-50-anos`, versões v7/v8, no ramo `claude/jsd-famalicao-dinner-email-uo5ccm`). O texto segue o convite da 1.ª sessão («O Sistema Político Português»), assinado pela Daniela Torres.
+Duas versões, com o mesmo layout, feitas com o mesmo modelo dos convites dos 50 anos (`email/jsd-50-anos`, versões v7/v8, no ramo `claude/jsd-famalicao-dinner-email-uo5ccm`). O texto segue o convite da 1.ª sessão («O Sistema Político Português»), assinado pela Daniela Torres.
 
-| Saudação | Despedida | Assunto sugerido |
-| --- | --- | --- |
-| Estimado(a) companheiro(a), | Com os melhores cumprimentos, | Convite · Politicamente Falando #02 |
+| Ficheiro | Para quem | Saudação | Despedida | Assunto sugerido |
+| --- | --- | --- | --- | --- |
+| `convite-institucional.html` | convidados institucionais | Estimado(a) companheiro(a), | Com os melhores cumprimentos, | Convite · Politicamente Falando #02 |
+| `convite-geral.html` | militantes (trata por «tu») | Caro(a) companheiro(a), | Até lá, | Politicamente Falando #02 · Justiça em Portugal |
+
+A versão geral tem no rodapé a nota «Recebes este convite por fazeres parte da JSD Famalicão. Se não quiseres receber mais mensagens, responde a este email.»
 
 Layout:
 1. o banner da sessão, feito pela JSD, a toda a largura; já tem o título, o tema, a data, o local e os oradores, com fotos;
@@ -23,23 +26,23 @@ Os nomes, os cargos e a data também vão no texto: no telemóvel, o texto do ba
 
 **Colando no Gmail:**
 1. Abre `copiar-convites.html` no Chrome.
-2. Clica em **Copiar convite** (e em **Copiar assunto**).
+2. Clica em **Copiar convite** no convite que queres (institucional ou geral) e em **Copiar assunto**.
 3. No Gmail: **Nova mensagem** → clica no corpo → **Ctrl+V** (⌘+V no Mac). Destinatários em **Cco**. Envia primeiro um teste para ti e abre-o no telemóvel.
 
 Não abras o HTML para copiar com Ctrl+A / Ctrl+C: o Chrome fixa as larguras em píxeis e o email fica mais largo do que o ecrã do telemóvel (o mesmo problema dos 50 anos).
 
 **Pelo script de envio dos 50 anos (Apps Script, a partir das listas):**
 1. As imagens já estão online (ver abaixo).
-2. No projeto do Apps Script, substitui o conteúdo do ficheiro HTML `convite_institucional` pelo de `apps-script/convite_institucional.html`.
-3. Muda `ASSUNTO` no topo do script (por exemplo `'Convite · Politicamente Falando #02'`).
-4. A coluna D («Email Enviado?») da lista ainda tem os envios dos 50 anos: o script salta essas linhas. Usa uma cópia da folha com a coluna D vazia (e muda `URL_FOLHA_INSTITUCIONAL`), ou limpa a coluna D.
+2. No projeto do Apps Script, substitui o conteúdo dos ficheiros HTML `convite_institucional` e `convite` pelo de `apps-script/convite_institucional.html` e `apps-script/convite.html` (geral).
+3. Muda `ASSUNTO` no topo do script. O script usa o mesmo assunto para as duas listas; por exemplo `'Politicamente Falando #02 · Justiça em Portugal'`.
+4. A coluna D («Email Enviado?») das listas ainda tem os envios dos 50 anos: o script salta essas linhas. Usa cópias das folhas com a coluna D vazia (e muda `URL_FOLHA_INSTITUCIONAL` / `URL_FOLHA_GERAL`), ou limpa a coluna D.
 5. Corre **Diagnosticar** e **Enviar emails de teste para mim** antes do envio a sério.
 
-A saudação mantém «Estimado(a) companheiro(a),», como nos 50 anos, para o script juntar o nome e acertar o género. O único outro «(a)» é «o(a) convidar».
+A saudação mantém «Estimado(a) companheiro(a),» e «Caro(a) companheiro(a),», como nos 50 anos, para o script juntar o nome e acertar o género. O único outro «(a)» é «o(a) convidar», no institucional.
 
 ## Imagens
 
-**Sempre por endereço**: nenhuma imagem vai embutida no email (o HTML tem ~10 KB).
+**Sempre por endereço**: nenhuma imagem vai embutida no email (cada HTML tem ~10 KB).
 
 | Imagem | Endereço |
 | --- | --- |
@@ -54,7 +57,7 @@ As do GitHub são os ficheiros da pasta `imagens/` deste repositório (público)
 
 ## Para mudar alguma coisa
 
-- **Textos:** dicionário `CONVITES` em `src/gerar.py`; data, hora e local em `dados()`.
+- **Textos:** dicionário `CONVITES` em `src/gerar.py` (`'institucional'` e `'geral'`); data, hora e local em `dados()`.
 - **Banner:** substitui `originais/banner-02.webp`, corre `python3 src/preparar_imagens.py`, faz commit e push, põe esse commit em `COMMIT_IMAGENS` (`src/gerar.py`) e volta a gerar.
 - **Gerar e rever:** `python3 src/gerar.py`; para rever, `NODE_PATH=$(npm root -g) node src/previas.cjs` (pré-visualizações) e `NODE_PATH=$(npm root -g) node src/verificar.cjs` (copiar e colar, ver abaixo).
 
@@ -88,7 +91,7 @@ Mostra cada resultado como o Gmail o mostra (sem `<style>` nem classes) em 9 lar
 
 Mede o transbordo horizontal, o banner e as barras de ponta a ponta, o texto centrado no eixo, o texto e a assinatura na margem dos filetes, os filetes simétricos, o traço e o logo no eixo, e se as imagens carregam sem deformação. As imagens são servidas a partir da pasta `imagens/`, porque o site da JSD não é acessível deste ambiente.
 
-Resultado: **67 casos sem falhas**. Sem `cellpadding`/`cellspacing` (registado), o banner fica a 2 px das margens. Capturas do email colado: `previas/colado-botao-telemovel.png` e `previas/colado-botao-computador.png` (e `colado-ctrl-c-*`).
+Resultado: **134 casos sem falhas** (67 por versão). Sem `cellpadding`/`cellspacing` (registado), o banner fica a 2 px das margens. Capturas do email colado: `previas/colado-botao-telemovel.png` e `previas/colado-botao-computador.png` (e `colado-ctrl-c-*`).
 
 **Limite:** não há Gmail real nem iPhone neste ambiente. O que o Gmail faz depois do Chrome (ao enviar e ao mostrar o email) é simulado. Envia sempre um teste para ti e vê-o no telemóvel e no computador.
 

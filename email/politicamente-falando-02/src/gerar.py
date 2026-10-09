@@ -1,6 +1,6 @@
 """Convite por email · Politicamente Falando #02 · «Justiça em Portugal. Conformada ou reformada?»
 
-Só o convite institucional. Mesmo modelo dos convites dos 50 anos (email/jsd-50-anos, versões v7/v8, no ramo
+Convite institucional e convite geral (militantes). Mesmo modelo dos convites dos 50 anos (email/jsd-50-anos, versões v7/v8, no ramo
 claude/jsd-famalicao-dinner-email-uo5ccm): banner da sessão a toda a largura (com o título, o tema, a data, o local e os
 oradores) → barra com o degradê da marca → «CONVITE» e traço → carta → assinatura → data, hora e local entre dois
 filetes → rodapé com o logo dos 50 anos.
@@ -26,9 +26,10 @@ Nenhuma imagem tem ligação (clicar numa imagem não abre nada). Todas as image
 imagens ao colar nem ao enviar.
 
 Gera (a partir de email/politicamente-falando-02/):
-- convite-institucional.html;
+- convite-institucional.html e convite-geral.html;
 - copiar-convites.html: página que põe o email na área de transferência, para colar no Gmail;
-- apps-script/convite_institucional.html: o mesmo HTML, com o nome que o script de envio pela folha dos 50 anos procura.
+- apps-script/convite_institucional.html e apps-script/convite.html: o mesmo HTML, com os nomes que o script de envio
+  pela folha dos 50 anos procura.
 
 Uso: python3 src/preparar_imagens.py && python3 src/gerar.py
 """
@@ -88,6 +89,21 @@ CONVITES = {
         fecho='Contamos com a sua presença.',
         despedida='Com os melhores cumprimentos,',
         rodape_extra='',
+    ),
+    'geral': dict(
+        ficheiro='convite-geral.html', apps_script='convite.html',
+        rotulo='Convite geral (militantes)', assunto='Politicamente Falando #02 · Justiça em Portugal',
+        titulo='Politicamente Falando #02 · Justiça em Portugal',
+        preheader='Justiça em Portugal. Conformada ou reformada? Sexta-feira, 16 de outubro, às 21h00, na Casa da Juventude.',
+        saudacao='Caro(a) companheiro(a),',
+        paragrafos=[
+            f'A JSD Famalicão convida-te para a segunda sessão do <strong {FORTE}>Politicamente Falando</strong>, desta vez dedicada ao tema <strong {FORTE}>{TEMA_TXT}</strong>.',
+            f'Vamos contar com <strong {FORTE}>Eva Brás Pinho</strong>, Deputada à Assembleia da República, e com <strong {FORTE}>Álvaro Oliveira</strong>, Advogado, para um espaço de reflexão, diálogo e partilha de ideias sobre o estado da justiça em Portugal.',
+        ],
+        fecho='Traz as tuas perguntas e vem fazer parte da conversa. Contamos contigo!',
+        despedida='Até lá,',
+        rodape_extra=f'''
+          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:{MUTED}; text-align:center;">Recebes este convite por fazeres parte da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>''',
     ),
 }
 

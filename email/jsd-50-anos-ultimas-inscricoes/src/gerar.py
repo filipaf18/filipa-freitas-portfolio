@@ -36,92 +36,110 @@ SITE = 'https://jsdfamalicao.pt'
 MAPA = 'https://www.google.com/maps/search/?api=1&amp;query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'
 
 ASSUNTO = 'Inscrições abertas até 4 de novembro · Jantar dos 50 anos da JSD Famalicão'
-PREHEADER = 'Última chamada: inscreve-te até 4 de novembro no Jantar Comemorativo dos 50 anos. Com menu, bar aberto e entrada gratuita no Classe Bar.'
+PREHEADER = 'Último aviso: inscrições até 4 de novembro. Menu, bar aberto e entrada gratuita no Classe Bar.'
 ALT_MENU = ('Menu do Jantar Comemorativo, 50 anos JSD Famalicão. Aperitivos variados. Arroz de tamboril e camarão. '
             'Brás de bacalhau. Rojões à minhota. Frango à strogonoff. Buffet de sobremesas e bolo de aniversário. '
             'Jantar com bar aberto.')
 
 
-def botao(cima, baixo):
-    return f'''
+NAVY, PRETO, CLARO = '#0B2545', '#14181F', '#F5F7FA'
+OURO = '#F8B451'
+
+
+def botao(cima, baixo, grande=True):
+    pad, fs = ('21px 40px', 16) if grande else ('17px 34px', 14)
+    return f"""
           <tr>
             <td class="px" align="center" style="padding:{cima}px {LADO}px {baixo}px {LADO}px; text-align:center;">
               <table class="btn-tabela" role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
                 <tr>
-                  <td align="center" bgcolor="{LARANJA}" style="background-color:{LARANJA}; background-image:linear-gradient(90deg,#F8B451 0%,{LARANJA} 100%); border-radius:4px; text-align:center;">
-                    <a class="btn" href="{LINK}" style="display:inline-block; padding:17px 34px; font-family:{FONT}; font-size:14px; line-height:20px; font-weight:800; letter-spacing:1.5px; color:{ESCURO}; text-decoration:none; text-align:center;">INSCREVER-ME AGORA</a>
+                  <td align="center" bgcolor="{LARANJA}" style="background-color:{LARANJA}; background-image:linear-gradient(90deg,{OURO} 0%,{LARANJA} 100%); border-radius:6px; text-align:center;">
+                    <a class="btn" href="{LINK}" style="display:inline-block; padding:{pad}; font-family:{FONT}; font-size:{fs}px; line-height:22px; font-weight:800; letter-spacing:1.5px; color:{PRETO}; text-decoration:none; text-align:center;">INSCREVER-ME AGORA</a>
                   </td>
                 </tr>
               </table>
             </td>
-          </tr>''' + linha(f'Se o botão não abrir, usa esta ligação:<br><a href="{LINK}" style="color:#0B72B8; text-decoration:underline; word-break:break-all;">{LINK_TXT}</a>',
-                           14, 0, f'font-size:12px; line-height:19px; color:{MUTED};', 'center', 't-ligacao')
+          </tr>"""
 
 
-def rotulo(texto, cima):
-    return linha(sem_rasto(texto), cima, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta')
+def ligacao(cor, cima=14):
+    return linha(f'<a href="{LINK}" style="color:{cor}; text-decoration:underline; word-break:break-all;">{LINK_TXT}</a>',
+                 cima, 0, f'font-size:12px; line-height:19px; color:{cor};', 'center', 't-ligacao')
+
+
+def banda(bg, linhas, largura=600):
+    """Faixa a toda a largura com uma coluna central."""
+    return f"""
+    <tr>
+      <td bgcolor="{bg}" style="background-color:{bg}; padding:0;">
+        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">{''.join(linhas)}
+        </table>
+      </td>
+    </tr>"""
+
+
+def rotulo(texto, cima, cor=AZUL):
+    return linha(sem_rasto(texto), cima, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{cor};', 'center', 't-etiqueta')
 
 
 def imagem(chave, largura, alt, cima, borda=False):
-    raio = ' border-radius:6px;' if borda else ''
-    return f'''
+    raio = ' border-radius:8px;' if borda else ''
+    return f"""
           <tr>
             <td class="px" align="center" style="padding:{cima}px {LADO}px 0 {LADO}px; text-align:center;">
               <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">
                 <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img src="{IMAGENS[chave]}" width="{largura}" alt="{alt}" style="display:block; max-width:100%; height:auto; border:0; outline:none;{raio} color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr>
               </table>
             </td>
-          </tr>'''
-
-
-def dados():
-    linha_css = f'text-align:center; font-family:{FONT}; font-size:15px; line-height:26px; color:{TEXTO};'
-    return f'''
-          <tr>
-            <td class="px" style="padding:40px {LADO}px 0 {LADO}px;">
-              <div style="border-top:1px solid {FILETE}; border-bottom:1px solid {FILETE}; padding:24px 0; text-align:center;">
-                <div class="t-dados" style="{linha_css}"><strong {FORTE}>Sábado, 7&nbsp;de&nbsp;novembro de&nbsp;2026</strong></div>
-                <div class="t-dados" style="padding-top:3px; {linha_css}">19h00{PONTO}<strong {FORTE}>Sunset&nbsp;House</strong></div>
-                <div class="t-dados" style="padding-top:3px; {linha_css}"><a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Av.&nbsp;Visc.&nbsp;de&nbsp;Pindela&nbsp;112, 4770&#8209;189&nbsp;Cruz</a></div>
-                <div class="t-dados" style="padding-top:3px; {linha_css}"><strong {FORTE}>35&nbsp;€</strong> por pessoa{PONTO}bar aberto</div>
-              </div>
-            </td>
-          </tr>'''
+          </tr>"""
 
 
 def pagina():
-    barra = f'''
+    barra = f"""
     <tr>
       <td height="6" bgcolor="{LARANJA}" style="height:6px; font-size:6px; line-height:6px; background-color:{LARANJA}; background-image:{DEGRADE};">&nbsp;</td>
-    </tr>'''
+    </tr>"""
     estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
-    corpo = ''.join([
-        rotulo('ÚLTIMOS DIAS', 44),
-        linha('Inscrições abertas<br>até 4&nbsp;de&nbsp;novembro', 14, 0,
-              f'font-size:26px; line-height:34px; font-weight:700; color:{ESCURO};', 'center', 't-titulo'),
-        traco(24, 0),
-        linha('Caro(a) companheiro(a),', 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
-        linha(f'Falta pouco para o <strong {FORTE}>Jantar Comemorativo</strong> dos 50&nbsp;anos da JSD Famalicão, '
-              f'no <strong {FORTE}>sábado, 7&nbsp;de&nbsp;novembro</strong>. As inscrições fecham na '
-              f'<strong {FORTE}>quarta-feira, 4&nbsp;de&nbsp;novembro</strong>, por isso o momento de garantires o teu lugar é agora.', 12, 0),
-        linha(f'O jantar é <strong {FORTE}>aberto a todos</strong>: militantes, antigos militantes, simpatizantes e '
-              'acompanhantes. Convida quem quiseres e vem celebrar connosco meio século de pessoas, ideias e causas.', 16, 0),
-        botao(28, 0),
-        rotulo('O MENU', 52),
-        imagem('menu', 480, ALT_MENU, 20, borda=True),
-        linha('Um jantar a pensar em todos, com <strong ' + FORTE + '>bar aberto</strong> do início ao fim.', 20, 0,
-              f'font-size:15px; line-height:24px; color:{TEXTO};', 'center', 't-dados'),
-        rotulo('E DEPOIS DO JANTAR', 52),
-        imagem('classe', 220, 'Classe Bar', 20),
-        linha(f'A noite não acaba à sobremesa. Quem se inscrever no jantar tem <strong {FORTE}>entrada gratuita no '
-              f'Classe&nbsp;Bar</strong>, a partir das <strong {FORTE}>01h30</strong>.', 16, 0,
-              f'font-size:16px; line-height:27px; color:{TEXTO};', 'center'),
-        dados(),
-        botao(32, 0),
-        linha('A inscrição é individual e só fica válida depois de confirmado o pagamento.', 16, 44,
-              f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota'),
+    branco, suave = '#FFFFFF', '#C9D6E8'
+    hero = banda(NAVY, [
+        rotulo('ÚLTIMOS DIAS', 44, OURO),
+        linha(f'Inscrições até<br><span style="color:{OURO};">4&nbsp;de&nbsp;novembro</span>', 14, 0,
+              f'font-size:27px; line-height:35px; font-weight:800; color:{branco};', 'center', 't-titulo'),
+        linha(f'Jantar dos 50&nbsp;anos{PONTO}sábado, 7&nbsp;de&nbsp;novembro{PONTO}19h00', 18, 0,
+              f'font-size:15px; line-height:24px; color:{suave};', 'center', 't-dados'),
+        botao(30, 0),
+        ligacao(suave, 16),
+        linha('', 0, 44),
     ])
-    return f'''<!DOCTYPE html>
+    aberto = banda(branco, [
+        rotulo('ABERTO A TODOS', 48),
+        linha('Militantes, antigos militantes, simpatizantes e acompanhantes.', 14, 0,
+              f'font-size:20px; line-height:30px; font-weight:700; color:{ESCURO};', 'center', 't-lead'),
+        linha(f'<strong {FORTE}>35&nbsp;€</strong> por pessoa{PONTO}bar aberto', 14, 0,
+              f'font-size:16px; line-height:26px; color:{TEXTO};', 'center', 't-dados'),
+    ])
+    menu = banda(branco, [
+        rotulo('O MENU', 44),
+        imagem('menu', 400, ALT_MENU, 20, borda=True),
+        linha('', 0, 48),
+    ])
+    classe = banda(PRETO, [
+        rotulo('DEPOIS DO JANTAR', 48, OURO),
+        imagem('classe', 200, 'Classe Bar', 22),
+        linha(f'Entrada <span style="color:{OURO};">gratuita</span><br>para quem se inscrever', 22, 0,
+              f'font-size:24px; line-height:32px; font-weight:800; color:{branco};', 'center', 't-lead'),
+        linha('Classe&nbsp;Bar, a partir das 01h30', 10, 52, f'font-size:15px; line-height:24px; color:{suave};', 'center', 't-dados'),
+    ])
+    final = banda(NAVY, [
+        linha('Garante o teu lugar.', 52, 0, f'font-size:26px; line-height:34px; font-weight:800; color:{branco};', 'center', 't-titulo'),
+        linha('As inscrições fecham a 4&nbsp;de&nbsp;novembro.', 8, 0, f'font-size:15px; line-height:24px; color:{suave};', 'center', 't-dados'),
+        botao(28, 0),
+        ligacao(suave, 16),
+        linha(f'<a href="{MAPA}" style="color:{suave}; text-decoration:underline;">Sunset&nbsp;House, Av.&nbsp;Visc.&nbsp;de&nbsp;Pindela&nbsp;112, Cruz</a>', 28, 0,
+              f'font-size:13px; line-height:21px; color:{suave};', 'center', 't-nota'),
+        linha('A inscrição só fica válida depois de confirmado o pagamento.', 6, 52, f'font-size:13px; line-height:21px; color:{suave};', 'center', 't-nota'),
+    ])
+    return f"""<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
@@ -139,20 +157,19 @@ def pagina():
     @media only screen and (max-width:600px) {{
       .px          {{ padding-left:22px !important; padding-right:22px !important; }}
       .t-etiqueta  {{ font-size:13px !important; line-height:18px !important; }}
-      .t-titulo    {{ font-size:26px !important; line-height:34px !important; }}
-      .t-corpo     {{ font-size:18px !important; line-height:30px !important; }}
+      .t-titulo    {{ font-size:30px !important; line-height:38px !important; }}
+      .t-lead      {{ font-size:22px !important; line-height:32px !important; }}
       .t-dados     {{ font-size:17px !important; line-height:28px !important; }}
-      .t-nota      {{ font-size:15px !important; line-height:24px !important; }}
+      .t-nota      {{ font-size:14px !important; line-height:22px !important; }}
       .t-ligacao   {{ font-size:14px !important; line-height:22px !important; }}
       .t-rodape    {{ font-size:14px !important; line-height:22px !important; }}
-      .t-rodape-p  {{ font-size:13px !important; line-height:20px !important; }}
       .btn-tabela  {{ width:100% !important; }}
-      .btn         {{ display:block !important; padding:19px 12px !important; font-size:16px !important; }}
+      .btn         {{ display:block !important; padding:21px 12px !important; font-size:16px !important; }}
     }}
   </style>
 </head>
 
-<!-- Gerado por src/gerar.py. Banner e barras a toda a largura; texto numa coluna de até 1040 px. -->
+<!-- Gerado por src/gerar.py. Faixas a toda a largura; texto numa coluna de até 600 px. -->
 
 <body style="margin:0; padding:0; background-color:#FFFFFF;">
 
@@ -168,23 +185,13 @@ def pagina():
         <img src="{IMAGENS['banner']}" width="640" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
              style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
       </td>
-    </tr>{barra}
+    </tr>{barra}{hero}{aberto}{menu}{classe}{final}{barra}
 
     <tr>
-      <td style="padding:0;">
-        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:1040px; margin:0 auto;">
-{corpo}
-        </table>
-      </td>
-    </tr>
-{barra}
-
-    <tr>
-      <td class="px" align="center" bgcolor="#F5F7FA" style="background-color:#F5F7FA; padding:36px {LADO}px 32px {LADO}px; font-family:{FONT}; text-align:center;">
+      <td class="px" align="center" bgcolor="{CLARO}" style="background-color:{CLARO}; padding:24px {LADO}px 28px {LADO}px; font-family:{FONT}; text-align:center;">
         <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-          <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0;"><img src="{IMAGENS['logo']}" width="170" alt="50 anos JSD Famalicão" style="display:block; width:170px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:16px; line-height:22px;"></td></tr></table></td></tr>
-          <tr><td class="t-rodape" align="center" style="padding-top:22px; font-family:{FONT}; font-size:12px; line-height:19px; color:{MUTED}; text-align:center;">Juventude Social Democrata de Vila&nbsp;Nova de&nbsp;Famalicão<br><a href="{SITE}" style="color:{ESCURO}; text-decoration:underline;">jsdfamalicao.pt</a></td></tr>
-          <tr><td class="t-rodape-p" align="center" style="padding-top:22px; font-family:{FONT}; font-size:11px; line-height:18px; color:{MUTED}; text-align:center;">Recebes este email por fazeres parte da história da JSD&nbsp;Famalicão. Se não quiseres receber mais mensagens, responde a este email.</td></tr>
+          <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0;"><img src="{IMAGENS['logo']}" width="80" alt="50 anos JSD Famalicão" style="display:block; width:80px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr></table></td></tr>
+          <tr><td class="t-rodape" align="center" style="padding-top:14px; font-family:{FONT}; font-size:12px; line-height:19px; color:{MUTED}; text-align:center;">JSD Famalicão{PONTO}Se não quiseres receber mais mensagens, responde a este email.</td></tr>
         </table>
       </td>
     </tr>
@@ -193,7 +200,7 @@ def pagina():
 
 </body>
 </html>
-'''
+"""
 
 
 if __name__ == '__main__':

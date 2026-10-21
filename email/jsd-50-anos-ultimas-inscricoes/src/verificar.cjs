@@ -91,7 +91,6 @@ const MEDIR = () => {
   for (const t of [...document.querySelectorAll('table, div')].filter((t) => parseFloat(getComputedStyle(t).borderTopWidth) > 0)) {
     const b = R(t); add('filetes: margens iguais', Math.abs(b.left - (W - b.right)), ''); margem = margem ?? b.left;
   }
-  if (margem === null) add('filetes da data em falta', 99, '');
   for (const td of document.querySelectorAll('td[height="2"]')) { const b = R(td); add('traço no eixo', Math.abs((b.left + b.right) / 2 - eixo), ''); }
   const logo = img('50 anos JSD');
   if (logo) { const b = R(logo); add('logo no eixo', Math.abs((b.left + b.right) / 2 - eixo), ''); }

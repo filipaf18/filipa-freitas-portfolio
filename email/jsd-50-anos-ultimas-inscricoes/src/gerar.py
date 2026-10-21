@@ -26,7 +26,6 @@ COMMIT_IMAGENS = 'c798de20d31164d56a5cc29f750a589fe6e6e074'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/jsd-50-anos-ultimas-inscricoes/imagens'
 IMAGENS = {
     'banner': f'{PASTA_IMAGENS}/banner.jpg',               # 1200 × 400, o do convite dos 50 anos
-    'menu': f'{PASTA_IMAGENS}/menu.jpg',                   # 1000 × 1333
     'classe': f'{PASTA_IMAGENS}/classe-bar-logo.png',      # fundo transparente
     'logo': 'https://jsdfamalicao.pt/convite/logo-50-anos.png',
 }
@@ -36,10 +35,7 @@ SITE = 'https://jsdfamalicao.pt'
 MAPA = 'https://www.google.com/maps/search/?api=1&amp;query=Av.+Visconde+de+Pindela+112,+4770-189+Cruz'
 
 ASSUNTO = 'Inscrições abertas até 4 de novembro · Jantar dos 50 anos da JSD Famalicão'
-PREHEADER = 'Último aviso: inscrições até 4 de novembro. Menu, bar aberto e entrada gratuita no Classe Bar.'
-ALT_MENU = ('Menu do Jantar Comemorativo, 50 anos JSD Famalicão. Aperitivos variados. Arroz de tamboril e camarão. '
-            'Brás de bacalhau. Rojões à minhota. Frango à strogonoff. Buffet de sobremesas e bolo de aniversário. '
-            'Jantar com bar aberto.')
+PREHEADER = 'Não precisas de ser militante. Inscrições até 4 de novembro: menu, bar aberto e entrada gratuita no Classe Bar.'
 
 
 NAVY, PRETO, CLARO = '#FFFFFF', '#FFFFFF', '#FFFFFF'
@@ -101,26 +97,62 @@ def pagina():
     </tr>"""
     estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
     branco, suave = '#14181F', '#646B75'
+    prazo = f"""
+          <tr>
+            <td class="px" align="center" style="padding:16px {LADO}px 0 {LADO}px; text-align:center;">
+              <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                <tr>
+                  <td align="center" bgcolor="{LARANJA}" style="background-color:{LARANJA}; background-image:linear-gradient(90deg,{OURO} 0%,{LARANJA} 100%); border-radius:10px; padding:16px 34px 14px 34px; text-align:center;">
+                    <div class="t-prazo" style="font-family:{FONT}; font-size:46px; line-height:52px; font-weight:800; color:#FFFFFF; text-align:center;">4&nbsp;NOV</div>
+                    <div class="t-etiqueta" style="font-family:{FONT}; font-size:13px; line-height:18px; font-weight:700; letter-spacing:3px; color:#FFFFFF; text-align:center; padding-top:2px;">QUARTA-FEIRA</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>"""
     hero = banda(NAVY, [
         rotulo('ÚLTIMOS DIAS', 44, AZUL),
-        linha(f'Inscrições até<br><span style="color:{OURO};">4&nbsp;de&nbsp;novembro</span>', 14, 0,
-              f'font-size:27px; line-height:35px; font-weight:800; color:{branco};', 'center', 't-titulo'),
-        linha(f'Jantar dos 50&nbsp;anos{PONTO}sábado, 7&nbsp;de&nbsp;novembro{PONTO}19h00', 18, 0,
+        linha('Inscrições até', 14, 0, f'font-size:26px; line-height:34px; font-weight:800; color:{branco};', 'center', 't-titulo'),
+        prazo,
+        linha(f'Jantar dos 50&nbsp;anos{PONTO}sábado, 7&nbsp;de&nbsp;novembro{PONTO}19h00', 22, 0,
               f'font-size:15px; line-height:24px; color:{suave};', 'center', 't-dados'),
-        botao(30, 0),
+        botao(28, 0),
         ligacao(AZUL, 16),
         linha('', 0, 44),
     ])
     aberto = banda('#FFFFFF', [
         rotulo('ABERTO A TODOS', 48),
-        linha('Militantes, antigos militantes, simpatizantes e acompanhantes.', 14, 0,
-              f'font-size:20px; line-height:30px; font-weight:700; color:{ESCURO};', 'center', 't-lead'),
+        linha('Não precisas de ser militante da&nbsp;JSD.', 14, 0,
+              f'font-size:24px; line-height:32px; font-weight:800; color:{ESCURO};', 'center', 't-lead'),
+        linha('Vem com amigos, família ou quem quiseres: militantes, antigos militantes, simpatizantes e acompanhantes são todos bem-vindos.', 14, 0,
+              f'font-size:16px; line-height:26px; color:{TEXTO};', 'center', 't-dados'),
         linha(f'<strong {FORTE}>35&nbsp;€</strong> por pessoa{PONTO}bar aberto', 14, 0,
               f'font-size:16px; line-height:26px; color:{TEXTO};', 'center', 't-dados'),
     ])
+    def prato(txt, forte=True, ultimo=False):
+        borda = '' if ultimo else f' border-bottom:1px solid {FILETE};'
+        peso, cor = ('700', ESCURO) if forte else ('400', MUTED)
+        return (f'<tr><td class="t-dados" align="center" style="padding:13px 0;{borda} text-align:center; font-family:{FONT}; font-size:16px; '
+                f'line-height:24px; font-weight:{peso}; color:{cor};">{txt}</td></tr>')
+    pratos = ''.join([
+        prato('Aperitivos variados', False), prato('Arroz de tamboril e camarão'), prato('Brás de bacalhau'),
+        prato('Rojões à minhota'), prato('Frango à strogonoff'), prato('Buffet de sobremesas e bolo de aniversário', False),
+        prato(f'Jantar com <span style="color:{LARANJA};">bar aberto</span>', True, True)])
+    cartao = f"""
+          <tr>
+            <td class="px" style="padding:20px {LADO}px 0 {LADO}px;">
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:400px; margin:0 auto;">
+                <tr>
+                  <td align="center" style="border:1px solid {FILETE}; border-radius:10px; padding:8px 24px; text-align:center;">
+                    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">{pratos}</table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>"""
     menu = banda('#FFFFFF', [
         rotulo('O MENU', 44),
-        imagem('menu', 400, ALT_MENU, 20, borda=True),
+        cartao,
         linha('', 0, 48),
     ])
     classe = banda(PRETO, [
@@ -158,7 +190,8 @@ def pagina():
       .px          {{ padding-left:22px !important; padding-right:22px !important; }}
       .t-etiqueta  {{ font-size:13px !important; line-height:18px !important; }}
       .t-titulo    {{ font-size:30px !important; line-height:38px !important; }}
-      .t-lead      {{ font-size:22px !important; line-height:32px !important; }}
+      .t-lead      {{ font-size:24px !important; line-height:32px !important; }}
+      .t-prazo     {{ font-size:46px !important; line-height:52px !important; }}
       .t-dados     {{ font-size:17px !important; line-height:28px !important; }}
       .t-nota      {{ font-size:14px !important; line-height:22px !important; }}
       .t-ligacao   {{ font-size:14px !important; line-height:22px !important; }}

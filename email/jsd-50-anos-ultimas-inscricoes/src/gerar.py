@@ -26,7 +26,8 @@ COMMIT_IMAGENS = 'c798de20d31164d56a5cc29f750a589fe6e6e074'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/jsd-50-anos-ultimas-inscricoes/imagens'
 IMAGENS = {
     'banner': f'{PASTA_IMAGENS}/banner.jpg',               # 1200 × 400, o do convite dos 50 anos
-    'classe': f'{PASTA_IMAGENS}/classe-bar-logo.png',      # fundo transparente
+    'classe': f'{PASTA_IMAGENS}/classe-bar-logo.png',
+    'mesa': f'{PASTA_IMAGENS}/mesa.png',                   # ilustração da mesa do menu, fundo transparente      # fundo transparente
     'logo': 'https://jsdfamalicao.pt/convite/logo-50-anos.png',
 }
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
@@ -130,17 +131,25 @@ def pagina():
               f'font-size:16px; line-height:26px; color:{TEXTO};', 'center', 't-dados'),
     ])
     def prato(txt):
-        return (f'<td class="t-dados" width="50%" valign="middle" align="center" style="border:1px solid {FILETE}; border-radius:10px; padding:20px 10px; '
-                f'text-align:center; font-family:{FONT}; font-size:16px; line-height:22px; font-weight:700; color:{ESCURO};">{txt}</td>')
+        return (f'<tr><td class="t-dados" style="padding:9px 0; font-family:{FONT}; font-size:17px; line-height:24px; font-weight:800; '
+                f'color:{ESCURO}; text-align:left;"><span style="color:{LARANJA};">&bull;</span>&nbsp; {txt}</td></tr>')
     cartao = f"""
           <tr>
-            <td class="px" style="padding:20px {LADO}px 0 {LADO}px;">
-              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="8" border="0" style="max-width:420px; margin:0 auto;">
-                <tr>{prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}</tr>
-                <tr>{prato('Rojões à minhota')}{prato('Frango à strogonoff')}</tr>
+            <td class="px" style="padding:22px {LADO}px 0 {LADO}px;">
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px; margin:0 auto;">
+                <tr>
+                  <td width="58%" valign="middle" align="left" style="text-align:left;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      {prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}{prato('Rojões à minhota')}{prato('Frango à strogonoff')}
+                    </table>
+                  </td>
+                  <td width="42%" valign="middle" align="right" style="font-size:0; line-height:0; text-align:right;">
+                    <img src="{IMAGENS['mesa']}" width="190" alt="" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-left:auto;">
+                  </td>
+                </tr>
               </table>
             </td>
-          </tr>""" + linha('+ aperitivos, buffet de sobremesas e bolo de aniversário', 12, 0,
+          </tr>""" + linha('+ aperitivos, buffet de sobremesas e bolo de aniversário', 14, 0,
                            f'font-size:14px; line-height:22px; color:{MUTED};', 'center', 't-nota')
     menu = banda('#FFFFFF', [
         rotulo('O MENU', 44),

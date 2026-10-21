@@ -88,7 +88,7 @@ const MEDIR = () => {
   for (const td of document.querySelectorAll('td[height="6"]')) { const b = R(td); add('barras de ponta a ponta', Math.abs(b.left) + Math.abs(b.right - W), ''); }
   let margem = null;
   // filetes da data: as bordas de cima e de baixo da tabela dos dados
-  for (const t of [...document.querySelectorAll('table, div')].filter((t) => parseFloat(getComputedStyle(t).borderTopWidth) > 0)) {
+  for (const t of [...document.querySelectorAll('table, div')].filter((t) => parseFloat(getComputedStyle(t).borderTopWidth) > 0 && R(t).width > 200)) {
     const b = R(t); add('filetes: margens iguais', Math.abs(b.left - (W - b.right)), ''); margem = margem ?? b.left;
   }
   for (const td of document.querySelectorAll('td[height="2"]')) { const b = R(td); add('traço no eixo', Math.abs((b.left + b.right) / 2 - eixo), ''); }

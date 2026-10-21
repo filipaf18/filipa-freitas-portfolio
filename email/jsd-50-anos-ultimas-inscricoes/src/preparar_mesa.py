@@ -15,10 +15,10 @@ rgba = np.dstack([cor, alfa * 255]).astype(np.uint8)
 im = Image.fromarray(rgba, 'RGBA')
 im = im.crop(im.getchannel('A').point(lambda v: 255 if v > 40 else 0).getbbox())
 im = im.resize((600, round(600 * im.size[1] / im.size[0])), Image.LANCZOS)
-# o desenho vem cortado à direita (é o limite da imagem original): desvanece-se nos 35 % da direita, para parecer intencional
+# o desenho vem cortado à direita (é o limite da imagem original): desvanece-se nos 22 % da direita, para parecer intencional
 al = np.asarray(im.getchannel('A')).astype(np.float32)
 w = al.shape[1]
-fade = np.clip((w - np.arange(w)) / (0.35 * w), 0, 1)[None, :]
+fade = np.clip((w - np.arange(w)) / (0.22 * w), 0, 1)[None, :]
 im.putalpha(Image.fromarray((al * fade).astype(np.uint8)))
 im.save(AQUI / 'imagens' / 'mesa.png', optimize=True)
 print('mesa.png', im.size)

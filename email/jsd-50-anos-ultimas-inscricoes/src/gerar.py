@@ -22,7 +22,7 @@ from base import (FONT, DEGRADE, LADO, ESCURO, TEXTO, MUTED, AZUL, LARANJA, FILE
                   linha, traco, sem_rasto, texto_simples)
 
 # ------------------------------------------------------------------ imagens (sempre por endereço, sem ligação)
-COMMIT_IMAGENS = 'c798de20d31164d56a5cc29f750a589fe6e6e074'
+COMMIT_IMAGENS = 'cbe246bc583e0df5022edb5863b0fcb933a36623'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/jsd-50-anos-ultimas-inscricoes/imagens'
 IMAGENS = {
     'banner': f'{PASTA_IMAGENS}/banner.jpg',               # 1200 × 400, o do convite dos 50 anos
@@ -138,13 +138,13 @@ def pagina():
             <td class="px" style="padding:22px {LADO}px 0 {LADO}px;">
               <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px; margin:0 auto;">
                 <tr>
-                  <td width="58%" valign="middle" align="left" style="text-align:left;">
+                  <td width="52%" valign="middle" align="left" style="text-align:left;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                       {prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}{prato('Rojões à minhota')}{prato('Frango à strogonoff')}
                     </table>
                   </td>
-                  <td width="42%" valign="middle" align="right" style="font-size:0; line-height:0; text-align:right;">
-                    <img src="{IMAGENS['mesa']}" width="190" alt="" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-left:auto;">
+                  <td width="48%" valign="middle" align="right" style="font-size:0; line-height:0; text-align:right;">
+                    <img src="{IMAGENS['mesa']}" width="230" alt="" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-left:auto;">
                   </td>
                 </tr>
               </table>

@@ -4,14 +4,13 @@ Objetivo: reforçar o anúncio e converter em inscrições. Versão única, a tr
 
 **Assunto:** Inscrições abertas até 4 de novembro · Jantar dos 50 anos da JSD Famalicão
 
-Estrutura (pouco texto, fundo branco, separadores em degradê, o botão logo ao início):
-1. banner do jantar;
-2. secção «ÚLTIMOS DIAS», «Inscrições até» e o prazo num selo laranja («4 NOV, quarta-feira»), data e hora, botão grande;
-3. «Aberto a todos»: «Não precisas de ser militante da JSD.», 35 € e bar aberto;
-4. o menu em 4 cartões (os pratos principais) e uma linha com o resto;
-5. secção «AFTER PARTY»: logo do Classe, «Entrada gratuita para quem se inscrever», a partir das 01h30;
-6. secção «Garante o teu lugar.», botão, local;
-7. rodapé pequeno com o logo dos 50 anos.
+Estrutura (sem separadores; o espaço em branco dá o ritmo):
+1. banner do jantar e uma barra em degradê;
+2. «Inscrições até 4 de novembro», data, botão e «Não precisas de ser militante da JSD»;
+3. cartão cinzento do menu: os 4 pratos e a mesa da ementa (ilustração em PNG transparente);
+4. cartão escuro do after party: logo dourado do Classe, «Entrada gratuita para quem se inscrever», 01h30;
+5. botão final, preço e local, nota do pagamento;
+6. rodapé pequeno com o logo dos 50 anos.
 
 ## Como enviar
 1. Abre `copiar-email.html` no Chrome e clica em **Copiar convite** (e em **Copiar assunto**).

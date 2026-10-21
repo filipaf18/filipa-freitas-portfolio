@@ -22,7 +22,7 @@ from base import (FONT, DEGRADE, LADO, ESCURO, TEXTO, MUTED, AZUL, LARANJA, FILE
                   linha, traco, sem_rasto, texto_simples)
 
 # ------------------------------------------------------------------ imagens (sempre por endereço, sem ligação)
-COMMIT_IMAGENS = 'COMMIT'
+COMMIT_IMAGENS = 'c798de20d31164d56a5cc29f750a589fe6e6e074'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/jsd-50-anos-ultimas-inscricoes/imagens'
 IMAGENS = {
     'banner': f'{PASTA_IMAGENS}/banner.jpg',               # 1200 × 400, o do convite dos 50 anos
@@ -98,10 +98,10 @@ def pagina():
     corpo = ''.join([
         rotulo('ÚLTIMOS DIAS', 44),
         linha('Inscrições abertas<br>até 4&nbsp;de&nbsp;novembro', 14, 0,
-              f'font-size:30px; line-height:38px; font-weight:700; color:{ESCURO};', 'center', 't-titulo'),
+              f'font-size:26px; line-height:34px; font-weight:700; color:{ESCURO};', 'center', 't-titulo'),
         traco(24, 0),
         linha('Caro(a) companheiro(a),', 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
-        linha(f'Falta pouco para o <strong {FORTE}>Jantar Comemorativo dos 50&nbsp;anos da JSD Famalicão</strong>, '
+        linha(f'Falta pouco para o <strong {FORTE}>Jantar Comemorativo</strong> dos 50&nbsp;anos da JSD Famalicão, '
               f'no <strong {FORTE}>sábado, 7&nbsp;de&nbsp;novembro</strong>. As inscrições fecham na '
               f'<strong {FORTE}>quarta-feira, 4&nbsp;de&nbsp;novembro</strong>, por isso o momento de garantires o teu lugar é agora.', 12, 0),
         linha(f'O jantar é <strong {FORTE}>aberto a todos</strong>: militantes, antigos militantes, simpatizantes e '
@@ -139,7 +139,7 @@ def pagina():
     @media only screen and (max-width:600px) {{
       .px          {{ padding-left:22px !important; padding-right:22px !important; }}
       .t-etiqueta  {{ font-size:13px !important; line-height:18px !important; }}
-      .t-titulo    {{ font-size:28px !important; line-height:36px !important; }}
+      .t-titulo    {{ font-size:26px !important; line-height:34px !important; }}
       .t-corpo     {{ font-size:18px !important; line-height:30px !important; }}
       .t-dados     {{ font-size:17px !important; line-height:28px !important; }}
       .t-nota      {{ font-size:15px !important; line-height:24px !important; }}
@@ -203,5 +203,5 @@ if __name__ == '__main__':
     (AQUI / 'convite.html').write_text(html, encoding='utf-8')
     (AQUI / 'apps-script' / 'followup.html').write_text(html, encoding='utf-8')
     base.CONVITES = {'followup': dict(rotulo='Follow-up · últimas inscrições', assunto=ASSUNTO)}
-    (AQUI / 'copiar-email.html').write_text(base.pagina_copiar({'followup': html}), encoding='utf-8')
+    (AQUI / 'copiar-email.html').write_text(base.pagina_copiar({'followup': html}).replace('Politicamente Falando #02', 'Follow-up dos 50 anos'), encoding='utf-8')
     print(f'convite.html: {len(html.encode()) // 1024} KB · copiar-email.html')

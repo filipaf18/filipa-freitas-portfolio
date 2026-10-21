@@ -22,7 +22,7 @@ from base import (FONT, DEGRADE, LADO, ESCURO, TEXTO, MUTED, AZUL, LARANJA, FILE
                   linha, traco, sem_rasto, texto_simples)
 
 # ------------------------------------------------------------------ imagens (sempre por endereço, sem ligação)
-COMMIT_IMAGENS = 'cbe246bc583e0df5022edb5863b0fcb933a36623'
+COMMIT_IMAGENS = '213aef5628d4d71de076a4b38431e48593f2542e'
 PASTA_IMAGENS = f'https://raw.githubusercontent.com/filipaf18/filipa-freitas-portfolio/{COMMIT_IMAGENS}/email/jsd-50-anos-ultimas-inscricoes/imagens'
 IMAGENS = {
     'banner': f'{PASTA_IMAGENS}/banner.jpg',               # 1200 × 400, o do convite dos 50 anos

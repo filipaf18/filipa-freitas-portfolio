@@ -69,7 +69,7 @@ def banda(bg, linhas, largura=600):
     return f"""
     <tr>
       <td bgcolor="{bg}" style="background-color:{bg}; padding:0;">
-        <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">{''.join(linhas)}
+        <table class="col" role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:{largura}px; margin:0 auto;">{''.join(linhas)}
         </table>
       </td>
     </tr>"""
@@ -110,30 +110,18 @@ def pagina():
         botao(22, 28),
     ])
 
-    # convite a trazer convidados: cartão branco com contorno laranja (o contorno está na célula, não numa tabela/div)
-    convida = banda(CREME, [f"""
-          <tr>
-            <td class="px" style="padding:0 {LADO}px 30px {LADO}px;">
-              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:552px; margin:0 auto;">
-                <tr>
-                  <td align="center" bgcolor="#FFFFFF" style="background-color:#FFFFFF; border:2px solid {LARANJA}; border-radius:18px; text-align:center;">
-                    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      {linha(sem_rasto('TRAZ QUEM QUISERES'), 26, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{LARANJA};', 'center', 't-etiqueta')}
-                      {linha('Não precisas de ser militante da&nbsp;JSD.', 10, 0, f'font-size:24px; line-height:31px; font-weight:800; color:{ESCURO};', 'center', 't-lead')}
-                      {linha('Vem com amigos, família e colegas. Militantes, antigos militantes, simpatizantes e acompanhantes são todos bem-vindos.', 10, 28,
-                             f'font-size:16px; line-height:25px; color:{TEXTO};', 'center', 't-dados')}
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>"""])
+    # convite a trazer convidados: texto em destaque, sem caixa
+    convida = banda(CREME, [
+        linha('Traz amigos,<br>família e colegas!', 8, 0, f'font-size:25px; line-height:32px; font-weight:800; color:{LARANJA};', 'center', 't-grande'),
+        linha('Não precisas de ser militante!', 8, 40, f'font-size:19px; line-height:27px; font-weight:700; color:{ESCURO};', 'center', 't-lead2'),
+    ])
 
     def ponto(cor):
         return f'<div style="width:15px; height:15px; border:5px solid {cor}; border-radius:50%; background-color:#FFFFFF; margin:0 auto; font-size:0; line-height:0;"></div>'
 
-    def prato(txt):
-        return (f'<tr><td class="t-dados" style="padding:3px 0; font-family:{FONT}; font-size:17px; line-height:25px; font-weight:700; color:{ESCURO}; text-align:left;">{txt}</td></tr>')
+    def prato(txt, suave=False):
+        peso, cor = ('500', MUTED) if suave else ('700', ESCURO)
+        return (f'<tr><td class="t-prato" style="padding:{5 if suave else 3}px 0; font-family:{FONT}; font-size:17px; line-height:25px; font-weight:{peso}; color:{cor}; text-align:left;">{txt}</td></tr>')
 
     def etapa(cor_ponto, gradiente, hora, cor_hora, titulo, corpo):
         """Uma etapa da noite: coluna do fio (ponto no topo, fio em degradê) e coluna do conteúdo."""
@@ -141,47 +129,46 @@ def pagina():
                 <tr>
                   <td width="34" valign="top" align="center" style="width:34px; padding-top:3px; background-image:{gradiente}; background-size:3px 100%; background-position:center top; background-repeat:no-repeat; text-align:center;">{ponto(cor_ponto)}</td>
                   <td valign="top" align="left" style="padding:0 0 38px 16px; text-align:left;">
-                    <div style="font-family:{FONT}; font-size:13px; line-height:18px; font-weight:800; letter-spacing:3px; color:{cor_hora}; text-align:left;">{hora}</div>
-                    <div class="t-lead" style="font-family:{FONT}; font-size:24px; line-height:30px; font-weight:800; color:{ESCURO}; text-align:left; padding-top:2px;">{titulo}</div>{corpo}
+                    <div class="t-hora" style="font-family:{FONT}; font-size:13px; line-height:18px; font-weight:800; letter-spacing:3px; color:{cor_hora}; text-align:left;">{hora}</div>
+                    <div class="t-etapa" style="font-family:{FONT}; font-size:24px; line-height:30px; font-weight:800; color:{ESCURO}; text-align:left; padding-top:2px;">{titulo}</div>{corpo}
                   </td>
                 </tr>"""
 
     jantar = f"""
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;">
                       <tr>
-                        <td width="58%" valign="middle" align="left" style="text-align:left;">
+                        <td width="62%" valign="top" align="left" style="text-align:left;">
                           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                            {prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}{prato('Rojões à minhota')}{prato('Frango à strogonoff')}
+                            {prato('Aperitivos variados', True)}{prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}{prato('Rojões à minhota')}{prato('Frango à strogonoff')}{prato('Buffet de sobremesas e bolo de aniversário', True)}
+                          </table>
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+                            <tr>
+                              <td data-propria="1" class="t-selo" bgcolor="{LARANJA}" style="background-color:{LARANJA}; background-image:linear-gradient(90deg,{OURO} 0%,{LARANJA} 100%); border-radius:40px; padding:11px 24px; font-family:{FONT}; font-size:17px; line-height:22px; font-weight:800; letter-spacing:2px; color:{ESCURO}; text-align:center;">BAR&nbsp;ABERTO</td>
+                            </tr>
                           </table>
                         </td>
-                        <td width="42%" valign="middle" align="right" style="font-size:0; line-height:0; text-align:right;">
-                          <img src="{IMAGENS['mesa']}" width="120" alt="" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-left:auto;">
+                        <td width="38%" valign="top" align="right" style="font-size:0; line-height:0; text-align:right;">
+                          <img class="mesa" src="{IMAGENS['mesa']}" width="128" alt="" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-left:auto;">
                         </td>
                       </tr>
-                    </table>
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;">
-                      <tr>
-                        <td data-propria="1" bgcolor="{LARANJA}" style="background-color:{LARANJA}; background-image:linear-gradient(90deg,{OURO} 0%,{LARANJA} 100%); border-radius:40px; padding:11px 24px; font-family:{FONT}; font-size:17px; line-height:22px; font-weight:800; letter-spacing:2px; color:{ESCURO}; text-align:center;">BAR&nbsp;ABERTO</td>
-                      </tr>
-                    </table>
-                    <div class="t-nota" style="font-family:{FONT}; font-size:14px; line-height:22px; color:{MUTED}; text-align:left; padding-top:10px;">Aperitivos, sobremesas e bolo de aniversário.</div>"""
+                    </table>"""
     after = f"""
-                    <img src="{IMAGENS['classe']}" width="150" alt="Classe Bar" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-top:12px;">
-                    <div class="t-dados" style="font-family:{FONT}; font-size:17px; line-height:26px; color:{TEXTO}; text-align:left; padding-top:10px;">Entrada <strong style="color:{LARANJA};">gratuita</strong> para quem se inscrever no jantar.</div>"""
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;">
+                      <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><img class="logo-classe" src="{IMAGENS['classe']}" width="140" alt="Classe Bar" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin:0 auto;"></td></tr>
+                      <tr><td data-propria="1" class="t-dados" align="center" style="padding-top:8px; font-family:{FONT}; font-size:17px; line-height:26px; color:{TEXTO}; text-align:center;">Entrada <strong style="color:{LARANJA};">gratuita</strong> para inscritos.</td></tr>
+                    </table>"""
     linha_tempo = banda(CREME, [f"""
           <tr>
             <td class="px" style="padding:6px {LADO}px 0 {LADO}px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{
                 etapa(LARANJA, 'linear-gradient(180deg,#0E87D9 0%,#54CFC9 55%,#F8B451 100%)', '19H00', LARANJA, 'Jantar Comemorativo', jantar)}{
-                etapa(OURO_ESCURO, 'linear-gradient(180deg,#F8B451 0%,#F86420 100%)', '01H30', OURO_ESCURO, 'After party no Classe', after)}
+                etapa(OURO_ESCURO, 'linear-gradient(180deg,#F8B451 0%,#F86420 100%)', '01H30', OURO_ESCURO, 'After party no Classe Bar', after)}
               </table>
             </td>
           </tr>"""])
     final = banda(CREME, [
         botao(4, 0),
-        linha(f'Inscrições até 4&nbsp;de&nbsp;novembro{PONTO}<a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Sunset House, Cruz</a>', 20, 0,
-              f'font-size:14px; line-height:22px; color:{MUTED};', 'center', 't-nota'),
-        linha('A inscrição só fica válida depois de confirmado o pagamento.', 4, 40, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota'),
+        linha('Inscrição válida após confirmação de pagamento.', 18, 40, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota'),
     ])
     return f"""<!DOCTYPE html>
 <html lang="pt-PT">
@@ -198,11 +185,33 @@ def pagina():
     body {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }}
     :root {{ color-scheme:light only; supported-color-schemes:light only; }}
     a[x-apple-data-detectors] {{ color:inherit !important; text-decoration:none !important; font-size:inherit !important; font-family:inherit !important; font-weight:inherit !important; line-height:inherit !important; }}
+    @media only screen and (min-width:900px) {{
+      .col         {{ max-width:1100px !important; }}
+      .px          {{ padding-left:48px !important; padding-right:48px !important; }}
+      .t-etiqueta  {{ font-size:15px !important; line-height:20px !important; }}
+      .t-titulo    {{ font-size:64px !important; line-height:72px !important; }}
+      .t-grande    {{ font-size:50px !important; line-height:58px !important; }}
+      .t-lead2     {{ font-size:30px !important; line-height:40px !important; }}
+      .t-dados     {{ font-size:22px !important; line-height:34px !important; }}
+      .t-prato     {{ font-size:24px !important; line-height:34px !important; }}
+      .t-hora      {{ font-size:18px !important; line-height:24px !important; letter-spacing:4px !important; }}
+      .t-etapa     {{ font-size:36px !important; line-height:44px !important; }}
+      .t-selo      {{ font-size:22px !important; padding:14px 34px !important; }}
+      .t-nota      {{ font-size:15px !important; line-height:24px !important; }}
+      .mesa        {{ width:250px !important; max-width:250px !important; }}
+      .logo-classe {{ width:220px !important; max-width:220px !important; }}
+      .btn-tabela  {{ max-width:760px !important; width:100% !important; }}
+      .btn         {{ font-size:22px !important; padding:27px 20px !important; }}
+    }}
     @media only screen and (max-width:600px) {{
       .px          {{ padding-left:22px !important; padding-right:22px !important; }}
       .t-etiqueta  {{ font-size:13px !important; line-height:18px !important; }}
       .t-titulo    {{ font-size:30px !important; line-height:38px !important; }}
       .t-lead      {{ font-size:24px !important; line-height:32px !important; }}
+      .t-grande    {{ font-size:25px !important; line-height:32px !important; }}
+      .t-lead2     {{ font-size:20px !important; line-height:28px !important; }}
+      .t-prato     {{ font-size:17px !important; }}
+      .t-etapa     {{ font-size:21px !important; line-height:28px !important; }}
       .t-prazo     {{ font-size:46px !important; line-height:52px !important; }}
       .t-dados     {{ font-size:17px !important; line-height:28px !important; }}
       .t-nota      {{ font-size:14px !important; line-height:22px !important; }}

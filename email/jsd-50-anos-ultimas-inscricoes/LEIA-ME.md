@@ -4,12 +4,13 @@ Objetivo: reforçar o anúncio e converter em inscrições. Versão única, a tr
 
 **Assunto:** Inscrições abertas até 4 de novembro · Jantar dos 50 anos da JSD Famalicão
 
-Estrutura (opção C, «linha do tempo», sobre fundo creme):
-1. banner do jantar;
-2. «Inscrições até 4 de novembro», data, local, 35 € e bar aberto, e o botão;
-3. cartão de convite com contorno laranja: «Traz quem quiseres. Não precisas de ser militante da JSD.»;
-4. linha do tempo da noite, com um fio em degradê: **19h00 Jantar Comemorativo** (os 4 pratos sem pontos, a mesa da ementa e o selo laranja **BAR ABERTO**) e **01h30 After party no Classe** (logo e entrada gratuita);
-5. botão final, prazo, local e nota do pagamento; rodapé pequeno.
+Estrutura (opção C, «linha do tempo», fundo creme):
+1. banner, «Inscrições até 4 de novembro», data, local, 35 € e bar aberto, botão;
+2. texto em destaque: «Traz amigos, família e colegas!» e «Não precisas de ser militante!»;
+3. linha do tempo vertical: **19h00 Jantar Comemorativo** (aperitivos, 4 pratos, sobremesas, a mesa da ementa e o selo **BAR ABERTO**) e **01h30 After party no Classe Bar** (logo e «Entrada gratuita para inscritos.»);
+4. botão final e «Inscrição válida após confirmação de pagamento.»; logo dos 50 anos pequeno.
+
+**Computador:** com `@media (min-width:900px)` a coluna passa de 600 a 1100 px e as letras, o selo, a mesa e os botões crescem. O Gmail descarta o `<style>` ao colar, por isso a versão larga só aparece se o email for enviado pelo script (`apps-script/followup.html`) ou por uma plataforma; colado à mão, todos veem a versão de uma coluna (que funciona sempre).
 
 ## Como enviar
 1. Abre `copiar-email.html` no Chrome e clica em **Copiar convite** (e em **Copiar assunto**).

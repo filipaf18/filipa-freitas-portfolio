@@ -62,7 +62,7 @@ const VARIANTES = {
 };
 // combinações que só se registam: o caminho errado (Ctrl+C troca os espaços do tema por &nbsp;) com letra 25 % maior
 // num ecrã de 320 px, e os clientes que ignorassem font-size:0 ou display:block (as barras e o traço engrossam).
-const informativo = (fonte, variante) => variante.includes('(info)') || (fonte.includes(' B:') && variante === 'letra 25% maior') || fonte.includes('B: Ctrl+A/C no telemóvel');
+const informativo = (fonte, variante) => variante.includes('(info)') || (fonte.includes(' B:') && variante === 'letra 25% maior') || fonte.includes('B: Ctrl+A/C');
 const documento = (corpo) => `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0">${corpo}</body></html>`;
 
 // ---------------------------------------------------------------- medições

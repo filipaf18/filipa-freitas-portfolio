@@ -128,7 +128,7 @@ const MEDIR = () => {
       else linhas.push({ l: q.l, r: q.r, m, s: q.s });
     }
     const alinh = getComputedStyle(td).textAlign;
-    const orador = td.getAttribute('width') === '50%' || td.tagName === 'TD' && !!td.closest('table').closest('td') && [eva, alv].some((f) => f && f.closest('table') === td.closest('table'));
+    const orador = td.getAttribute('width') === '50%' || td.hasAttribute('data-propria') || td.tagName === 'TD' && !!td.closest('table').closest('td') && [eva, alv].some((f) => f && f.closest('table') === td.closest('table'));
     for (const L of linhas) {
       if (alinh === 'center' || alinh === '-webkit-center') {
         if (orador) {

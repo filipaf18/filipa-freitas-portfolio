@@ -39,7 +39,7 @@ ASSUNTO = 'Inscrições abertas até 4 de novembro · Jantar dos 50 anos da JSD 
 PREHEADER = 'Não precisas de ser militante. Inscrições até 4 de novembro: menu, bar aberto e entrada gratuita no Classe Bar.'
 
 
-NAVY, PRETO, CLARO = '#FFFFFF', '#FFFFFF', '#FFFFFF'
+NAVY, PRETO, CLARO = '#FFF8F1', '#FFF8F1', '#FFF8F1'
 OURO = '#F86420'
 
 
@@ -98,17 +98,30 @@ def pagina():
     </tr>"""
     estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
     branco, suave = '#14181F', '#646B75'
-    CINZA = '#F1F0EE'
+    CREME = '#FFF8F1'
+    OURO_ESCURO = '#B07A3A'
 
-    def cartao(bg, linhas, baixo=16):
-        """Cartão arredondado dentro da coluna (a cor está no bgcolor e no style)."""
-        return banda('#FFFFFF', [f"""
+    hero = banda(CREME, [
+        rotulo('ÚLTIMOS DIAS', 36, AZUL),
+        linha('Inscrições até<br><span style="color:' + LARANJA + ';">4 de novembro</span>', 12, 0,
+              f'font-size:36px; line-height:43px; font-weight:800; color:{ESCURO};', 'center', 't-titulo'),
+        linha(f'Sábado, 7&nbsp;de&nbsp;novembro{PONTO}Sunset&nbsp;House<br><strong {FORTE}>35&nbsp;€</strong> por pessoa{PONTO}bar aberto', 10, 0,
+              f'font-size:15px; line-height:24px; color:{MUTED};', 'center', 't-dados'),
+        botao(22, 28),
+    ])
+
+    # convite a trazer convidados: cartão branco com contorno laranja (o contorno está na célula, não numa tabela/div)
+    convida = banda(CREME, [f"""
           <tr>
-            <td class="px" style="padding:0 {LADO}px {baixo}px {LADO}px;">
+            <td class="px" style="padding:0 {LADO}px 30px {LADO}px;">
               <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:552px; margin:0 auto;">
                 <tr>
-                  <td bgcolor="{bg}" style="background-color:{bg}; border-radius:18px;">
-                    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">{''.join(linhas)}
+                  <td align="center" bgcolor="#FFFFFF" style="background-color:#FFFFFF; border:2px solid {LARANJA}; border-radius:18px; text-align:center;">
+                    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                      {linha(sem_rasto('TRAZ QUEM QUISERES'), 26, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{LARANJA};', 'center', 't-etiqueta')}
+                      {linha('Não precisas de ser militante da&nbsp;JSD.', 10, 0, f'font-size:24px; line-height:31px; font-weight:800; color:{ESCURO};', 'center', 't-lead')}
+                      {linha('Vem com amigos, família e colegas. Militantes, antigos militantes, simpatizantes e acompanhantes são todos bem-vindos.', 10, 28,
+                             f'font-size:16px; line-height:25px; color:{TEXTO};', 'center', 't-dados')}
                     </table>
                   </td>
                 </tr>
@@ -116,56 +129,57 @@ def pagina():
             </td>
           </tr>"""])
 
-    hero = banda('#FFFFFF', [
-        rotulo('ÚLTIMOS DIAS', 40, AZUL),
-        linha(f'Inscrições até<br><span style="color:{OURO};">4 de novembro</span>', 12, 0,
-              f'font-size:34px; line-height:42px; font-weight:800; color:{ESCURO};', 'center', 't-titulo'),
-        linha(f'Jantar dos 50&nbsp;anos{PONTO}sábado, 7&nbsp;de&nbsp;novembro{PONTO}19h00', 10, 0,
-              f'font-size:15px; line-height:24px; color:{MUTED};', 'center', 't-dados'),
-        botao(24, 0),
-        linha('<strong ' + FORTE + '>Não precisas de ser militante da&nbsp;JSD.</strong> Militantes, antigos militantes, '
-              'simpatizantes e acompanhantes são todos bem-vindos.', 26, 36,
-              f'font-size:16px; line-height:26px; color:{TEXTO};', 'center', 't-dados'),
-    ])
+    def ponto(cor):
+        return f'<div style="width:15px; height:15px; border:5px solid {cor}; border-radius:50%; background-color:#FFFFFF; margin:0 auto; font-size:0; line-height:0;"></div>'
 
     def prato(txt):
-        return (f'<tr><td class="t-dados" style="padding:7px 0; font-family:{FONT}; font-size:16px; line-height:22px; font-weight:800; '
-                f'color:{ESCURO}; text-align:left;"><span style="color:{LARANJA};">&bull;</span>&nbsp; {txt}</td></tr>')
-    menu = cartao(CINZA, [
-        f"""
-          <tr>
-            <td class="px" style="padding:30px 0 0 {LADO}px; font-family:{FONT}; font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{LARANJA}; text-align:left;">O&nbsp;MENU</td>
-          </tr>
-          <tr>
-            <td style="padding:8px 0 26px 0;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        return (f'<tr><td class="t-dados" style="padding:3px 0; font-family:{FONT}; font-size:17px; line-height:25px; font-weight:700; color:{ESCURO}; text-align:left;">{txt}</td></tr>')
+
+    def etapa(cor_ponto, gradiente, hora, cor_hora, titulo, corpo):
+        """Uma etapa da noite: coluna do fio (ponto no topo, fio em degradê) e coluna do conteúdo."""
+        return f"""
                 <tr>
-                  <td class="px" width="58%" valign="middle" align="left" style="padding-left:{LADO}px; text-align:left;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                      {prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}{prato('Rojões à minhota')}{prato('Frango à strogonoff')}
+                  <td width="34" valign="top" align="center" style="width:34px; padding-top:3px; background-image:{gradiente}; background-size:3px 100%; background-position:center top; background-repeat:no-repeat; text-align:center;">{ponto(cor_ponto)}</td>
+                  <td valign="top" align="left" style="padding:0 0 38px 16px; text-align:left;">
+                    <div style="font-family:{FONT}; font-size:13px; line-height:18px; font-weight:800; letter-spacing:3px; color:{cor_hora}; text-align:left;">{hora}</div>
+                    <div class="t-lead" style="font-family:{FONT}; font-size:24px; line-height:30px; font-weight:800; color:{ESCURO}; text-align:left; padding-top:2px;">{titulo}</div>{corpo}
+                  </td>
+                </tr>"""
+
+    jantar = f"""
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;">
+                      <tr>
+                        <td width="58%" valign="middle" align="left" style="text-align:left;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            {prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}{prato('Rojões à minhota')}{prato('Frango à strogonoff')}
+                          </table>
+                        </td>
+                        <td width="42%" valign="middle" align="right" style="font-size:0; line-height:0; text-align:right;">
+                          <img src="{IMAGENS['mesa']}" width="120" alt="" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-left:auto;">
+                        </td>
+                      </tr>
                     </table>
-                  </td>
-                  <td width="42%" valign="middle" align="right" style="font-size:0; line-height:0; text-align:right;">
-                    <img src="{IMAGENS['mesa']}" width="190" alt="" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-left:auto;">
-                  </td>
-                </tr>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;">
+                      <tr>
+                        <td data-propria="1" bgcolor="{LARANJA}" style="background-color:{LARANJA}; background-image:linear-gradient(90deg,{OURO} 0%,{LARANJA} 100%); border-radius:40px; padding:11px 24px; font-family:{FONT}; font-size:17px; line-height:22px; font-weight:800; letter-spacing:2px; color:{ESCURO}; text-align:center;">BAR&nbsp;ABERTO</td>
+                      </tr>
+                    </table>
+                    <div class="t-nota" style="font-family:{FONT}; font-size:14px; line-height:22px; color:{MUTED}; text-align:left; padding-top:10px;">Aperitivos, sobremesas e bolo de aniversário.</div>"""
+    after = f"""
+                    <img src="{IMAGENS['classe']}" width="150" alt="Classe Bar" style="display:block; max-width:100%; height:auto; border:0; outline:none; margin-top:12px;">
+                    <div class="t-dados" style="font-family:{FONT}; font-size:17px; line-height:26px; color:{TEXTO}; text-align:left; padding-top:10px;">Entrada <strong style="color:{LARANJA};">gratuita</strong> para quem se inscrever no jantar.</div>"""
+    linha_tempo = banda(CREME, [f"""
+          <tr>
+            <td class="px" style="padding:6px {LADO}px 0 {LADO}px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{
+                etapa(LARANJA, 'linear-gradient(180deg,#0E87D9 0%,#54CFC9 55%,#F8B451 100%)', '19H00', LARANJA, 'Jantar Comemorativo', jantar)}{
+                etapa(OURO_ESCURO, 'linear-gradient(180deg,#F8B451 0%,#F86420 100%)', '01H30', OURO_ESCURO, 'After party no Classe', after)}
               </table>
             </td>
-          </tr>""",
-        linha('Aperitivos, buffet de sobremesas, bolo de aniversário e <strong ' + FORTE + '>bar aberto</strong>.', 0, 28,
-              f'font-size:14px; line-height:22px; color:{MUTED};', 'left', 't-nota'),
-    ])
-    classe = cartao(PRETO_CARTAO := '#14181F', [
-        rotulo('AFTER PARTY', 34, '#F8B451'),
-        imagem('classe', 170, 'Classe Bar', 14),
-        linha('Entrada <span style="color:#F8B451;">gratuita</span><br>para quem se inscrever', 16, 0,
-              'font-size:22px; line-height:30px; font-weight:800; color:#FFFFFF;', 'center', 't-lead'),
-        linha('Classe&nbsp;Bar, a partir das 01h30', 8, 34, 'font-size:15px; line-height:24px; color:#C9D0DA;', 'center', 't-dados'),
-    ], baixo=36)
-    final = banda('#FFFFFF', [
-        botao(8, 0),
-        ligacao(AZUL, 14),
-        linha(f'<strong {FORTE}>35&nbsp;€</strong> por pessoa{PONTO}Sunset&nbsp;House, <a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Cruz</a>', 22, 0,
+          </tr>"""])
+    final = banda(CREME, [
+        botao(4, 0),
+        linha(f'Inscrições até 4&nbsp;de&nbsp;novembro{PONTO}<a href="{MAPA}" style="color:{MUTED}; text-decoration:underline;">Sunset House, Cruz</a>', 20, 0,
               f'font-size:14px; line-height:22px; color:{MUTED};', 'center', 't-nota'),
         linha('A inscrição só fica válida depois de confirmado o pagamento.', 4, 40, f'font-size:13px; line-height:21px; color:{MUTED};', 'center', 't-nota'),
     ])
@@ -202,24 +216,24 @@ def pagina():
 
 <!-- Gerado por src/gerar.py. Fundo branco, separadores em degradê; texto numa coluna de até 600 px. -->
 
-<body style="margin:0; padding:0; background-color:#FFFFFF;">
+<body style="margin:0; padding:0; background-color:#FFF8F1;">
 
   <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#FFFFFF;">
     {PREHEADER}
     &#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="min-width:100%; background-color:#FFFFFF; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; color-scheme:light only;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFF8F1" style="min-width:100%; background-color:#FFF8F1; font-family:{FONT}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; color-scheme:light only;">
 
     <tr>
       <td align="center" bgcolor="#554835" style="background-color:#554835; font-size:0; line-height:0; text-align:center;">
         <img src="{IMAGENS['banner']}" width="640" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
              style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
       </td>
-    </tr>{barra}{hero}{menu}{classe}{final}
+    </tr>{hero}{convida}{linha_tempo}{final}
 
     <tr>
-      <td class="px" align="center" bgcolor="{CLARO}" style="background-color:{CLARO}; border-top:1px solid {FILETE}; padding:18px {LADO}px 20px {LADO}px; font-family:{FONT}; text-align:center;">
+      <td class="px" align="center" bgcolor="{CLARO}" style="background-color:{CLARO}; padding:12px {LADO}px 20px {LADO}px; font-family:{FONT}; text-align:center;">
         <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
           <tr><td align="center" style="font-size:0; line-height:0; text-align:center;"><table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="font-size:0; line-height:0;"><img src="{IMAGENS['logo']}" width="64" alt="50 anos JSD Famalicão" style="display:block; width:64px; max-width:100%; height:auto; border:0; outline:none; color:{ESCURO}; font-family:{FONT}; font-size:14px; line-height:20px;"></td></tr></table></td></tr>
           <tr><td class="t-rodape" align="center" style="padding-top:14px; font-family:{FONT}; font-size:12px; line-height:19px; color:{MUTED}; text-align:center;">JSD Famalicão{PONTO}Se não quiseres receber mais mensagens, responde a este email.</td></tr>

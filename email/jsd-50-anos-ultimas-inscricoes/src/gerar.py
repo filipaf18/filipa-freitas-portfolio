@@ -42,8 +42,8 @@ ALT_MENU = ('Menu do Jantar Comemorativo, 50 anos JSD Famalicão. Aperitivos var
             'Jantar com bar aberto.')
 
 
-NAVY, PRETO, CLARO = '#0B2545', '#14181F', '#F5F7FA'
-OURO = '#F8B451'
+NAVY, PRETO, CLARO = '#FFFFFF', '#FFFFFF', '#FFFFFF'
+OURO = '#F86420'
 
 
 def botao(cima, baixo, grande=True):
@@ -100,31 +100,31 @@ def pagina():
       <td height="6" bgcolor="{LARANJA}" style="height:6px; font-size:6px; line-height:6px; background-color:{LARANJA}; background-image:{DEGRADE};">&nbsp;</td>
     </tr>"""
     estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
-    branco, suave = '#FFFFFF', '#C9D6E8'
+    branco, suave = '#14181F', '#646B75'
     hero = banda(NAVY, [
-        rotulo('ÚLTIMOS DIAS', 44, OURO),
+        rotulo('ÚLTIMOS DIAS', 44, AZUL),
         linha(f'Inscrições até<br><span style="color:{OURO};">4&nbsp;de&nbsp;novembro</span>', 14, 0,
               f'font-size:27px; line-height:35px; font-weight:800; color:{branco};', 'center', 't-titulo'),
         linha(f'Jantar dos 50&nbsp;anos{PONTO}sábado, 7&nbsp;de&nbsp;novembro{PONTO}19h00', 18, 0,
               f'font-size:15px; line-height:24px; color:{suave};', 'center', 't-dados'),
         botao(30, 0),
-        ligacao(suave, 16),
+        ligacao(AZUL, 16),
         linha('', 0, 44),
     ])
-    aberto = banda(branco, [
+    aberto = banda('#FFFFFF', [
         rotulo('ABERTO A TODOS', 48),
         linha('Militantes, antigos militantes, simpatizantes e acompanhantes.', 14, 0,
               f'font-size:20px; line-height:30px; font-weight:700; color:{ESCURO};', 'center', 't-lead'),
         linha(f'<strong {FORTE}>35&nbsp;€</strong> por pessoa{PONTO}bar aberto', 14, 0,
               f'font-size:16px; line-height:26px; color:{TEXTO};', 'center', 't-dados'),
     ])
-    menu = banda(branco, [
+    menu = banda('#FFFFFF', [
         rotulo('O MENU', 44),
         imagem('menu', 400, ALT_MENU, 20, borda=True),
         linha('', 0, 48),
     ])
     classe = banda(PRETO, [
-        rotulo('DEPOIS DO JANTAR', 48, OURO),
+        rotulo('AFTER PARTY', 48, AZUL),
         imagem('classe', 200, 'Classe Bar', 22),
         linha(f'Entrada <span style="color:{OURO};">gratuita</span><br>para quem se inscrever', 22, 0,
               f'font-size:24px; line-height:32px; font-weight:800; color:{branco};', 'center', 't-lead'),
@@ -134,7 +134,7 @@ def pagina():
         linha('Garante o teu lugar.', 52, 0, f'font-size:26px; line-height:34px; font-weight:800; color:{branco};', 'center', 't-titulo'),
         linha('As inscrições fecham a 4&nbsp;de&nbsp;novembro.', 8, 0, f'font-size:15px; line-height:24px; color:{suave};', 'center', 't-dados'),
         botao(28, 0),
-        ligacao(suave, 16),
+        ligacao(AZUL, 16),
         linha(f'<a href="{MAPA}" style="color:{suave}; text-decoration:underline;">Sunset&nbsp;House, Av.&nbsp;Visc.&nbsp;de&nbsp;Pindela&nbsp;112, Cruz</a>', 28, 0,
               f'font-size:13px; line-height:21px; color:{suave};', 'center', 't-nota'),
         linha('A inscrição só fica válida depois de confirmado o pagamento.', 6, 52, f'font-size:13px; line-height:21px; color:{suave};', 'center', 't-nota'),
@@ -169,7 +169,7 @@ def pagina():
   </style>
 </head>
 
-<!-- Gerado por src/gerar.py. Faixas a toda a largura; texto numa coluna de até 600 px. -->
+<!-- Gerado por src/gerar.py. Fundo branco, separadores em degradê; texto numa coluna de até 600 px. -->
 
 <body style="margin:0; padding:0; background-color:#FFFFFF;">
 
@@ -185,7 +185,7 @@ def pagina():
         <img src="{IMAGENS['banner']}" width="640" alt="Jantar Comemorativo. 50 anos JSD Famalicão."
              style="display:block; min-width:100%; max-width:100%; height:auto; {estilo_img}">
       </td>
-    </tr>{barra}{hero}{aberto}{menu}{classe}{final}{barra}
+    </tr>{barra}{hero}{barra}{aberto}{menu}{barra}{classe}{barra}{final}{barra}
 
     <tr>
       <td class="px" align="center" bgcolor="{CLARO}" style="background-color:{CLARO}; padding:24px {LADO}px 28px {LADO}px; font-family:{FONT}; text-align:center;">

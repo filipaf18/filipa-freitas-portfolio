@@ -8,7 +8,7 @@ Estrutura (pouco texto, fundo branco, separadores em degradê, o botão logo ao 
 1. banner do jantar;
 2. secção «ÚLTIMOS DIAS», «Inscrições até» e o prazo num selo laranja («4 NOV, quarta-feira»), data e hora, botão grande;
 3. «Aberto a todos»: «Não precisas de ser militante da JSD.», 35 € e bar aberto;
-4. o menu, em texto (um cartão no estilo do email, sem a imagem da ementa);
+4. o menu em 4 cartões (os pratos principais) e uma linha com o resto;
 5. secção «AFTER PARTY»: logo do Classe, «Entrada gratuita para quem se inscrever», a partir das 01h30;
 6. secção «Garante o teu lugar.», botão, local;
 7. rodapé pequeno com o logo dos 50 anos.

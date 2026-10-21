@@ -129,27 +129,19 @@ def pagina():
         linha(f'<strong {FORTE}>35&nbsp;€</strong> por pessoa{PONTO}bar aberto', 14, 0,
               f'font-size:16px; line-height:26px; color:{TEXTO};', 'center', 't-dados'),
     ])
-    def prato(txt, forte=True, ultimo=False):
-        borda = '' if ultimo else f' border-bottom:1px solid {FILETE};'
-        peso, cor = ('700', ESCURO) if forte else ('400', MUTED)
-        return (f'<tr><td class="t-dados" align="center" style="padding:13px 0;{borda} text-align:center; font-family:{FONT}; font-size:16px; '
-                f'line-height:24px; font-weight:{peso}; color:{cor};">{txt}</td></tr>')
-    pratos = ''.join([
-        prato('Aperitivos variados', False), prato('Arroz de tamboril e camarão'), prato('Brás de bacalhau'),
-        prato('Rojões à minhota'), prato('Frango à strogonoff'), prato('Buffet de sobremesas e bolo de aniversário', False),
-        prato(f'Jantar com <span style="color:{LARANJA};">bar aberto</span>', True, True)])
+    def prato(txt):
+        return (f'<td class="t-dados" width="50%" valign="middle" align="center" style="border:1px solid {FILETE}; border-radius:10px; padding:20px 10px; '
+                f'text-align:center; font-family:{FONT}; font-size:16px; line-height:22px; font-weight:700; color:{ESCURO};">{txt}</td>')
     cartao = f"""
           <tr>
             <td class="px" style="padding:20px {LADO}px 0 {LADO}px;">
-              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:400px; margin:0 auto;">
-                <tr>
-                  <td align="center" style="border:1px solid {FILETE}; border-radius:10px; padding:8px 24px; text-align:center;">
-                    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">{pratos}</table>
-                  </td>
-                </tr>
+              <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="8" border="0" style="max-width:420px; margin:0 auto;">
+                <tr>{prato('Arroz de tamboril e camarão')}{prato('Brás de bacalhau')}</tr>
+                <tr>{prato('Rojões à minhota')}{prato('Frango à strogonoff')}</tr>
               </table>
             </td>
-          </tr>"""
+          </tr>""" + linha('+ aperitivos, buffet de sobremesas e bolo de aniversário', 12, 0,
+                           f'font-size:14px; line-height:22px; color:{MUTED};', 'center', 't-nota')
     menu = banda('#FFFFFF', [
         rotulo('O MENU', 44),
         cartao,

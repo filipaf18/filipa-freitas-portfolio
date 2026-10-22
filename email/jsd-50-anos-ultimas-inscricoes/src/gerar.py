@@ -28,7 +28,7 @@ IMAGENS = {
     'banner': f'{PASTA_IMAGENS}/banner.jpg',               # 1200 × 400, o do convite dos 50 anos
     'classe': f'{PASTA_IMAGENS}/classe-bar-logo.png',
     'mesa': f'{PASTA_IMAGENS}/mesa.png',                   # ilustração da mesa do menu, fundo transparente      # fundo transparente
-    'logo': 'https://jsdfamalicao.pt/convite/logo-50-anos.png',
+    'logo': f'{PASTA_IMAGENS}/logo-50-anos.png',                  # PNG com fundo transparente (o do site pode ter fundo)
 }
 LINK = 'https://jsdfamalicao.pt/50-anos#inscricao'
 LINK_TXT = 'jsdfamalicao.pt/50-anos#inscricao'

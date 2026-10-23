@@ -33,8 +33,7 @@ PARAGRAFOS = [
     f'Aproxima-se o <strong {FORTE}>Jantar Comemorativo dos 50&nbsp;anos da JSD Famalicão</strong>, no '
     f'<strong {FORTE}>sábado, 7&nbsp;de&nbsp;novembro, às&nbsp;19h00</strong>, na <strong {FORTE}>Sunset&nbsp;House</strong>, '
     'e gostaríamos muito de contar com a sua presença numa noite que reunirá várias gerações e assinalará meio século de pessoas, ideias e causas.',
-    f'Como ainda não temos registo da sua inscrição, pedimos que a faça <strong {FORTE}>até 4&nbsp;de&nbsp;novembro</strong> em '
-    f'<a href="{LINK}" style="color:{AZUL}; text-decoration:underline; font-weight:700;">{LINK_TXT}</a>.',
+    f'Como ainda não temos registo da sua inscrição, pedimos que a faça <strong {FORTE}>até 4&nbsp;de&nbsp;novembro</strong>, através do botão abaixo.',
     f'Se não lhe for possível comparecer, agradecemos que <strong {FORTE}>responda a este email nesse sentido, até à mesma data</strong>. '
     f'<strong {FORTE}>A sua resposta, mesmo negativa, é indispensável para a organização do evento.</strong>',
 ]

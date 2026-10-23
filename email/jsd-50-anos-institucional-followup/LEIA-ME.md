@@ -12,6 +12,6 @@ Carta formal, sem caixas, para todos os convidados sem inscrição nem resposta.
 3. Envia primeiro um teste.
 
 ## A confirmar
-- **Tratamento:** «Estimado(a) convidado(a),», que o script de envio pode personalizar com o nome. Para convidados com tratamento próprio (Presidente, Vereadores), altera `SAUDACAO` (`src/gerar.py`).
+- **Tratamento:** «Estimado(a) companheiro(a),», como no convite institucional, para o script juntar o nome e acertar o género. Para convidados com tratamento próprio (Presidente, Vereadores), altera `SAUDACAO` (`src/gerar.py`).
 - **Assinatura:** a JSD Famalicão, como no convite institucional. Se quiserem o nome e o cargo de quem assina, acrescenta-se.
 - O preço (35 €) não aparece no email: está na página de inscrição.

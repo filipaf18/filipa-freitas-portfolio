@@ -28,7 +28,7 @@ ASSUNTO = 'Convite · Jantar Comemorativo dos 50 anos da JSD Famalicão · Pedid
 PREHEADER = 'Reiteramos o convite para 7 de novembro e agradecemos a sua resposta. Inscrição até 4 de novembro.'
 ASSINATURA = 'Juventude Social Democrata de Vila Nova de&nbsp;Famalicão'
 
-SAUDACAO = 'Estimado(a) convidado(a),'
+SAUDACAO = 'Estimado(a) companheiro(a),'
 PARAGRAFOS = [
     f'Recentemente, a Juventude Social Democrata de Vila Nova de Famalicão teve a honra de o(a) convidar para o '
     f'<strong {FORTE}>Jantar Comemorativo dos 50&nbsp;anos da JSD Famalicão</strong>, que terá lugar no '

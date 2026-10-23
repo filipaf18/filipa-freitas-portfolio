@@ -30,17 +30,13 @@ ASSINATURA = 'Juventude Social Democrata de Vila Nova de&nbsp;Famalicão'
 
 SAUDACAO = 'Estimado(a) companheiro(a),'
 PARAGRAFOS = [
-    f'Recentemente, a Juventude Social Democrata de Vila Nova de Famalicão teve a honra de o(a) convidar para o '
-    f'<strong {FORTE}>Jantar Comemorativo dos 50&nbsp;anos da JSD Famalicão</strong>, que terá lugar no '
-    f'<strong {FORTE}>sábado, 7&nbsp;de&nbsp;novembro, às&nbsp;19h00</strong>, na <strong {FORTE}>Sunset&nbsp;House</strong>.',
-    'Até ao momento, não temos registo da sua inscrição nem de qualquer resposta ao nosso convite. Reiteramos, por isso, o desejo de '
-    'contar com a sua presença numa noite que reunirá várias gerações e assinalará meio século de pessoas, ideias e causas.',
-    f'<strong {FORTE}>Caso pretenda estar presente</strong>, a inscrição deve ser feita <strong {FORTE}>até ao dia 4&nbsp;de&nbsp;novembro</strong>, '
-    f'em jsdfamalicao.pt, através do botão abaixo.',
-    f'<strong {FORTE}>Caso não lhe seja possível comparecer</strong>, solicitamos que nos comunique a sua indisponibilidade '
-    f'<strong {FORTE}>por escrito, respondendo a este email, até ao dia 4&nbsp;de&nbsp;novembro</strong>. '
-    'A sua resposta por escrito, mesmo em caso negativo, é indispensável para a organização do evento, '
-    'pelo que lhe ficaremos muito gratos pela sua colaboração.',
+    f'Aproxima-se o <strong {FORTE}>Jantar Comemorativo dos 50&nbsp;anos da JSD Famalicão</strong>, no '
+    f'<strong {FORTE}>sábado, 7&nbsp;de&nbsp;novembro, às&nbsp;19h00</strong>, na <strong {FORTE}>Sunset&nbsp;House</strong>, '
+    'e gostaríamos muito de contar com a sua presença numa noite que reunirá várias gerações e assinalará meio século de pessoas, ideias e causas.',
+    f'Como ainda não temos registo da sua inscrição, pedimos que a faça <strong {FORTE}>até 4&nbsp;de&nbsp;novembro</strong> em '
+    f'<a href="{LINK}" style="color:{AZUL}; text-decoration:underline; font-weight:700;">{LINK_TXT}</a>.',
+    f'Se não lhe for possível comparecer, agradecemos que <strong {FORTE}>responda a este email nesse sentido, até à mesma data</strong>. '
+    f'<strong {FORTE}>A sua resposta, mesmo negativa, é indispensável para a organização do evento.</strong>',
 ]
 
 
@@ -103,13 +99,11 @@ def pagina():
         linha(sem_rasto('LEMBRETE DE CONVITE'), 44, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta'),
         traco(24, 0),
         linha(SAUDACAO, 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
-        *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(PARAGRAFOS[:3])],
+        linha(PARAGRAFOS[0], 12, 0),
+        linha(PARAGRAFOS[1], 16, 0),
         botao('INSCREVER-ME', 22, 0),
-        linha(f'Se o botão não abrir, utilize esta ligação:<br><a href="{LINK}" style="color:{AZUL}; text-decoration:underline; word-break:break-all;">{LINK_TXT}</a>',
-              12, 0, f'font-size:12px; line-height:19px; color:{MUTED};', 'center', 't-ligacao'),
-        linha(PARAGRAFOS[3], 28, 0),
-        linha('Agradecemos desde já a sua atenção e a sua resposta.', 16, 0),
-        linha('Com os melhores cumprimentos,', 24, 0),
+        linha(PARAGRAFOS[2], 28, 0),
+        linha('Com os melhores cumprimentos,', 28, 0),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
         dados(),
         linha('', 0, 44),

@@ -452,3 +452,16 @@
   .partial input { width: 18px; height: 18px; accent-color: var(--accent); }
   .meal.partial h3::after { content: " ◐"; color: var(--accent); }
   .items .who { display: block; font-size: 0.74rem; color: var(--muted); font-weight: 400; text-align: right; }
+
+  /* receita do chefe */
+  .warn { font-size: 0.8rem; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); }
+  .chef { display: grid; gap: 8px; }
+  .chefrec { display: grid; gap: 6px; }
+  .chefrec h3 { font-size: 0.95rem; margin: 10px 0 0; }
+  .chefrec p { font-size: 0.88rem; margin: 0; }
+  .chefrec .tip { color: var(--muted); font-size: 0.83rem; }
+  .chefrec ul.plain { margin: 0; padding-left: 18px; font-size: 0.86rem; display: grid; gap: 3px; }
+  .chefrec ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .chefrec ol.steps li { display: grid; gap: 3px; }
+  .st-h { display: flex; gap: 8px; align-items: baseline; }
+  .st-n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 700; }

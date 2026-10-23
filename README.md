@@ -61,6 +61,12 @@ dia, ou é ajustada às metas dela (proteína pela proteína alvo, o resto pela 
 Além de 👍/👎, uma nota livre por refeição (porção, tempero, trocas) fica em `prefs` com `voto: 0` e entra
 nos próximos planos, nas trocas e no chat.
 
+**Receita do chefe e coerência do prato.** Em Receita, o botão "Receita completa, passo a passo" pede a um chefe
+a receita das quantidades escolhidas (utensílios, mise en place, ingredientes, 6 a 12 passos com lume, tempo e
+sinais de ponto, emplatamento, se correr mal, conservação); fica em `recipes/<perfil>` e reabre sem novo pedido.
+A geração segue a regra "um só hidrato de base por refeição" (um puré com batata já é o hidrato: nada de
+batata-doce ao lado) e a app avisa no plano e na receita (`dishIssues`) quando uma refeição tem dois.
+
 **Falhas a meio da geração.** Cada pedido que falhe com `upstream_error` (o serviço caiu) é repetido uma
 vez passados 4 s. A geração guarda rascunhos em memória (estrutura, blocos de dias, ementa e quantidades em
 família) e, se falhar mesmo assim, o próximo "Gerar" continua de onde ficou, sem repetir os pedidos já feitos. A ementa em família sai em dois blocos de dias (nível "default") e um bloco de dias que

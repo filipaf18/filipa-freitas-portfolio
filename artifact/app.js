@@ -149,7 +149,7 @@
   // ============================================================
   // Persistência (db ou memória)
   // ============================================================
-  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {}, adherence: {}, symptoms: {}, reviews: {}, prefs: {}, family: {}, shopping: {} };
+  const mem = { profiles: {}, water: {}, chat: {}, weights: {}, labs: {}, plans: {}, vitals: {}, docs: {}, rules: {}, body: {}, adherence: {}, symptoms: {}, reviews: {}, prefs: {}, family: {}, shopping: {}, recipes: {} };
 
   async function saveProfile(data) {
     S.profiles[S.pid] = data;
@@ -2053,6 +2053,14 @@ COZINHA PORTUGUESA
 - Pratos que encaixam: peixe grelhado com hortícolas e batata; bacalhau cozido com grão e couve; caldeirada; salada de atum com grão e ovo; jardineira com carne magra; feijoada de feijão branco sem enchidos; frango assado sem pele com salada e batata-doce; carne de porco à alentejana com batata cozida.
 - Evita como base: açorda, migas, arroz de marisco, bacalhau com natas, pastéis de bacalhau, folhados, pão com chouriço e pastéis de nata. São pouco densos em proteína e a gordura desencadeia náusea.
 
+COERÊNCIA DO PRATO (pensa como um chefe de cozinha: cada refeição tem de ser um prato que existe, bom de comer e com sentido)
+- UM só hidrato de base por refeição. Se o puré, o arroz de legumes, o esparguete ou a sopa já levam batata, arroz ou massa, essa É a fonte de hidratos do prato: não acrescentes batata cozida, batata-doce, arroz, massa ou pão ao lado. Se a base for batata-doce, o puré é só de batata-doce ou de legumes (couve-flor, abóbora, nabo) sem batata. Um acompanhamento de legumes não conta como hidrato.
+- Em cada item, "alimento" diz o que é de facto, com a confeção: "puré de couve-flor com batata" em vez de "puré"; os itens de um puré, sopa ou refogado que misturam ingredientes ficam num só item ou em itens que somam o prato, nunca repetidos noutro item.
+- Estrutura do prato: 1 proteína + 1 hidrato de base (ou nenhum, se a refeição é de legumes e leguminosas) + 1 a 2 legumes ou salada + gordura de confeção. Sabores e confeções que combinam: peixe com legumes salteados ou ao vapor e batata cozida; frango assado com batata-doce e salada; carne estufada com puré ou arroz; ovos com legumes e pão.
+- Não juntes duas texturas ou sabores iguais sem razão (dois purés, dois cremes, duas sopas) nem proteínas que não se encontram na mesma travessa (peixe e carne de porco, por exemplo).
+- "preparacao" descreve a técnica real do prato (selar, estufar, assar a que temperatura, quanto tempo), com o tempero que o faz saber a comida portuguesa: alho, cebola, louro, salsa, coentros, limão, vinho branco, colorau, pimenta.
+- Antes de responderes, relê cada refeição como se fosses servi-la: se há dois hidratos de base ou um prato que nenhum cozinheiro faria, corrige-o.
+
 MEDIDAS CASEIRAS (Roda dos Alimentos, DGS) — usa-as em medida_caseira e diz sempre em "estado" se o peso é cru ou cozinhado, que é a maior fonte de erro:
 - colher de sopa 15 ml · colher de sobremesa 10 ml · colher de chá 5 ml · chávena almoçadeira 240–250 ml · copo 200–250 ml
 - arroz ou massa: 35 g crus = 2 c. sopa · 110 g cozinhados = 4 c. sopa
@@ -2085,7 +2093,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
 "nome":"Almoço","hora":"13:00",
 "ordem":["sopa/legumes","proteína","hidratos","fruta"],
 "itens":[{"alimento":"peito de frango grelhado","quantidade":"130 g","estado":"cru","medida_caseira":"1 bife médio","grupo":"proteina"}],
-"preparacao":"1 a 2 frases sobre confeção e tempero",
+"preparacao":"2 a 3 frases com a técnica real do prato (confeção, tempo, tempero); um só hidrato de base",
 "porque":"1 frase curta a explicar o papel desta refeição no plano",
 "alternativas":[{"em_vez_de":"frango","trocar_por":"pescada 160 g ou grão-de-bico cozido 180 g"}],
 "kcal":460,"proteina_g":38,"hidratos_g":42,"gordura_g":14,"fibra_g":8}]}]}`;
@@ -2423,7 +2431,7 @@ LIMITES DE ATUAÇÃO (obrigatórios)
   // Refeições em família: a mesma comida em todos os planos, cada um com as suas quantidades
   // ============================================================
   const FAMILY_MENU_SCHEMA = `{"dias":[{"dia":"segunda",
-"jantar":{"nome":"Jantar","hora":"20:30","base":"nome do prato em 3 a 6 palavras","preparacao":"2 a 3 frases de confeção, para a mesa toda de uma vez","componentes":[
+"jantar":{"nome":"Jantar","hora":"20:30","base":"nome do prato em 3 a 6 palavras","preparacao":"2 a 3 frases com a técnica real do prato (confeção, tempo, tempero), para a mesa toda de uma vez; um só hidrato de base","componentes":[
   {"componente":"proteína","alimento":"peito de frango grelhado","grupo":"proteina","quem_leva":"todos"},
   {"componente":"legumes","alimento":"brócolos salteados","grupo":"legumes","quem_leva":["filipa","mae"]}]},
 "almoco":{"nome":"Almoço","hora":"13:00","base":"...","preparacao":"...","marmita":{"preparar_em":"domingo","conservacao":"frigorífico até 3 dias","montagem":"como montar a marmita e reaquecer"},"componentes":[...]}}],
@@ -2584,7 +2592,7 @@ Passo 1 de ${mBlocks.length + Math.ceil(dayList.length / familyDaysPerAsk(ids.le
 ${comAlmoco ? "- O almoço de cada dia é uma MARMITA, preparada no dia anterior ou ao início da semana (cozinhados em lote ao domingo e à quarta, por exemplo). Diz em que dia se prepara, quanto tempo dura no frigorífico e como se monta e reaquece.\n" : "- Não escrevas almoços: só jantares.\n"}- Varia as proteínas ao longo da semana e usa comida portuguesa acessível.${jaHa.length ? `\n- Já há estes pratos noutros dias, não os repitas: ${jaHa.join("; ")}.` : ""}
 - Em cada componente diz quem o leva: "todos" ou a lista de perfis (usa os identificadores ${JSON.stringify(ids)}).
 - O jantar é às ${sharedMealTime(ids, "jantar")} para todos; o almoço (marmita) cada um come à sua hora.
-- Sê conciso: preparação em 1 a 2 frases, sem texto fora do JSON.
+- Sê conciso: preparação em 2 a 3 frases de técnica, sem texto fora do JSON. Cada prato com UM só hidrato de base (um puré com batata já é o hidrato: nada de batata-doce, arroz ou massa ao lado).
 Responde APENAS com JSON válido nesta forma:
 ${FAMILY_MENU_SCHEMA}`, `A montar a ementa da família… (${i + 1} de ${mBlocks.length})`, 10 + i * 10);
         (Array.isArray(menu?.preparacao_antecipada) ? menu.preparacao_antecipada : []).forEach((x) => prepAntecipada.push(String(x)));
@@ -2914,6 +2922,78 @@ Responde APENAS com JSON válido nesta forma:
     return { itens, fonte: "estimado", ratio: { proteina: clamp(rProt), energia: clamp(rKcal) } };
   }
   /**
+   * Coerência do prato, como um chefe a olhar para a travessa: dois hidratos de base (puré com batata
+   * mais batata-doce, arroz mais massa) não são um prato, são duas fontes de energia a competir.
+   */
+  const STAPLES = [["batata-doce", /batata[- ]?doce/], ["batata", /batata|pure/], ["arroz", /arroz/], ["massa", /massa|esparguete|macarr|penne|fusilli|noodle|lasanha/], ["cereal", /cuscuz|quinoa|milho|inhame|mandioca|aletria|bulgur|trigo/]];
+  function dishIssues(itens) {
+    const found = new Map();
+    (itens || []).forEach((i) => {
+      const a = norm(i.alimento); if (/sopa|caldo|creme de/.test(a)) return; // a sopa abre a refeição, não é o hidrato do prato
+      for (const [k, re] of STAPLES) { if (re.test(a)) { if (k === "batata" && /pure/.test(a) && !/batata/.test(a)) break; found.set(k, i.alimento); break; } }
+    });
+    return found.size > 1 ? [`Dois hidratos de base no mesmo prato (${[...found.values()].join(" e ")}). Um chefe serve só um: usa 🔄 Trocar para a app refazer a refeição.`] : [];
+  }
+  const hashOf = (str) => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+  async function loadRecipes() {
+    if (S.recipesFor === S.pid) return;
+    let e = [];
+    try { if (S.db) { const snap = await S.db.doc(`recipes/${S.pid}`).get(); e = snap.exists ? (thaw(snap.data().entries) || []) : []; } else e = thaw(mem.recipes[S.pid]?.entries) || []; } catch (err) { console.warn("recipes", err); }
+    S.recipes = e; S.recipesFor = S.pid;
+  }
+  async function saveRecipes() { S.recipes = (S.recipes || []).slice(-30); await write(`recipes/${S.pid}`, { profile: S.pid, entries: S.recipes }, mem.recipes, S.pid); }
+  const CHEF_SCHEMA = `{"titulo":"nome do prato como numa carta","porcoes":2,"tempo_preparacao_min":20,"tempo_total_min":45,"dificuldade":"fácil|média","utensilios":["tábua e faca","frigideira antiaderente de 26 cm"],
+"mise_en_place":["tarefas a fazer antes de acender o lume, pela ordem: lavar, cortar (com a medida do corte), tirar do frio, pré-aquecer o forno a 200 °C"],
+"ingredientes":[{"alimento":"peito de frango","quantidade":"520 g","nota":"cru, em bifes de 1,5 cm"}],
+"passos":[{"titulo":"Marinar o frango","texto":"o que fazer, com lume, temperatura, tempo e como saber que está feito","minutos":10,"dica":"o truque de chefe deste passo (opcional)"}],
+"ponto_certo":"como se reconhece cada componente no ponto: cor, textura, cheiro, temperatura",
+"emplatamento":"como montar o prato e por que ordem se come",
+"se_correr_mal":["problema frequente e como o emendar"],
+"conservacao":"quanto tempo dura, onde e como reaquecer (ou 'comer na hora')",
+"nota_do_chef":"1 a 2 frases: a decisão de técnica que faz este prato saber bem"}`;
+  function chefPrompt(meal, dayName, chosen, portions, prep) {
+    const pessoas = chosen.map((id) => `- ${nameOf(id)}: ${portions[id].itens.map((i) => `${i.alimento} ${i.quantidade}${i.estado ? ` (${i.estado})` : ""}`).join("; ")}`).join("\n");
+    const total = new Map();
+    chosen.forEach((id) => portions[id].itens.forEach((i) => { const k = norm(i.alimento); if (!total.has(k)) total.set(k, { alimento: i.alimento, estado: i.estado || "", parts: [] }); total.get(k).parts.push({ quantidade: i.quantidade }); }));
+    const soma = [...total.values()].map((t) => `- ${t.alimento}: ${sumQuantities(t.parts)}${t.estado ? ` (${t.estado})` : ""}`).join("\n");
+    return `És chefe de cozinha portuguesa, com técnica clássica e olho de nutricionista. Escreve a RECEITA COMPLETA, passo a passo, de uma refeição de um plano alimentar, em português de Portugal, para quem a vai cozinhar em casa sem experiência profissional.
+
+REFEIÇÃO: ${meal.nome} de ${dayName}${meal.base_comum ? ` · prato: ${meal.base_comum}` : ""}
+PORÇÕES POR PESSOA (${chosen.length}):
+${pessoas}
+TOTAL A COZINHAR (soma de todas as porções):
+${soma}
+${prep ? `IDEIA DE PREPARAÇÃO NO PLANO: ${prep}\n` : ""}${meal.marmita?.preparar_em ? `É UMA MARMITA preparada ${meal.marmita.preparar_em}; inclui montagem, arrefecimento e reaquecimento.\n` : ""}
+REGRAS:
+- Cozinha EXATAMENTE estes ingredientes nestas quantidades, para o total acima. As quantidades já estão calculadas para as metas de cada pessoa: não as mudes. Só podes acrescentar, sem contar para os macros, sal (pouco: menos de 1 g por pessoa), pimenta, alho, cebola até 30 g por pessoa, ervas, louro, limão, vinagre, colorau e especiarias, e água ou caldo caseiro sem gordura.
+- Se um ingrediente do plano já faz parte de outro (um puré que leva a batata, uma sopa), explica-o e usa-o uma só vez; nunca cozinhes o mesmo hidrato duas vezes nem acrescentes outro hidrato.
+- Pedaços, lume, tempo e sinais para cada passo: "fogo médio-alto", "180 °C, ar quente, 20 a 25 minutos", "até dourar e soltar-se do fundo", "74 °C no centro" (aves e carne picada), peixe "opaco e a lascar", legumes "a oferecer pouca resistência à faca". Diz o que fazer em paralelo para tudo chegar quente ao mesmo tempo.
+- 6 a 12 passos curtos e numerados na ordem real; cada passo com título, texto concreto e minutos. Os cortes têm medida (rodelas de 5 mm, cubos de 2 cm).
+- Se cozinhas para mais de uma pessoa, faz uma só panela/tabuleiro/travessa e diz no fim como repartir pelos pratos, quem leva o quê e quem fica sem algum componente.
+- Segurança: lavar mãos e tábuas entre cru e cozinhado; aves e carne bem passadas; peixe e marisco cozinhados; arroz cozido arrefece em menos de 2 horas.
+- Sê específico e útil, sem encher: nada de "tempere a gosto" sem dizer com quê. Sem texto fora do JSON.
+
+Responde APENAS com JSON válido nesta forma:
+${CHEF_SCHEMA}`;
+  }
+  const chefHtml = (r) => {
+    const ing = (r.ingredientes || []).map((i) => `<li><span>${esc(i.alimento)}${i.nota ? ` <span class="meta muted">(${esc(i.nota)})</span>` : ""}</span><span class="qty num"><strong>${esc(i.quantidade)}</strong></span></li>`).join("");
+    const pass = (r.passos || []).map((p, i) => `<li><div class="st-h"><span class="st-n">${i + 1}</span><strong>${esc(p.titulo || "")}</strong>${p.minutos ? `<span class="meta muted num">${esc(p.minutos)} min</span>` : ""}</div><p>${esc(p.texto || "")}</p>${p.dica ? `<p class="tip">💡 ${esc(p.dica)}</p>` : ""}</li>`).join("");
+    const list = (t, a) => (a || []).length ? `<h3>${t}</h3><ul class="plain">${a.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+    return `<div class="chefrec">
+      <h3>${esc(r.titulo || "Receita")}</h3>
+      <p class="small muted">${[r.porcoes ? `${esc(r.porcoes)} ${r.porcoes === 1 ? "pessoa" : "pessoas"}` : "", r.tempo_preparacao_min ? `preparação ${esc(r.tempo_preparacao_min)} min` : "", r.tempo_total_min ? `total ${esc(r.tempo_total_min)} min` : "", r.dificuldade ? esc(r.dificuldade) : ""].filter(Boolean).join(" · ")}</p>
+      ${r.nota_do_chef ? `<p class="tip">👩‍🍳 ${esc(r.nota_do_chef)}</p>` : ""}
+      ${list("Utensílios", r.utensilios)}${list("Antes de começar", r.mise_en_place)}
+      ${ing ? `<h3>Ingredientes</h3><ul class="items">${ing}</ul>` : ""}
+      <h3>Passo a passo</h3><ol class="steps">${pass}</ol>
+      ${r.ponto_certo ? `<h3>No ponto certo</h3><p>${esc(r.ponto_certo)}</p>` : ""}
+      ${r.emplatamento ? `<h3>Para servir</h3><p>${esc(r.emplatamento)}</p>` : ""}
+      ${list("Se correr mal", r.se_correr_mal)}
+      ${r.conservacao ? `<h3>Conservação</h3><p>${esc(r.conservacao)}</p>` : ""}
+    </div>`;
+  };
+  /**
    * A receita de uma refeição, para quem cozinha: escolhe-se para quem se cozinha (só para mim, ou
    * também para outros) e as quantidades somam-se pessoa a pessoa, cada uma com a sua porção.
    */
@@ -2923,6 +3003,25 @@ Responde APENAS com JSON válido nesta forma:
     const members = [S.pid, ...PROFILE_IDS.filter((id) => id !== S.pid && hasProfile(id))];
     const inFam = (id) => !!fm?.por_pessoa?.[id];
     const wrap = document.createElement("div"); wrap.className = "modal";
+    let cur = { chosen: [], portions: {} };
+    const keyOf = () => hashOf(JSON.stringify([mealKey(meal), dayName, [...cur.chosen].sort(), cur.chosen.map((id) => cur.portions[id].itens.map((i) => `${i.alimento}|${i.quantidade}`))]));
+    const refreshChef = () => {
+      const box = $("rcChef"); if (!box) return;
+      if (!cur.chosen.length) { box.innerHTML = ""; return; }
+      const hit = (S.recipes || []).find((r) => r.k === keyOf());
+      box.innerHTML = hit ? chefHtml(hit.data) + `<button type="button" class="btn ghost sm" data-chef>↻ Escrever outra versão</button>` : S.sample ? `<button type="button" class="btn primary" data-chef>👩‍🍳 Receita completa, passo a passo</button><p class="hint">Escrita por um chefe para estas quantidades e estas pessoas. Demora um pouco.</p>` : `<p class="hint">A receita completa só funciona com a página aberta no claude.ai.</p>`;
+    };
+    const writeChef = async () => {
+      const box = $("rcChef"); const key = keyOf(); const snap = { chosen: cur.chosen.slice(), portions: cur.portions };
+      box.innerHTML = `<p class="hint">👩‍🍳 O chefe está a escrever a receita…</p>`;
+      try {
+        const r = await askRetry(() => S.sample.json(chefPrompt(meal, dayName, snap.chosen, snap.portions, prepText), { cache: false, modelTier: "default" }));
+        if (!Array.isArray(r?.passos) || r.passos.length < 3) throw { code: "invalid_json" };
+        S.recipes = [...(S.recipes || []).filter((x) => x.k !== key), { k: key, at: new Date().toISOString(), refeicao: meal.nome, dia: dayName, data: r }];
+        await saveRecipes();
+      } catch (e) { if (!wrap.isConnected) return; box.innerHTML = `<p class="hint">${esc(ERR_COPY[e?.code] || "Não consegui escrever a receita. Tenta outra vez.")}</p><button type="button" class="btn sm" data-chef>Tentar outra vez</button>`; return; }
+      if (wrap.isConnected) refreshChef();
+    };
     const build = () => {
       const chosen = [...wrap.querySelectorAll("[data-for]:checked")].map((c) => c.dataset.for);
       const portions = {}; chosen.forEach((id) => { portions[id] = portionFor(meal, dayName, id); });
@@ -2931,9 +3030,12 @@ Responde APENAS com JSON válido nesta forma:
       const rows = [...byItem.values()].map((it) => `<li><span>${esc(it.alimento)}${chosen.length === 1 && it.medida ? ` <span class="meta muted">(${esc(it.medida)})</span>` : ""}</span><span class="qty num"><strong>${esc(chosen.length === 1 ? (it.parts[0].quantidade || sumQuantities(it.parts)) : sumQuantities(it.parts))}</strong>${chosen.length > 1 ? `<span class="who">${it.parts.map((x) => `${esc(nameOf(x.id))} ${esc(x.quantidade)}`).join(" · ")}${it.parts.length < chosen.length ? ` · sem: ${chosen.filter((id) => !it.parts.some((x) => x.id === id)).map(nameOf).join(", ")}` : ""}</span>` : ""}</span></li>`).join("");
       $("rcRows").innerHTML = rows || `<li class="muted small">${chosen.length ? "Sem itens." : "Escolhe pelo menos uma pessoa."}</li>`;
       const fontes = chosen.filter((id) => id !== S.pid).map((id) => { const f = portions[id].fonte; return `${nameOf(id)}: ${f === "familia" ? "porção da refeição em família" : f === "plano" ? "porção do plano dela" : "porção ajustada às metas dela" + (portions[id].nota ? ` (${portions[id].nota})` : "")}`; });
+      cur = { chosen, portions };
+      $("rcWarn").innerHTML = chosen.map((id) => dishIssues(portions[id].itens)).flat().filter((x, i, a) => a.indexOf(x) === i).map((w) => `<div class="warn">⚠ ${esc(w)}</div>`).join("");
+      refreshChef();
       $("rcWho").textContent = chosen.length > 1 ? `Para ${chosen.length} pessoas, sem sobrar. ${fontes.join(" · ")}.` : chosen.length === 1 && chosen[0] !== S.pid ? `Só para ${nameOf(chosen[0])}. ${fontes.join("")}.` : "Só para ti.";
     };
-    const prep = fm ? fm.preparacao : meal.preparacao;
+    const prep = fm ? fm.preparacao : meal.preparacao; const prepText = prep;
     wrap.innerHTML = `<div class="box editor" role="dialog" aria-modal="true">
       <div class="row between"><h2>🍳 ${esc(meal.nome)} · ${esc(dayName)}</h2><button type="button" class="btn ghost sm" data-no>Fechar</button></div>
       ${fm ? `<p class="small"><strong>${esc(fm.base || meal.base_comum || "")}</strong>${fm.hora ? ` · às ${esc(fm.hora)}` : ""}</p>` : ""}
@@ -2941,14 +3043,17 @@ Responde APENAS com JSON válido nesta forma:
       <div class="famwho" style="margin:0">${members.map((id) => `<label><input type="checkbox" data-for="${id}"${id === S.pid || inFam(id) ? " checked" : ""}> ${esc(id === S.pid ? "Eu" : nameOf(id))}${inFam(id) && id !== S.pid ? ' <span class="meta muted">(à mesa)</span>' : ""}</label>`).join("")}</div>
       <p class="hint" id="rcWho"></p>
       <ul class="items" id="rcRows"></ul>
+      <div id="rcWarn"></div>
+      <div id="rcChef" class="chef"></div>
       ${prep ? `<div class="prep">👩‍🍳 ${esc(prep)}</div>` : ""}
       ${(fm?.marmita || meal.marmita)?.preparar_em ? `<div class="marmita">🥡 Marmita: preparar ${esc((fm?.marmita || meal.marmita).preparar_em)}${(fm?.marmita || meal.marmita).conservacao ? ` · ${esc((fm?.marmita || meal.marmita).conservacao)}` : ""}${(fm?.marmita || meal.marmita).montagem ? `<br>${esc((fm?.marmita || meal.marmita).montagem)}` : ""}</div>` : ""}
       ${(meal.ordem || []).length ? `<div class="order">Ordem no prato: ${meal.ordem.map((o, i) => `${i ? '<span class="arrow">→</span> ' : ""}<b>${esc(o)}</b>`).join(" ")}</div>` : ""}
       <p class="hint">Marmitas: arrefecer em menos de 2 horas, frigorífico a 5 °C, no máximo 3 a 4 dias, reaquecer até fumegar e só uma vez; arroz no frio na hora e em 24 horas.</p>
     </div>`;
     wrap.addEventListener("change", build);
-    wrap.addEventListener("click", (e) => { if (e.target === wrap || e.target.closest("[data-no]")) wrap.remove(); });
+    wrap.addEventListener("click", (e) => { if (e.target === wrap || e.target.closest("[data-no]")) wrap.remove(); else if (e.target.closest("[data-chef]") && cur.chosen.length) writeChef(); });
     document.body.appendChild(wrap); build();
+    loadRecipes().then(() => { if (wrap.isConnected) refreshChef(); });
   }
   /** Nota livre sobre uma refeição: entra na memória e nos próximos planos. */
   function openNote(dayName, idx) {
@@ -3228,7 +3333,8 @@ Responde APENAS com JSON: {"lista":[{"corredor":"Talho","itens":[{"alimento":"pe
     const base = !compact && m.base_comum ? `<div class="prep">🍲 ${esc(m.base_comum)}</div>` : "";
     const mesa = !compact && m.familia && m._day !== undefined ? mesaHtml(m._day, m.nome) : "";
     const mar = m.marmita?.preparar_em ? `<div class="marmita">🥡 Marmita preparada ${esc(m.marmita.preparar_em)}${m.marmita.conservacao ? ` · ${esc(m.marmita.conservacao)}` : ""}${!compact && m.marmita.montagem ? `<br>${esc(m.marmita.montagem)}` : ""}</div>` : "";
-    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}${fam}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${base}${mesa}${mar}${prep}${why}${alts}${tools}</div>`;
+    const warn = !compact ? dishIssues(m.itens).map((w) => `<div class="warn">⚠ ${esc(w)}</div>`).join("") : "";
+    return `<div class="meal"><div class="head"><h3>${esc(m.nome)}</h3>${m.hora ? `<span class="muted small num">${esc(m.hora)}</span>` : ""}${fam}<span class="macros num">${macros}</span></div>${ordem}<ul class="items">${itens}</ul>${warn}${base}${mesa}${mar}${prep}${why}${alts}${tools}</div>`;
   }
   /** Quantidades de toda a mesa numa refeição em família: quem cozinha vê tudo de uma vez. */
   function mesaHtml(dayName, mealName) {

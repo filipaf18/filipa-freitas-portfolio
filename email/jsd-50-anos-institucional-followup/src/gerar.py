@@ -36,7 +36,7 @@ PARAGRAFOS = [
     'Até ao momento, não temos registo da sua inscrição nem de qualquer resposta ao nosso convite. Reiteramos, por isso, o desejo de '
     'contar com a sua presença numa noite que reunirá várias gerações e assinalará meio século de pessoas, ideias e causas.',
     f'<strong {FORTE}>Caso pretenda estar presente</strong>, a inscrição deve ser feita <strong {FORTE}>até ao dia 4&nbsp;de&nbsp;novembro</strong>, '
-    f'em <a href="{LINK}" style="color:{AZUL}; text-decoration:underline; font-weight:700;">{LINK_TXT}</a>.',
+    f'em jsdfamalicao.pt, através do botão abaixo.',
     f'<strong {FORTE}>Caso não lhe seja possível comparecer</strong>, solicitamos que nos comunique a sua indisponibilidade '
     f'<strong {FORTE}>por escrito, respondendo a este email, até ao dia 4&nbsp;de&nbsp;novembro</strong>. '
     'A sua resposta por escrito, mesmo em caso negativo, é indispensável para a organização do evento, '
@@ -103,7 +103,11 @@ def pagina():
         linha(sem_rasto('LEMBRETE DE CONVITE'), 44, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta'),
         traco(24, 0),
         linha(SAUDACAO, 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
-        *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(PARAGRAFOS)],
+        *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(PARAGRAFOS[:3])],
+        botao('INSCREVER-ME', 22, 0),
+        linha(f'Se o botão não abrir, utilize esta ligação:<br><a href="{LINK}" style="color:{AZUL}; text-decoration:underline; word-break:break-all;">{LINK_TXT}</a>',
+              12, 0, f'font-size:12px; line-height:19px; color:{MUTED};', 'center', 't-ligacao'),
+        linha(PARAGRAFOS[3], 28, 0),
         linha('Agradecemos desde já a sua atenção e a sua resposta.', 16, 0),
         linha('Com os melhores cumprimentos,', 24, 0),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),

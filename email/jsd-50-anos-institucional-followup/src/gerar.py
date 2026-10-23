@@ -28,14 +28,19 @@ ASSUNTO = 'Convite · Jantar Comemorativo dos 50 anos da JSD Famalicão · Pedid
 PREHEADER = 'Reiteramos o convite para 7 de novembro e agradecemos a sua resposta. Inscrição até 4 de novembro.'
 ASSINATURA = 'Juventude Social Democrata de Vila Nova de&nbsp;Famalicão'
 
-SAUDACAO = 'Exmo. Senhor Presidente e Exmos. Senhores Vereadores da Câmara Municipal de Vila Nova de&nbsp;Famalicão,'
+SAUDACAO = 'Estimado(a) convidado(a),'
 PARAGRAFOS = [
-    f'Em 2026, a JSD Famalicão completa <strong {FORTE}>50&nbsp;anos</strong>. Reiteramos o convite, que já lhes fizemos chegar, '
-    f'para o <strong {FORTE}>Jantar Comemorativo</strong>, que terá lugar no <strong {FORTE}>sábado, 7&nbsp;de&nbsp;novembro, às&nbsp;19h00</strong>, '
-    f'na <strong {FORTE}>Sunset&nbsp;House</strong>.',
-    'Seria uma honra contar com a presença de V.&nbsp;Exa. numa noite que reunirá várias gerações de militantes e que quer assinalar '
-    'meio século de pessoas, ideias e causas.',
-    f'Para organizarmos o evento, agradecemos que nos <strong {FORTE}>indique a sua resposta, sim ou não</strong>.',
+    f'Recentemente, a Juventude Social Democrata de Vila Nova de Famalicão teve a honra de o(a) convidar para o '
+    f'<strong {FORTE}>Jantar Comemorativo dos 50&nbsp;anos da JSD Famalicão</strong>, que terá lugar no '
+    f'<strong {FORTE}>sábado, 7&nbsp;de&nbsp;novembro, às&nbsp;19h00</strong>, na <strong {FORTE}>Sunset&nbsp;House</strong>.',
+    'Até ao momento, não temos registo da sua inscrição nem de qualquer resposta ao nosso convite. Reiteramos, por isso, o desejo de '
+    'contar com a sua presença numa noite que reunirá várias gerações e assinalará meio século de pessoas, ideias e causas.',
+    f'<strong {FORTE}>Caso pretenda estar presente</strong>, a inscrição deve ser feita <strong {FORTE}>até ao dia 4&nbsp;de&nbsp;novembro</strong>, '
+    f'em <a href="{LINK}" style="color:{AZUL}; text-decoration:underline; font-weight:700;">{LINK_TXT}</a>.',
+    f'<strong {FORTE}>Caso não lhe seja possível comparecer</strong>, solicitamos que nos comunique a sua indisponibilidade '
+    f'<strong {FORTE}>por escrito, respondendo a este email, até ao dia 4&nbsp;de&nbsp;novembro</strong>. '
+    'A sua resposta por escrito, mesmo em caso negativo, é indispensável para a organização do evento, '
+    'pelo que lhe ficaremos muito gratos pela sua colaboração.',
 ]
 
 
@@ -94,19 +99,13 @@ def pagina():
       <td height="6" bgcolor="{LARANJA}" style="height:6px; font-size:6px; line-height:6px; background-color:{LARANJA}; background-image:{DEGRADE};">&nbsp;</td>
     </tr>'''
     estilo_img = f'border:0; outline:none; color:#FFFFFF; font-family:{FONT}; font-size:20px; line-height:28px; text-align:center;'
-    sim = resposta(LARANJA, 'SE PUDER ESTAR PRESENTE', 'Inscreva-se até 4 de novembro',
-                   'A inscrição faz-se em jsdfamalicao.pt. A confirmação segue por email.', botao('CONFIRMAR PRESENÇA', 4, 18)
-                   + linha(f'Se o botão não abrir:<br><a href="{LINK}" style="color:{AZUL}; text-decoration:underline; word-break:break-all;">{LINK_TXT}</a>',
-                           0, 24, f'font-size:12px; line-height:19px; color:{MUTED};', 'center', 't-ligacao'))
-    nao = resposta('#8A8F98', 'SE NÃO PUDER', 'Basta responder a este email',
-                   'Agradecemos que nos indique que não poderá estar presente, para a nossa organização.')
     corpo = ''.join([
         linha(sem_rasto('LEMBRETE DE CONVITE'), 44, 0, f'font-size:12px; line-height:16px; font-weight:700; letter-spacing:4px; color:{AZUL};', 'center', 't-etiqueta'),
         traco(24, 0),
         linha(SAUDACAO, 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
         *[linha(p, 12 if i == 0 else 16, 0) for i, p in enumerate(PARAGRAFOS)],
-        sim, nao,
-        linha('Com os melhores cumprimentos,', 32, 0),
+        linha('Agradecemos desde já a sua atenção e a sua resposta.', 16, 0),
+        linha('Com os melhores cumprimentos,', 24, 0),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
         dados(),
         linha('', 0, 44),

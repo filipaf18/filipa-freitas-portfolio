@@ -1,10 +1,10 @@
-# Follow-up institucional · Jantar dos 50 anos (Presidente e Vereadores da Câmara)
+# Follow-up institucional · Jantar dos 50 anos (convidados que ainda não se inscreveram nem responderam)
 
 **Assunto sugerido:** Convite · Jantar Comemorativo dos 50 anos da JSD Famalicão · Pedido de resposta
 
-Reitera o convite já enviado e pede resposta, sim ou não:
-- **Sim:** inscrição até 4 de novembro em jsdfamalicao.pt/50-anos#inscricao (botão «CONFIRMAR PRESENÇA»);
-- **Não:** basta responder ao email.
+Carta formal, sem caixas, para todos os convidados sem inscrição nem resposta. Reitera o convite e pede:
+- **Presença:** inscrição até 4 de novembro em jsdfamalicao.pt/50-anos#inscricao;
+- **Ausência:** comunicação **por escrito, respondendo ao email, até 4 de novembro**; a resposta escrita, mesmo negativa, é indispensável para a organização.
 
 ## Como enviar
 1. Abre `copiar-email.html` no Chrome, **Copiar convite** e **Copiar assunto**.
@@ -12,6 +12,6 @@ Reitera o convite já enviado e pede resposta, sim ou não:
 3. Envia primeiro um teste.
 
 ## A confirmar
-- **Tratamento:** «Exmo. Senhor Presidente e Exmos. Senhores Vereadores». Se houver vereadoras ou um só destinatário, ajusta em `SAUDACAO` (`src/gerar.py`).
+- **Tratamento:** «Estimado(a) convidado(a),», que o script de envio pode personalizar com o nome. Para convidados com tratamento próprio (Presidente, Vereadores), altera `SAUDACAO` (`src/gerar.py`).
 - **Assinatura:** a JSD Famalicão, como no convite institucional. Se quiserem o nome e o cargo de quem assina, acrescenta-se.
 - O preço (35 €) não aparece no email: está na página de inscrição.

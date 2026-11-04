@@ -12,7 +12,7 @@ const PRESETS = {
     w: 120, h: 244, jaw: .64, hl: 46, vol: 44, lid: .2, nl: 1.25, exm: 1.07, erm: 1.18, mw: .75, myo: 12, bgap: -6, estilo: 'lado', sobr: { t: 20, w: 76, cor: '#2A1B13' }, oculos: 'fino', nariz: 1.05, orelha: 1,
     rugas: false, sorriso: .0, fato: N, gravata: O, camisa: W, prop: 'copo', brilho: 1 },
   // Traços lidos nas fotos enviadas pela Filipa (sem óculos, por indicação dela) + medidas faciais.
-  portas: { nome: 'Paulo Portas', pele: ['#F1C9A8', '#E0AC88', '#B27C59'], cabelo: ['#8C7A68', '#55453A', '#2E241E'],
+  portas: { nome: 'Paulo Portas', pele: ['#E6B78D', '#C98C60', '#96623E'], cabelo: ['#8C7A68', '#55453A', '#2E241E'],
     w: 128, h: 236, jaw: .56, hl: -8, vol: 22, lid: .35, nl: 1.15, exm: 1.19, erm: 1.1, mw: 1.05, myo: 8, bgap: 10, chin: 6,
     estilo: 'lado', sobr: { t: 24, w: 78, cor: '#2B211C' }, oculos: 'nenhum', nariz: 1.05, orelha: 1.1,
     rugas: true, sorriso: .35, fato: N, gravata: G, camisa: W, prop: 'pasta', brilho: 1 },
@@ -23,6 +23,10 @@ const PRESETS = {
     w: 140, h: 200, jaw: .62, hl: 8, estilo: 'curto', sobr: { t: 14, w: 66, cor: '#171717' }, oculos: 'nenhum', nariz: .95, orelha: 1,
     rugas: false, sorriso: .5, fato: '#0f1d29', gravata: O, camisa: W, prop: 'cartao', brilho: 1 },
 };
+
+PRESETS.passos_cabelo = { ...PRESETS.passos };
+PRESETS.passos.estilo = 'careca';
+PRESETS.passos.nome = 'Passos Coelho (careca)';
 
 const EXPR = {
   neutro: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'base', olhos: 1 },
@@ -74,7 +78,9 @@ function suspeito(key, expr = 'neutro', uid = key) {
   const vol0 = P.vol || 0; const hairOuter = `M${cx - w - 10} ${cy + 22} C${cx - w - 24 - vol0 * .3} ${top + 40} ${cx - w * .6} ${top - 36 - vol0} ${cx} ${top - 30 - vol0} C${cx + w * .6} ${top - 36 - vol0} ${cx + w + 24 + vol0 * .3} ${top + 40} ${cx + w + 10} ${cy + 22}`;
   const hl = P.hl; const vol = P.vol || 0;
   let hair = '';
-  if (P.estilo === 'atras') {
+  if (P.estilo === 'careca') {
+    hair = `<ellipse cx="${cx - w * .28}" cy="${top + 44}" rx="${w * .34}" ry="20" fill="#fff" opacity=".4" filter="url(#${id('bl2')})" transform="rotate(-14 ${cx - w * .28} ${top + 44})"/>`;
+  } else if (P.estilo === 'atras') {
     hair = `<path d="${hairOuter} L${cx + w - 14} ${cy - 62} C${cx + w * .8} ${cy - 128} ${cx + w * .45} ${cy - 150 + hl} ${cx} ${cy - 150 + hl} C${cx - w * .45} ${cy - 150 + hl} ${cx - w * .8} ${cy - 128} ${cx - w + 14} ${cy - 62}Z" fill="url(#${id('hair')})"/>
       <path d="M${cx - w * .7} ${top + 16} Q${cx} ${top - 16} ${cx + w * .7} ${top + 10}" fill="none" stroke="${h1}" stroke-width="10" stroke-linecap="round" opacity=".7" filter="url(#${id('bl3')})"/>`;
   } else if (P.estilo === 'lado') {

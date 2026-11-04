@@ -19,7 +19,7 @@ const lineup = (expr) => {
 (async () => {
   const b = await chromium.launch(); const tmp = path.join(__dirname, '_t.html');
   const shot = async (html, w, h, file, transparent) => { fs.writeFileSync(tmp, html); const p = await b.newPage({ viewport: { width: w, height: h } }); await p.goto('file://' + tmp); await p.waitForTimeout(400); await p.screenshot({ path: path.join(OUT, file), omitBackground: transparent }); await p.close(); };
-  for (const k of [...order, 'apresentador']) for (const e of ['neutro', 'nega']) {
+  for (const k of [...order, 'apresentador', 'passos_cabelo']) for (const e of ['neutro', 'nega']) {
     const svg = wrapBust(suspeito(k, e), 1);
     fs.writeFileSync(path.join(R, 'svg', `3d_${k}_${e}.svg`), svg);
     await shot(`<body style="margin:0;background:transparent">${svg}</body>`, 600, 1200, `${k}_${e}.png`, true);

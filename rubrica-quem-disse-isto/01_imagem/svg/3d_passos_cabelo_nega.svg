@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1200" viewBox="0 -300 600 1200"><defs>
+    <radialGradient id="passos_cabelo_skin" cx="38%" cy="30%" r="85%"><stop offset="0" stop-color="#F3CBAA"/><stop offset=".55" stop-color="#E4B08C"/><stop offset="1" stop-color="#B98562"/></radialGradient>
+    <radialGradient id="passos_cabelo_ear" cx="40%" cy="40%" r="70%"><stop offset="0" stop-color="#E4B08C"/><stop offset="1" stop-color="#B98562"/></radialGradient>
+    <linearGradient id="passos_cabelo_hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6B4A36"/><stop offset=".5" stop-color="#3E2A1F"/><stop offset="1" stop-color="#22160F"/></linearGradient>
+    <linearGradient id="passos_cabelo_suit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#172A3A"/><stop offset="1" stop-color="#0b1219"/></linearGradient>
+    <linearGradient id="passos_cabelo_tie" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F58220"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>
+    <radialGradient id="passos_cabelo_eye" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#cfd6dc"/></radialGradient>
+    <radialGradient id="passos_cabelo_iris" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#8a6a4a"/><stop offset="1" stop-color="#2d1d12"/></radialGradient>
+    <linearGradient id="passos_cabelo_pap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d6d6d6"/></linearGradient>
+    <linearGradient id="passos_cabelo_pen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#555"/><stop offset=".5" stop-color="#111"/><stop offset="1" stop-color="#000"/></linearGradient>
+    <linearGradient id="passos_cabelo_pasta" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a4a2a"/><stop offset="1" stop-color="#3b1d0d"/></linearGradient>
+    <linearGradient id="passos_cabelo_mic" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#999"/><stop offset=".5" stop-color="#eee"/><stop offset="1" stop-color="#555"/></linearGradient>
+    <filter id="passos_cabelo_bl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="passos_cabelo_bl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="passos_cabelo_bl3" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="passos_cabelo_hc"><path d="M300 56 C422.4 56 422.4 287.8 411.6 368.32 C398.4 495.20000000000005 342.24 548.88 300 551.3199999999999 C257.76 548.88 201.60000000000002 495.20000000000005 188.39999999999998 368.32 C177.6 287.8 177.6 56 300 56Z"/></clipPath>
+  </defs>
+  <ellipse cx="300" cy="884" rx="230" ry="16" fill="#000" opacity=".25"/>
+  <path d="M60 900 Q50 640 150 560 Q220 520 300 520 Q380 520 450 560 Q550 640 540 900Z" fill="url(#passos_cabelo_suit)"/>
+  <path d="M60 900 Q50 640 150 560 Q170 600 178 700 Q150 800 150 900Z" fill="#000" opacity=".18"/>
+  <path d="M230 520 L300 650 L370 520 Q300 560 230 520Z" fill="#FFFFFF"/>
+  <path d="M230 520 L292 654 L250 600Z M370 520 L308 654 L350 600Z" fill="#000" opacity=".12"/>
+  <path d="M283 556 H317 L330 600 L308 720 L300 740 L292 720 L270 600Z" fill="url(#passos_cabelo_tie)"/>
+  <path d="M232 520 L170 590 L250 700 L300 650Z M368 520 L430 590 L350 700 L300 650Z" fill="url(#passos_cabelo_suit)" opacity=".92"/>
+  <path d="M232 520 L170 590 L250 700 L300 650Z" fill="#fff" opacity=".05"/>
+  <rect x="262" y="420" width="76" height="120" rx="30" fill="url(#passos_cabelo_skin)"/>
+  <ellipse cx="300" cy="557.12" rx="64" ry="22" fill="#000" opacity=".3" filter="url(#passos_cabelo_bl2)"/>
+  <g transform="translate(300 500) scale(1.3) translate(-300 -536)">
+  <ellipse cx="183.60000000000002" cy="308" rx="24" ry="42" fill="url(#passos_cabelo_ear)"/>
+  <ellipse cx="416.4" cy="308" rx="24" ry="42" fill="url(#passos_cabelo_ear)"/>
+  <path d="M300 56 C422.4 56 422.4 287.8 411.6 368.32 C398.4 495.20000000000005 342.24 548.88 300 551.3199999999999 C257.76 548.88 201.60000000000002 495.20000000000005 188.39999999999998 368.32 C177.6 287.8 177.6 56 300 56Z" fill="url(#passos_cabelo_skin)" stroke="#B98562" stroke-width="3.5" stroke-opacity=".7"/>
+  <g clip-path="url(#passos_cabelo_hc)">
+    <ellipse cx="420" cy="300" rx="16" ry="195.20000000000002" fill="#F58220" opacity=".6" filter="url(#passos_cabelo_bl2)"/>
+    <ellipse cx="180" cy="300" rx="14" ry="170.79999999999998" fill="#22BBCB" opacity=".45" filter="url(#passos_cabelo_bl2)"/>
+    <ellipse cx="414" cy="330" rx="60" ry="244" fill="#B98562" opacity=".45" filter="url(#passos_cabelo_bl)"/>
+    <ellipse cx="258" cy="207.28" rx="50.4" ry="48.800000000000004" fill="#fff" opacity=".28" filter="url(#passos_cabelo_bl)"/>
+    <ellipse cx="244.8" cy="352" rx="34" ry="24" fill="#fff" opacity=".18" filter="url(#passos_cabelo_bl2)"/>
+    <ellipse cx="355.2" cy="356" rx="34" ry="24" fill="#E0735F" opacity=".22" filter="url(#passos_cabelo_bl2)"/>
+    <ellipse cx="244.8" cy="356" rx="34" ry="24" fill="#E0735F" opacity=".18" filter="url(#passos_cabelo_bl2)"/>
+    <ellipse cx="300" cy="544" rx="72" ry="26" fill="#B98562" opacity=".4" filter="url(#passos_cabelo_bl2)"/>
+    <path d="M170 240 Q300 110 430 240" fill="none" stroke="#000" stroke-width="22" opacity=".08" filter="url(#passos_cabelo_bl2)"/>
+  </g>
+  
+  <g id="olhos">
+    <ellipse cx="240.07999999999998" cy="292" rx="37.46736" ry="33.89904" fill="url(#passos_cabelo_eye)"/><ellipse cx="359.92" cy="292" rx="37.46736" ry="33.89904" fill="url(#passos_cabelo_eye)"/>
+    <circle cx="245.07999999999998" cy="294" r="17.8416" fill="url(#passos_cabelo_iris)"/><circle cx="364.92" cy="294" r="17.8416" fill="url(#passos_cabelo_iris)"/>
+    <circle cx="245.07999999999998" cy="294" r="7.8503039999999995" fill="#000"/><circle cx="364.92" cy="294" r="7.8503039999999995" fill="#000"/>
+    <circle cx="251.07999999999998" cy="287" r="4.638816" fill="#fff"/><circle cx="370.92" cy="287" r="4.638816" fill="#fff"/>
+    <path d="M204.39679999999998 288 Q240.07999999999998 247.39600000000002 275.7632 288" fill="none" stroke="#B98562" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    <path d="M324.2368 288 Q359.92 247.39600000000002 395.6032 288" fill="none" stroke="#B98562" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+  </g>
+  <g><clipPath id="passos_cabelo_lc-1"><ellipse cx="240.07999999999998" cy="292" rx="37.46736" ry="33.89904"/></clipPath><rect clip-path="url(#passos_cabelo_lc-1)" x="200.82847999999998" y="256.3168" width="78.50304" height="16.05744" fill="#E4B08C"/><path d="M204.39679999999998 272.37424 Q240.07999999999998 276.37424 275.7632 272.37424" fill="none" stroke="#B98562" stroke-width="4" opacity=".8" clip-path="url(#passos_cabelo_lc-1)"/></g><g><clipPath id="passos_cabelo_lc1"><ellipse cx="359.92" cy="292" rx="37.46736" ry="33.89904"/></clipPath><rect clip-path="url(#passos_cabelo_lc1)" x="320.66848000000005" y="256.3168" width="78.50304" height="16.05744" fill="#E4B08C"/><path d="M324.2368 272.37424 Q359.92 276.37424 395.6032 272.37424" fill="none" stroke="#B98562" stroke-width="4" opacity=".8" clip-path="url(#passos_cabelo_lc1)"/></g>
+  <g id="sobrancelhas"><g transform="translate(237.084 250) rotate(10)"><path d="M-38 10 Q0 -24 38 4 L38 20 Q0 -2 -38 22Z" fill="#2A1B13"/></g><g transform="translate(362.916 240) rotate(10)"><path d="M-38 10 Q0 -24 38 4 L38 20 Q0 -2 -38 22Z" fill="#2A1B13"/></g></g>
+  <g id="nariz" transform="translate(300 346) scale(1.05 1.3125)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#B98562" opacity=".35" filter="url(#passos_cabelo_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#passos_cabelo_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
+  <g id="boca" transform="translate(300 412) scale(0.75 1) translate(-300 -400)"><path d="M256 396 Q300 408 344 396 Q340 458 300 458 Q260 458 256 396Z" fill="#3a1410"/>
+     <path d="M260 398 Q300 408 340 398 L338 412 Q300 420 262 412Z" fill="#fff"/>
+     <ellipse cx="300" cy="444" rx="22" ry="11" fill="#D9604C"/></g>
+  <g fill="rgba(255,255,255,.08)" stroke="#2a2a2a" stroke-width="4"><rect x="200.07999999999998" y="266" width="80" height="54" rx="14"/><rect x="319.92" y="266" width="80" height="54" rx="14"/><path d="M280.08 288 Q300 278 319.92 288" fill="none"/><path d="M200.07999999999998 286 L186 280M399.92 286 L414 280" fill="none"/></g>
+    <path d="M210.07999999999998 274 L236.07999999999998 272" stroke="#fff" stroke-width="4" opacity=".6" stroke-linecap="round"/>
+  <g id="cabelo"><path d="M170 322 C142.8 96 228 -24 300 -18 C372 -24 457.2 96 430 322 L408 240 C372 182 312 226 240 234 C204 194 198 230 194 260Z" fill="url(#passos_cabelo_hair)"/>
+      <path d="M264 38 C288 76 324 96 390 126" fill="none" stroke="#6B4A36" stroke-width="9" stroke-linecap="round" opacity=".55" filter="url(#passos_cabelo_bl3)"/></g>
+  </g><g transform="translate(300 700)"><g><ellipse cx="0" cy="108" rx="46" ry="12" fill="rgba(0,0,0,.3)"/><path d="M-38 12 L-30 106 Q0 118 30 106 L38 12Z" fill="rgba(210,235,245,.45)" stroke="rgba(255,255,255,.8)" stroke-width="3"/><path d="M-34 52 L-29 104 Q0 114 29 104 L34 52Q0 62 -34 52Z" fill="rgba(120,190,215,.55)"/><path d="M-26 20 L-22 90" stroke="#fff" stroke-width="5" opacity=".7" stroke-linecap="round"/></g></g></svg>

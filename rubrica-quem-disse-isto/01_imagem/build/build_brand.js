@@ -34,26 +34,30 @@ const items = {
   cartao_vidro_ficcional: [760, 100, `<div class="glass" style="margin:16px;padding:16px 34px;text-align:center;font-size:26px;font-weight:700;letter-spacing:4px;border-radius:999px">HUMOR · FALAS FICCIONAIS</div>`],
   cartao_vidro_frase: [940, 420, `<div class="glass" style="margin:20px;padding:34px 44px"><div style="font-size:24px;letter-spacing:6px;font-weight:600;color:#F58220">A FRASE EM CAUSA</div><div style="font-size:54px;font-weight:700;line-height:1.2;margin-top:18px">«Aqui vai a frase que alguém disse»</div></div>`],
   titulo_rubrica: [1000, 440, `<div style="padding:20px"><div class=grad style="font-size:150px;font-weight:800;line-height:1.0">QUEM É<br>QUE DISSE<br>ISTO?</div><div style="font-size:30px;font-weight:600;letter-spacing:8px;color:#fff;margin-top:20px;opacity:.9">JSD FAMALICÃO · 50 ANOS</div></div>`],
-  // fundos / composições 9:16 (opacos)
-  fundo_estudio_9x16: [1080, 1920, `
-    <div style="position:absolute;inset:0;background:radial-gradient(900px 700px at 80% 12%,rgba(245,130,32,.55),transparent 60%),radial-gradient(800px 700px at 8% 62%,rgba(34,187,203,.28),transparent 62%),linear-gradient(180deg,#1b2733,#12161b 70%,#0d0f11)"></div>
-    <div style="position:absolute;left:0;right:0;top:1180px;height:520px;background:linear-gradient(180deg,#F58220,#D96516)"></div>
-    <div style="position:absolute;left:0;right:0;top:1166px;height:26px;background:#E9E9E9"></div>
-    <div style="position:absolute;left:0;right:0;top:1192px;height:14px;background:rgba(0,0,0,.25)"></div>
-    <img src="${overlay}" style="position:absolute;inset:0;width:1080px;height:1920px">`],
-  cartao_final_9x16: [1080, 1920, `
+  // fundos / composições 16:9 (TV)
+  overlay_gradiente_16x9: [1920, 1080, `
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(28,26,24,0) 55%,rgba(28,26,24,.55) 78%,rgba(28,26,24,.85) 100%)"></div>
+    <img src="${logoW}" style="position:absolute;left:810px;top:960px;width:300px">`],
+  fundo_estudio_16x9: [1920, 1080, `
+    <div style="position:absolute;inset:0;background:radial-gradient(1100px 700px at 82% 8%,rgba(245,130,32,.5),transparent 60%),radial-gradient(900px 700px at 6% 70%,rgba(34,187,203,.28),transparent 62%),linear-gradient(180deg,#1b2733,#12161b 72%,#0d0f11)"></div>
+    <div style="position:absolute;left:0;right:0;top:700px;height:14px;background:#E9E9E9"></div>`],
+  mesa_estudio_16x9: [1920, 1080, `
+    <div style="position:absolute;left:0;right:0;top:700px;height:26px;background:#E9E9E9"></div>
+    <div style="position:absolute;left:0;right:0;top:726px;height:354px;background:linear-gradient(180deg,#F58220,#D96516)"></div>
+    <div style="position:absolute;left:0;right:0;top:726px;height:14px;background:rgba(0,0,0,.25)"></div>`],
+  cartao_final_16x9: [1920, 1080, `
     <div style="position:absolute;inset:0;background:#E9E9E9"></div>
-    <div class=grad style="position:absolute;left:90px;top:300px;font-size:150px;font-weight:800;line-height:1.02">QUEM É<br>QUE DISSE<br>ISTO?</div>
-    <div style="position:absolute;left:90px;top:860px;color:#171717;font-size:44px;font-weight:800">REVELAÇÃO</div>
-    <div style="position:absolute;left:90px;top:920px;color:#171717;font-size:34px;font-weight:400">JANTAR 50 ANOS · JSD FAMALICÃO</div>
-    <div style="position:absolute;left:90px;top:1040px;color:#171717;font-size:34px;font-weight:700">7 DE NOVEMBRO · SUNSET HOUSE</div>
-    <img src="${logoK}" style="position:absolute;left:340px;top:1680px;width:400px">`],
+    <div class=grad style="position:absolute;left:160px;top:190px;font-size:150px;font-weight:800;line-height:1.02">QUEM É QUE<br>DISSE ISTO?</div>
+    <div style="position:absolute;left:160px;top:560px;color:#171717;font-size:48px;font-weight:800">REVELAÇÃO</div>
+    <div style="position:absolute;left:160px;top:626px;color:#171717;font-size:36px;font-weight:400">JANTAR 50 ANOS · JSD FAMALICÃO</div>
+    <div style="position:absolute;left:160px;top:720px;color:#171717;font-size:36px;font-weight:700">7 DE NOVEMBRO · SUNSET HOUSE</div>
+    <img src="${logoK}" style="position:absolute;left:1360px;top:830px;width:400px">`],
 };
 
 (async () => {
   const b = await chromium.launch();
   for (const [name, [w, h, body]] of Object.entries(items)) {
-    const transparent = !/fundo|cartao_final/.test(name);
+    const transparent = !/^(fundo|cartao_final)/.test(name);
     const html = wrap(w, h, body);
     const f = path.join(__dirname, `_${name}.html`);
     fs.writeFileSync(f, html);

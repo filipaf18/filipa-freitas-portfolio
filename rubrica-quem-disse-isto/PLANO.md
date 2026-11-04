@@ -37,3 +37,4 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - Paulo Portas **provisório** (sem foto utilizável, sem semelhança).
 - v2 (nomes no ecrã, traços mais exagerados, luz de contorno laranja/azul-verde): ver `png_personagens/`.
 - v3: proporções medidas nas fotos (pontos faciais, `config/medidas_faciais.json`), cabeças maiores (estilo caricatura de jornal).
+- Briefing para ilustrador: `01_imagem/BRIEFING_ILUSTRADOR.md`. v4: franja do Passos, orelhas e boca do Cavaco.

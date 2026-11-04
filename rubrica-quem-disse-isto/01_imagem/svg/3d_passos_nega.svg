@@ -13,7 +13,7 @@
     <filter id="passos_bl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
     <filter id="passos_bl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
     <filter id="passos_bl3" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
-    <clipPath id="passos_hc"><path d="M300 56 C422.4 56 422.4 287.8 411.6 368.32 C398.4 495.20000000000005 333 548.88 300 551.3199999999999 C267 548.88 201.60000000000002 495.20000000000005 188.39999999999998 368.32 C177.6 287.8 177.6 56 300 56Z"/></clipPath>
+    <clipPath id="passos_hc"><path d="M300 56 C422.4 56 422.4 287.8 411.6 368.32 C398.4 495.20000000000005 342.24 548.88 300 551.3199999999999 C257.76 548.88 201.60000000000002 495.20000000000005 188.39999999999998 368.32 C177.6 287.8 177.6 56 300 56Z"/></clipPath>
   </defs>
   <ellipse cx="300" cy="884" rx="230" ry="16" fill="#000" opacity=".25"/>
   <path d="M60 900 Q50 640 150 560 Q220 520 300 520 Q380 520 450 560 Q550 640 540 900Z" fill="url(#passos_suit)"/>
@@ -28,7 +28,7 @@
   <g transform="translate(300 500) scale(1.3) translate(-300 -536)">
   <ellipse cx="183.60000000000002" cy="308" rx="24" ry="42" fill="url(#passos_ear)"/>
   <ellipse cx="416.4" cy="308" rx="24" ry="42" fill="url(#passos_ear)"/>
-  <path d="M300 56 C422.4 56 422.4 287.8 411.6 368.32 C398.4 495.20000000000005 333 548.88 300 551.3199999999999 C267 548.88 201.60000000000002 495.20000000000005 188.39999999999998 368.32 C177.6 287.8 177.6 56 300 56Z" fill="url(#passos_skin)"/>
+  <path d="M300 56 C422.4 56 422.4 287.8 411.6 368.32 C398.4 495.20000000000005 342.24 548.88 300 551.3199999999999 C257.76 548.88 201.60000000000002 495.20000000000005 188.39999999999998 368.32 C177.6 287.8 177.6 56 300 56Z" fill="url(#passos_skin)"/>
   <g clip-path="url(#passos_hc)">
     <ellipse cx="420" cy="300" rx="16" ry="195.20000000000002" fill="#F58220" opacity=".6" filter="url(#passos_bl2)"/>
     <ellipse cx="180" cy="300" rx="14" ry="170.79999999999998" fill="#22BBCB" opacity=".45" filter="url(#passos_bl2)"/>
@@ -49,7 +49,7 @@
     <path d="M204.39679999999998 288 Q240.07999999999998 247.39600000000002 275.7632 288" fill="none" stroke="#B98562" stroke-width="6" stroke-linecap="round" opacity=".7"/>
     <path d="M324.2368 288 Q359.92 247.39600000000002 395.6032 288" fill="none" stroke="#B98562" stroke-width="6" stroke-linecap="round" opacity=".7"/>
   </g>
-  <g><clipPath id="passos_lc-1"><ellipse cx="240.07999999999998" cy="292" rx="37.46736" ry="33.89904"/></clipPath><rect clip-path="url(#passos_lc-1)" x="200.82847999999998" y="256.3168" width="78.50304" height="14.27328" fill="#E4B08C"/><path d="M204.39679999999998 270.59008 Q240.07999999999998 274.59008 275.7632 270.59008" fill="none" stroke="#B98562" stroke-width="4" opacity=".8" clip-path="url(#passos_lc-1)"/></g><g><clipPath id="passos_lc1"><ellipse cx="359.92" cy="292" rx="37.46736" ry="33.89904"/></clipPath><rect clip-path="url(#passos_lc1)" x="320.66848000000005" y="256.3168" width="78.50304" height="14.27328" fill="#E4B08C"/><path d="M324.2368 270.59008 Q359.92 274.59008 395.6032 270.59008" fill="none" stroke="#B98562" stroke-width="4" opacity=".8" clip-path="url(#passos_lc1)"/></g>
+  <g><clipPath id="passos_lc-1"><ellipse cx="240.07999999999998" cy="292" rx="37.46736" ry="33.89904"/></clipPath><rect clip-path="url(#passos_lc-1)" x="200.82847999999998" y="256.3168" width="78.50304" height="16.05744" fill="#E4B08C"/><path d="M204.39679999999998 272.37424 Q240.07999999999998 276.37424 275.7632 272.37424" fill="none" stroke="#B98562" stroke-width="4" opacity=".8" clip-path="url(#passos_lc-1)"/></g><g><clipPath id="passos_lc1"><ellipse cx="359.92" cy="292" rx="37.46736" ry="33.89904"/></clipPath><rect clip-path="url(#passos_lc1)" x="320.66848000000005" y="256.3168" width="78.50304" height="16.05744" fill="#E4B08C"/><path d="M324.2368 272.37424 Q359.92 276.37424 395.6032 272.37424" fill="none" stroke="#B98562" stroke-width="4" opacity=".8" clip-path="url(#passos_lc1)"/></g>
   <g id="sobrancelhas"><g transform="translate(237.084 250) rotate(10)"><path d="M-38 10 Q0 -24 38 4 L38 20 Q0 -2 -38 22Z" fill="#2A1B13"/></g><g transform="translate(362.916 240) rotate(10)"><path d="M-38 10 Q0 -24 38 4 L38 20 Q0 -2 -38 22Z" fill="#2A1B13"/></g></g>
   <g id="nariz" transform="translate(300 346) scale(1.05 1.3125)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#B98562" opacity=".35" filter="url(#passos_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#passos_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
   <g id="boca" transform="translate(300 412) scale(0.75 1) translate(-300 -400)"><path d="M256 396 Q300 408 344 396 Q340 458 300 458 Q260 458 256 396Z" fill="#3a1410"/>
@@ -57,6 +57,6 @@
      <ellipse cx="300" cy="444" rx="22" ry="11" fill="#D9604C"/></g>
   <g fill="rgba(255,255,255,.08)" stroke="#2a2a2a" stroke-width="4"><rect x="200.07999999999998" y="266" width="80" height="54" rx="14"/><rect x="319.92" y="266" width="80" height="54" rx="14"/><path d="M280.08 288 Q300 278 319.92 288" fill="none"/><path d="M200.07999999999998 286 L186 280M399.92 286 L414 280" fill="none"/></g>
     <path d="M210.07999999999998 274 L236.07999999999998 272" stroke="#fff" stroke-width="4" opacity=".6" stroke-linecap="round"/>
-  <g id="cabelo"><path d="M170 322 C144 96 228 -20 300 -14 C372 -20 456 96 430 322 L408 240 C372 182 312 186 240 194 C204 194 198 230 194 260Z" fill="url(#passos_hair)"/>
+  <g id="cabelo"><path d="M170 322 C142.8 96 228 -24 300 -18 C372 -24 457.2 96 430 322 L408 240 C372 182 312 226 240 234 C204 194 198 230 194 260Z" fill="url(#passos_hair)"/>
       <path d="M264 38 C288 76 324 96 390 126" fill="none" stroke="#6B4A36" stroke-width="9" stroke-linecap="round" opacity=".55" filter="url(#passos_bl3)"/></g>
   </g><g transform="translate(300 700)"><g><ellipse cx="0" cy="108" rx="46" ry="12" fill="rgba(0,0,0,.3)"/><path d="M-38 12 L-30 106 Q0 118 30 106 L38 12Z" fill="rgba(210,235,245,.45)" stroke="rgba(255,255,255,.8)" stroke-width="3"/><path d="M-34 52 L-29 104 Q0 114 29 104 L34 52Q0 62 -34 52Z" fill="rgba(120,190,215,.55)"/><path d="M-26 20 L-22 90" stroke="#fff" stroke-width="5" opacity=".7" stroke-linecap="round"/></g></g></svg>

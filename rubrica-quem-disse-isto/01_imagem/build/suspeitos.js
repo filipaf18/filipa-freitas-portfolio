@@ -6,10 +6,10 @@ const O = '#F58220', OD = '#D96516', W = '#FFFFFF', K = '#171717', N = '#172A3A'
 const PRESETS = {
   // Traços baseados nas fotos de referência (cabelo, sobrancelhas, óculos, forma da cara).
   cavaco: { nome: 'Cavaco Silva', pele: ['#F2CDAE', '#E2B08C', '#B9835F'], cabelo: ['#C9CED3', '#8E959C', '#5C636A'],
-    w: 122, h: 250, jaw: .5, hl: -26, vol: 34, lid: .45, nl: 1.1, exm: .8, mw: .62, chin: 26, bgap: 14, nw: .85, estilo: 'atras', sobr: { t: 24, w: 80, cor: '#3B4045' }, oculos: 'nenhum', nariz: 1.1, orelha: 1,
-    rugas: true, sorriso: .0, fato: N, gravata: OD, camisa: G, prop: 'caneta', brilho: 1 },
+    w: 122, h: 250, jaw: .5, hl: -26, vol: 34, lid: .45, nl: 1.1, exm: .8, mw: .62, chin: 26, bgap: 14, nw: .85, estilo: 'atras', sobr: { t: 24, w: 80, cor: '#3B4045' }, oculos: 'nenhum', nariz: 1.1, orelha: 1.3,
+    rugas: true, sorriso: -.9, fato: N, gravata: OD, camisa: G, prop: 'caneta', brilho: 1 },
   passos: { nome: 'Passos Coelho', pele: ['#F3CBAA', '#E4B08C', '#B98562'], cabelo: ['#6B4A36', '#3E2A1F', '#22160F'],
-    w: 120, h: 244, jaw: .5, hl: 6, vol: 40, lid: .15, nl: 1.25, exm: 1.07, erm: 1.18, mw: .75, myo: 12, bgap: -6, estilo: 'lado', sobr: { t: 20, w: 76, cor: '#2A1B13' }, oculos: 'fino', nariz: 1.05, orelha: 1,
+    w: 120, h: 244, jaw: .64, hl: 46, vol: 44, lid: .2, nl: 1.25, exm: 1.07, erm: 1.18, mw: .75, myo: 12, bgap: -6, estilo: 'lado', sobr: { t: 20, w: 76, cor: '#2A1B13' }, oculos: 'fino', nariz: 1.05, orelha: 1,
     rugas: false, sorriso: .0, fato: N, gravata: O, camisa: W, prop: 'copo', brilho: 1 },
   // PROVISÓRIO: sem foto utilizável → só adereços do briefing, traços genéricos (sem semelhança).
   portas: { nome: 'Paulo Portas (PROVISÓRIO)', pele: ['#F1C9A8', '#E1AE8A', '#B6805D'], cabelo: ['#9A9A9A', '#6E6E6E', '#444'],

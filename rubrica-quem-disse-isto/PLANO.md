@@ -42,3 +42,4 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - Portas v5.1: desenhado a partir das 6 fotos da Filipa (sem óculos), medidas em `config/medidas_media.json`. Refs em `refs/paulo_portas_filipa/` (grupos A e B).
 - Passos careca (por pedido da Filipa; variante com cabelo: `png_personagens/passos_cabelo_*`); Portas mais moreno.
 - Vídeo piloto 50 s: `04_video/QuemDisseIsto_piloto_V1.mp4` (guião em `04_video/GUIAO_PILOTO.md`). Voz V2: 5 modelos Piper pt-PT distintos (OpenVoiceOS miro/dii: CC BY-NC-ND; voice3/4 e tugão: licença NÃO CONFIRMADA) + efeito cartoon; só ritmo/atitude, sem imitar timbre. Falta: frase real, música, validação do guião.
+- **Vídeo 1 «Todos negam»** (guião da Filipa): `04_video/Video1_TodosNegam_V1.mp4` (58,7 s). Frase em causa **POR CONFIRMAR** (fontes contraditórias: Passos Coelho 23-07-2012 vs Seguro/Expresso 21-07-2012). Vídeo 2 (confissão) em espera até confirmar autoria.

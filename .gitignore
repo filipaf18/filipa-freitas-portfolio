@@ -52,3 +52,7 @@ rubrica-quem-disse-isto/04_video/audio/*_raw.wav
 rubrica-quem-disse-isto/04_video/audio/*.mp3
 rubrica-quem-disse-isto/04_video/_fr*.html
 rubrica-quem-disse-isto/04_video/*.log
+rubrica-quem-disse-isto/04_video/v1/frames/
+rubrica-quem-disse-isto/04_video/v1/cache/
+rubrica-quem-disse-isto/04_video/v1/audio/*_raw.wav
+rubrica-quem-disse-isto/04_video/v1/_f*.html

@@ -62,3 +62,9 @@ rubrica-quem-disse-isto/04_video/v2/audio/*.npy
 rubrica-quem-disse-isto/04_video/v2/audio/*_raw.wav
 rubrica-quem-disse-isto/04_video/v2/audio/*_[0-9].wav
 rubrica-quem-disse-isto/04_video/v2/_*.html
+rubrica-quem-disse-isto/04_video/v3/animatic/audio/*.npy
+rubrica-quem-disse-isto/04_video/v3/animatic/audio/*_raw.wav
+rubrica-quem-disse-isto/04_video/v3/animatic/audio/*_[0-9].wav
+rubrica-quem-disse-isto/04_video/v3/animatic/cache/
+rubrica-quem-disse-isto/04_video/v3/animatic/storyboard/
+rubrica-quem-disse-isto/04_video/v3/animatic/_s.html

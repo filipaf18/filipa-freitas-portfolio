@@ -30,3 +30,8 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - [x] Formato corrigido: **horizontal 16:9 (TV)**. Kit em `png_brand/*_16x9`.
 - [x] Passos Coelho: 3 fotos da Filipa utilizáveis em `refs/passos_coelho_filipa/`
 - Voz: **sem clonagem** a partir do áudio enviado (ver conversa).
+
+## Primeira proposta de caricaturas (3D estilizado)
+- `01_imagem/png_personagens/`: 4 suspeitos + Apresentador (neutro e «nega») e `teste_quatro_juntos_*.png`.
+- Gerado por `build/suspeitos.js` (mesmas camadas para todos). Tons de pele/cabelo = extras à paleta.
+- Paulo Portas **provisório** (sem foto utilizável, sem semelhança).

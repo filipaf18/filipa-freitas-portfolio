@@ -47,3 +47,4 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - **V3 Fase 1** (sala de argumentistas + guião): `04_video/v3/`. Aguarda aprovação para Fase 2 (animatic).
 - **V3b «O Leilão»**: novo formato (apresentador = leiloeiro; frase vendida em 5 lotes; ninguém quer o lote do «que se lixem»). `04_video/v3/guiao_v3b_leilao.md`. A aguardar aprovação + decisão de voz.
 - **V3c «O Leilão» (farsa)**: humor físico/sonoro, ≥50% dos risos visuais. `04_video/v3/guiao_v3c_farsa.md`.
+- **V3d «O Debate» (sketch de debate de TV)**: `04_video/v3/guiao_v3d_sketch.md` (cadeia de nexo entre falas). ElevenLabs: plano gratuito NAO permite vozes de biblioteca (pt-PT) via API (402).

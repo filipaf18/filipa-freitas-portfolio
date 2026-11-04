@@ -11,10 +11,11 @@ const PRESETS = {
   passos: { nome: 'Passos Coelho', pele: ['#F3CBAA', '#E4B08C', '#B98562'], cabelo: ['#6B4A36', '#3E2A1F', '#22160F'],
     w: 120, h: 244, jaw: .64, hl: 46, vol: 44, lid: .2, nl: 1.25, exm: 1.07, erm: 1.18, mw: .75, myo: 12, bgap: -6, estilo: 'lado', sobr: { t: 20, w: 76, cor: '#2A1B13' }, oculos: 'fino', nariz: 1.05, orelha: 1,
     rugas: false, sorriso: .0, fato: N, gravata: O, camisa: W, prop: 'copo', brilho: 1 },
-  // PROVISÓRIO: sem foto utilizável → só adereços do briefing, traços genéricos (sem semelhança).
-  portas: { nome: 'Paulo Portas (PROVISÓRIO)', pele: ['#F1C9A8', '#E1AE8A', '#B6805D'], cabelo: ['#9A9A9A', '#6E6E6E', '#444'],
-    w: 140, h: 200, jaw: .64, hl: 22, estilo: 'lado', sobr: { t: 13, w: 66, cor: '#555' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
-    rugas: false, sorriso: .1, fato: N, gravata: G, camisa: W, prop: 'pasta', brilho: 1 },
+  // Traços lidos nas fotos enviadas pela Filipa (sem óculos, por indicação dela) + medidas faciais.
+  portas: { nome: 'Paulo Portas', pele: ['#F1C9A8', '#E0AC88', '#B27C59'], cabelo: ['#8C7A68', '#55453A', '#2E241E'],
+    w: 128, h: 236, jaw: .56, hl: -8, vol: 22, lid: .35, nl: 1.15, exm: 1.19, erm: 1.1, mw: 1.05, myo: 8, bgap: 10, chin: 6,
+    estilo: 'lado', sobr: { t: 24, w: 78, cor: '#2B211C' }, oculos: 'nenhum', nariz: 1.05, orelha: 1.1,
+    rugas: true, sorriso: .35, fato: N, gravata: G, camisa: W, prop: 'pasta', brilho: 1 },
   montenegro: { nome: 'Luís Montenegro', pele: ['#EDBF9B', '#D9A07A', '#AD7653'], cabelo: ['#4A3B33', '#2B211C', '#15100D'],
     w: 176, h: 180, jaw: .88, hl: -4, vol: 26, lid: .3, nl: 1.0, exm: 1.12, nw: 1.25, bgap: -6, chin: -10, estilo: 'lado', sobr: { t: 22, w: 80, cor: '#1c1411' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
     rugas: false, sorriso: .75, fato: N, gravata: W, camisa: W, prop: 'microfone', brilho: 1 },

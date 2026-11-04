@@ -28,7 +28,7 @@
   <g transform="translate(300 500) scale(1.3) translate(-300 -460)">
   <ellipse cx="129.28" cy="308" rx="24" ry="42" fill="url(#montenegro_ear)"/>
   <ellipse cx="470.72" cy="308" rx="24" ry="42" fill="url(#montenegro_ear)"/>
-  <path d="M300 120 C479.52 120 479.52 291 463.68 350.4 C444.32 444 385.18399999999997 473.6 300 475.4 C214.816 473.6 155.68 444 136.32 350.4 C120.47999999999999 291 120.47999999999999 120 300 120Z" fill="url(#montenegro_skin)"/>
+  <path d="M300 120 C479.52 120 479.52 291 463.68 350.4 C444.32 444 385.18399999999997 473.6 300 475.4 C214.816 473.6 155.68 444 136.32 350.4 C120.47999999999999 291 120.47999999999999 120 300 120Z" fill="url(#montenegro_skin)" stroke="#AD7653" stroke-width="3.5" stroke-opacity=".7"/>
   <g clip-path="url(#montenegro_hc)">
     <ellipse cx="476" cy="300" rx="16" ry="144" fill="#F58220" opacity=".6" filter="url(#montenegro_bl2)"/>
     <ellipse cx="124" cy="300" rx="14" ry="125.99999999999999" fill="#22BBCB" opacity=".45" filter="url(#montenegro_bl2)"/>

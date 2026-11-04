@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="1200" viewBox="0 -300 600 1200"><defs>
-    <radialGradient id="portas_skin" cx="38%" cy="30%" r="85%"><stop offset="0" stop-color="#F1C9A8"/><stop offset=".55" stop-color="#E1AE8A"/><stop offset="1" stop-color="#B6805D"/></radialGradient>
-    <radialGradient id="portas_ear" cx="40%" cy="40%" r="70%"><stop offset="0" stop-color="#E1AE8A"/><stop offset="1" stop-color="#B6805D"/></radialGradient>
-    <linearGradient id="portas_hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9A9A9A"/><stop offset=".5" stop-color="#6E6E6E"/><stop offset="1" stop-color="#444"/></linearGradient>
+    <radialGradient id="portas_skin" cx="38%" cy="30%" r="85%"><stop offset="0" stop-color="#F1C9A8"/><stop offset=".55" stop-color="#E0AC88"/><stop offset="1" stop-color="#B27C59"/></radialGradient>
+    <radialGradient id="portas_ear" cx="40%" cy="40%" r="70%"><stop offset="0" stop-color="#E0AC88"/><stop offset="1" stop-color="#B27C59"/></radialGradient>
+    <linearGradient id="portas_hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8C7A68"/><stop offset=".5" stop-color="#55453A"/><stop offset="1" stop-color="#2E241E"/></linearGradient>
     <linearGradient id="portas_suit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#172A3A"/><stop offset="1" stop-color="#0b1219"/></linearGradient>
     <linearGradient id="portas_tie" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9E9E9"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>
     <radialGradient id="portas_eye" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#cfd6dc"/></radialGradient>
@@ -13,7 +13,7 @@
     <filter id="portas_bl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
     <filter id="portas_bl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
     <filter id="portas_bl3" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
-    <clipPath id="portas_hc"><path d="M300 100 C442.8 100 442.8 290 430.20000000000005 356 C414.8 460 349.28000000000003 504 300 506 C250.72 504 185.2 460 169.79999999999998 356 C157.2 290 157.2 100 300 100Z"/></clipPath>
+    <clipPath id="portas_hc"><path d="M300 64 C430.56 64 430.56 288.2 419.04 366.08000000000004 C404.96 488.8 339.424 546.72 300 549.08 C260.576 546.72 195.04000000000002 488.8 180.95999999999998 366.08000000000004 C169.44 288.2 169.44 64 300 64Z"/></clipPath>
   </defs>
   <ellipse cx="300" cy="884" rx="230" ry="16" fill="#000" opacity=".25"/>
   <path d="M60 900 Q50 640 150 560 Q220 520 300 520 Q380 520 450 560 Q550 640 540 900Z" fill="url(#portas_suit)"/>
@@ -24,38 +24,38 @@
   <path d="M232 520 L170 590 L250 700 L300 650Z M368 520 L430 590 L350 700 L300 650Z" fill="url(#portas_suit)" opacity=".92"/>
   <path d="M232 520 L170 590 L250 700 L300 650Z" fill="#fff" opacity=".05"/>
   <rect x="262" y="420" width="76" height="120" rx="30" fill="url(#portas_skin)"/>
-  <ellipse cx="300" cy="514" rx="64" ry="22" fill="#000" opacity=".3" filter="url(#portas_bl2)"/>
-  <g transform="translate(300 500) scale(1.3) translate(-300 -491)">
-  <ellipse cx="164.20000000000002" cy="308" rx="24" ry="42" fill="url(#portas_ear)"/>
-  <ellipse cx="435.79999999999995" cy="308" rx="24" ry="42" fill="url(#portas_ear)"/>
-  <path d="M300 100 C442.8 100 442.8 290 430.20000000000005 356 C414.8 460 349.28000000000003 504 300 506 C250.72 504 185.2 460 169.79999999999998 356 C157.2 290 157.2 100 300 100Z" fill="url(#portas_skin)"/>
+  <ellipse cx="300" cy="549.28" rx="64" ry="22" fill="#000" opacity=".3" filter="url(#portas_bl2)"/>
+  <g transform="translate(300 500) scale(1.3) translate(-300 -534)">
+  <ellipse cx="175.84" cy="308" rx="26.400000000000002" ry="46.2" fill="url(#portas_ear)"/>
+  <ellipse cx="424.15999999999997" cy="308" rx="26.400000000000002" ry="46.2" fill="url(#portas_ear)"/>
+  <path d="M300 64 C430.56 64 430.56 288.2 419.04 366.08000000000004 C404.96 488.8 339.424 546.72 300 549.08 C260.576 546.72 195.04000000000002 488.8 180.95999999999998 366.08000000000004 C169.44 288.2 169.44 64 300 64Z" fill="url(#portas_skin)" stroke="#B27C59" stroke-width="3.5" stroke-opacity=".7"/>
   <g clip-path="url(#portas_hc)">
-    <ellipse cx="440" cy="300" rx="16" ry="160" fill="#F58220" opacity=".6" filter="url(#portas_bl2)"/>
-    <ellipse cx="160" cy="300" rx="14" ry="140" fill="#22BBCB" opacity=".45" filter="url(#portas_bl2)"/>
-    <ellipse cx="433" cy="330" rx="70" ry="200" fill="#B6805D" opacity=".45" filter="url(#portas_bl)"/>
-    <ellipse cx="251" cy="224" rx="58.8" ry="40" fill="#fff" opacity=".28" filter="url(#portas_bl)"/>
-    <ellipse cx="235.6" cy="352" rx="34" ry="24" fill="#fff" opacity=".18" filter="url(#portas_bl2)"/>
-    <ellipse cx="364.4" cy="356" rx="34" ry="24" fill="#E0735F" opacity=".22" filter="url(#portas_bl2)"/>
-    <ellipse cx="235.6" cy="356" rx="34" ry="24" fill="#E0735F" opacity=".18" filter="url(#portas_bl2)"/>
-    <ellipse cx="300" cy="500" rx="84" ry="26" fill="#B6805D" opacity=".4" filter="url(#portas_bl2)"/>
-    <path d="M150 240 Q300 110 450 240" fill="none" stroke="#000" stroke-width="22" opacity=".08" filter="url(#portas_bl2)"/>
+    <ellipse cx="428" cy="300" rx="16" ry="188.8" fill="#F58220" opacity=".6" filter="url(#portas_bl2)"/>
+    <ellipse cx="172" cy="300" rx="14" ry="165.2" fill="#22BBCB" opacity=".45" filter="url(#portas_bl2)"/>
+    <ellipse cx="421.6" cy="330" rx="64" ry="236" fill="#B27C59" opacity=".45" filter="url(#portas_bl)"/>
+    <ellipse cx="255.2" cy="210.32" rx="53.76" ry="47.2" fill="#fff" opacity=".28" filter="url(#portas_bl)"/>
+    <ellipse cx="241.12" cy="352" rx="34" ry="24" fill="#fff" opacity=".18" filter="url(#portas_bl2)"/>
+    <ellipse cx="358.88" cy="356" rx="34" ry="24" fill="#E0735F" opacity=".22" filter="url(#portas_bl2)"/>
+    <ellipse cx="241.12" cy="356" rx="34" ry="24" fill="#E0735F" opacity=".18" filter="url(#portas_bl2)"/>
+    <ellipse cx="300" cy="536" rx="76.8" ry="26" fill="#B27C59" opacity=".4" filter="url(#portas_bl2)"/>
+    <path d="M162 240 Q300 110 438 240" fill="none" stroke="#000" stroke-width="22" opacity=".08" filter="url(#portas_bl2)"/>
   </g>
-  
+  <g fill="none" stroke="#B27C59" stroke-width="5" stroke-linecap="round" opacity=".38"><path d="M238 340 Q226 380 246 408"/><path d="M362 340 Q374 380 354 408"/><path d="M240 188 Q300 176 360 188" opacity=".5"/></g>
   <g id="olhos">
-    <ellipse cx="244" cy="292" rx="31.752000000000002" ry="28.728" fill="url(#portas_eye)"/><ellipse cx="356" cy="292" rx="31.752000000000002" ry="28.728" fill="url(#portas_eye)"/>
-    <circle cx="249" cy="294" r="15.120000000000001" fill="url(#portas_iris)"/><circle cx="361" cy="294" r="15.120000000000001" fill="url(#portas_iris)"/>
-    <circle cx="249" cy="294" r="6.6528" fill="#000"/><circle cx="361" cy="294" r="6.6528" fill="#000"/>
-    <circle cx="255" cy="287" r="3.9312000000000005" fill="#fff"/><circle cx="367" cy="287" r="3.9312000000000005" fill="#fff"/>
-    <path d="M213.76 288 Q244 254.2 274.24 288" fill="none" stroke="#B6805D" stroke-width="6" stroke-linecap="round" opacity=".7"/>
-    <path d="M325.76 288 Q356 254.2 386.24 288" fill="none" stroke="#B6805D" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    <ellipse cx="233.36" cy="292" rx="34.927200000000006" ry="31.6008" fill="url(#portas_eye)"/><ellipse cx="366.64" cy="292" rx="34.927200000000006" ry="31.6008" fill="url(#portas_eye)"/>
+    <circle cx="238.36" cy="294" r="16.632" fill="url(#portas_iris)"/><circle cx="371.64" cy="294" r="16.632" fill="url(#portas_iris)"/>
+    <circle cx="238.36" cy="294" r="7.318080000000001" fill="#000"/><circle cx="371.64" cy="294" r="7.318080000000001" fill="#000"/>
+    <circle cx="244.36" cy="287" r="4.32432" fill="#fff"/><circle cx="377.64" cy="287" r="4.32432" fill="#fff"/>
+    <path d="M200.096 288 Q233.36 250.42 266.624 288" fill="none" stroke="#B27C59" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    <path d="M333.376 288 Q366.64 250.42 399.904 288" fill="none" stroke="#B27C59" stroke-width="6" stroke-linecap="round" opacity=".7"/>
   </g>
-  
-  <g id="sobrancelhas"><g transform="translate(241.2 244) rotate(10)"><path d="M-33 6.5 Q0 -15.6 33 2.6 L33 13 Q0 -1.3 -33 14.3Z" fill="#555"/></g><g transform="translate(358.8 234) rotate(10)"><path d="M-33 6.5 Q0 -15.6 33 2.6 L33 13 Q0 -1.3 -33 14.3Z" fill="#555"/></g></g>
-  <g id="nariz" transform="translate(300 346) scale(1 1)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#B6805D" opacity=".35" filter="url(#portas_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#portas_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
-  <g id="boca" transform="translate(300 400) scale(1 1) translate(-300 -400)"><path d="M256 396 Q300 408 344 396 Q340 458 300 458 Q260 458 256 396Z" fill="#3a1410"/>
+  <g><clipPath id="portas_lc-1"><ellipse cx="233.36" cy="292" rx="34.927200000000006" ry="31.6008"/></clipPath><rect clip-path="url(#portas_lc-1)" x="196.7696" y="258.736" width="73.18080000000002" height="19.9584" fill="#E0AC88"/><path d="M200.096 278.6944 Q233.36 282.6944 266.624 278.6944" fill="none" stroke="#B27C59" stroke-width="4" opacity=".8" clip-path="url(#portas_lc-1)"/></g><g><clipPath id="portas_lc1"><ellipse cx="366.64" cy="292" rx="34.927200000000006" ry="31.6008"/></clipPath><rect clip-path="url(#portas_lc1)" x="330.0496" y="258.736" width="73.18080000000002" height="19.9584" fill="#E0AC88"/><path d="M333.376 278.6944 Q366.64 282.6944 399.904 278.6944" fill="none" stroke="#B27C59" stroke-width="4" opacity=".8" clip-path="url(#portas_lc1)"/></g>
+  <g id="sobrancelhas"><g transform="translate(230.028 234) rotate(10)"><path d="M-39 12 Q0 -28.799999999999997 39 4.800000000000001 L39 24 Q0 -2.4000000000000004 -39 26.400000000000002Z" fill="#2B211C"/></g><g transform="translate(369.972 224) rotate(10)"><path d="M-39 12 Q0 -28.799999999999997 39 4.800000000000001 L39 24 Q0 -2.4000000000000004 -39 26.400000000000002Z" fill="#2B211C"/></g></g>
+  <g id="nariz" transform="translate(300 346) scale(1.05 1.2075)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#B27C59" opacity=".35" filter="url(#portas_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#portas_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
+  <g id="boca" transform="translate(300 408) scale(1.05 1) translate(-300 -400)"><path d="M256 396 Q300 408 344 396 Q340 458 300 458 Q260 458 256 396Z" fill="#3a1410"/>
      <path d="M260 398 Q300 408 340 398 L338 412 Q300 420 262 412Z" fill="#fff"/>
      <ellipse cx="300" cy="444" rx="22" ry="11" fill="#D9604C"/></g>
   
-  <g id="cabelo"><path d="M150 322 C136 140 216 64 300 70 C384 64 464 140 450 322 L428 240 C384 182 314 202 230 210 C188 194 178 230 174 260Z" fill="url(#portas_hair)"/>
-      <path d="M258 82 C286 120 328 140 405 170" fill="none" stroke="#9A9A9A" stroke-width="9" stroke-linecap="round" opacity=".55" filter="url(#portas_bl3)"/></g>
+  <g id="cabelo"><path d="M162 322 C141.4 104 223.2 6 300 12 C376.8 6 458.6 104 438 322 L416 240 C376.8 182 312.8 172 236 180 C197.6 194 190 230 186 260Z" fill="url(#portas_hair)"/>
+      <path d="M261.6 46 C287.2 84 325.6 104 396 134" fill="none" stroke="#8C7A68" stroke-width="9" stroke-linecap="round" opacity=".55" filter="url(#portas_bl3)"/></g>
   </g><g transform="translate(300 700)"><g><ellipse cx="0" cy="112" rx="96" ry="12" fill="rgba(0,0,0,.3)"/><rect x="-92" y="26" width="184" height="86" rx="12" fill="url(#portas_pasta)"/><rect x="-40" y="12" width="80" height="20" rx="8" fill="none" stroke="#3b1d0d" stroke-width="7"/><rect x="-14" y="52" width="28" height="18" rx="4" fill="#F58220"/><g transform="translate(66 18) rotate(10)"><rect width="76" height="52" fill="#fff" stroke="#ccc"/><rect x="8" y="10" width="46" height="4" fill="#bbb"/><rect x="8" y="22" width="56" height="4" fill="#bbb"/></g><g transform="translate(-130 22) rotate(-8)"><rect width="70" height="48" fill="#f5f5f5" stroke="#ccc"/><rect x="8" y="10" width="44" height="4" fill="#bbb"/></g></g></g></svg>

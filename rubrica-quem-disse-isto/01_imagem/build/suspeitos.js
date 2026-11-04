@@ -26,6 +26,13 @@ const PRESETS = {
 const EXPR = {
   neutro: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'base', olhos: 1 },
   nega: { brow: [-10, 10], raiseL: -4, raiseR: -14, boca: 'aberta', olhos: 1.12 },       // «Eu?! Nunca disse isso!»
+  surpresa: { brow: [-14, 14], raiseL: -20, raiseR: -20, boca: 'O', olhos: 1.25 },
+  calase: { brow: [10, -10], raiseL: 6, raiseR: 6, boca: 'tenso', olhos: .8 },
+  empolgado: { brow: [-6, 6], raiseL: -10, raiseR: -10, boca: 'grande', olhos: 1.08 },
+  vA: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vA', olhos: 1 }, vB: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vB', olhos: 1 },
+  vC: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vC', olhos: 1 }, vD: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vD', olhos: 1 },
+  vE: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vE', olhos: 1 }, vF: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vF', olhos: 1 },
+  vX: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'base', olhos: 1 },
   ironico: { brow: [4, 8], raiseL: 0, raiseR: -16, boca: 'ironico', olhos: .9 },
 };
 
@@ -39,7 +46,20 @@ function suspeito(key, expr = 'neutro', uid = key) {
   // boca
   let boca = '';
   const my = cy + 100;
-  if (E.boca === 'aberta') boca = `<path d="M${cx - 44} ${my - 4} Q${cx} ${my + 8} ${cx + 44} ${my - 4} Q${cx + 40} ${my + 58} ${cx} ${my + 58} Q${cx - 40} ${my + 58} ${cx - 44} ${my - 4}Z" fill="#3a1410"/>
+  const LIP = '#9c4a3e', DK = '#3a1410';
+  const VIS = {
+    O: `<ellipse cx="${cx}" cy="${my + 20}" rx="24" ry="32" fill="${DK}" stroke="${LIP}" stroke-width="7"/>`,
+    tenso: `<path d="M${cx - 38} ${my + 6} Q${cx} ${my - 2} ${cx + 38} ${my + 6}" fill="none" stroke="${LIP}" stroke-width="8" stroke-linecap="round"/>`,
+    grande: `<path d="M${cx - 56} ${my - 12} Q${cx} ${my + 14} ${cx + 56} ${my - 12} Q${cx + 46} ${my + 56} ${cx} ${my + 56} Q${cx - 46} ${my + 56} ${cx - 56} ${my - 12}Z" fill="${DK}"/><path d="M${cx - 52} ${my - 10} Q${cx} ${my + 10} ${cx + 52} ${my - 10} L${cx + 48} ${my + 12} Q${cx} ${my + 22} ${cx - 48} ${my + 12}Z" fill="#fff"/><ellipse cx="${cx}" cy="${my + 44}" rx="24" ry="11" fill="#D9604C"/>`,
+    vA: `<path d="M${cx - 34} ${my + 4} Q${cx} ${my + 10} ${cx + 34} ${my + 4}" fill="none" stroke="${LIP}" stroke-width="9" stroke-linecap="round"/>`,
+    vB: `<rect x="${cx - 40}" y="${my - 4}" width="80" height="20" rx="8" fill="#fff" stroke="${LIP}" stroke-width="5"/><path d="M${cx - 40} ${my + 6} H${cx + 40}" stroke="#cfcfcf" stroke-width="2"/>`,
+    vC: `<ellipse cx="${cx}" cy="${my + 10}" rx="34" ry="20" fill="${DK}" stroke="${LIP}" stroke-width="6"/><rect x="${cx - 26}" y="${my - 6}" width="52" height="9" rx="4" fill="#fff"/>`,
+    vD: `<ellipse cx="${cx}" cy="${my + 16}" rx="40" ry="34" fill="${DK}" stroke="${LIP}" stroke-width="6"/><rect x="${cx - 30}" y="${my - 14}" width="60" height="11" rx="5" fill="#fff"/><ellipse cx="${cx}" cy="${my + 38}" rx="22" ry="10" fill="#D9604C"/>`,
+    vE: `<ellipse cx="${cx}" cy="${my + 14}" rx="24" ry="26" fill="${DK}" stroke="${LIP}" stroke-width="6"/>`,
+    vF: `<ellipse cx="${cx}" cy="${my + 10}" rx="13" ry="14" fill="${DK}" stroke="${LIP}" stroke-width="7"/>`,
+  };
+  if (VIS[E.boca]) boca = VIS[E.boca];
+  else if (E.boca === 'aberta') boca = `<path d="M${cx - 44} ${my - 4} Q${cx} ${my + 8} ${cx + 44} ${my - 4} Q${cx + 40} ${my + 58} ${cx} ${my + 58} Q${cx - 40} ${my + 58} ${cx - 44} ${my - 4}Z" fill="#3a1410"/>
      <path d="M${cx - 40} ${my - 2} Q${cx} ${my + 8} ${cx + 40} ${my - 2} L${cx + 38} ${my + 12} Q${cx} ${my + 20} ${cx - 38} ${my + 12}Z" fill="#fff"/>
      <ellipse cx="${cx}" cy="${my + 44}" rx="22" ry="11" fill="#D9604C"/>`;
   else if (E.boca === 'ironico') boca = `<path d="M${cx - 38} ${my + 6} Q${cx - 4} ${my + 14} ${cx + 40} ${my - 8}" fill="none" stroke="#7a3a2e" stroke-width="7" stroke-linecap="round"/><path d="M${cx + 40} ${my - 8} q8 -6 10 -14" fill="none" stroke="#7a3a2e" stroke-width="5" stroke-linecap="round"/>`;
@@ -108,7 +128,7 @@ function suspeito(key, expr = 'neutro', uid = key) {
   <g transform="translate(300 500) scale(${P.escala || 1.3}) translate(-300 -${500 + Math.round(1.03 * h + (P.chin || 0) - 200 - 20 / 1.3)})">
   <ellipse cx="${cx - w * .97}" cy="${cy + 8}" rx="${24 * P.orelha}" ry="${42 * P.orelha}" fill="url(#${id('ear')})"/>
   <ellipse cx="${cx + w * .97}" cy="${cy + 8}" rx="${24 * P.orelha}" ry="${42 * P.orelha}" fill="url(#${id('ear')})"/>
-  <path d="${head}" fill="url(#${id('skin')})"/>
+  <path d="${head}" fill="url(#${id('skin')})" stroke="${s3}" stroke-width="3.5" stroke-opacity=".7"/>
   <g clip-path="url(#${id('hc')})">
     <ellipse cx="${cx + w * 1.0}" cy="${cy}" rx="16" ry="${h * .8}" fill="#F58220" opacity=".6" filter="url(#${id('bl2')})"/>
     <ellipse cx="${cx - w * 1.0}" cy="${cy}" rx="14" ry="${h * .7}" fill="#22BBCB" opacity=".45" filter="url(#${id('bl2')})"/>

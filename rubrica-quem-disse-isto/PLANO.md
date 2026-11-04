@@ -38,3 +38,4 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - v2 (nomes no ecrã, traços mais exagerados, luz de contorno laranja/azul-verde): ver `png_personagens/`.
 - v3: proporções medidas nas fotos (pontos faciais, `config/medidas_faciais.json`), cabeças maiores (estilo caricatura de jornal).
 - Briefing para ilustrador: `01_imagem/BRIEFING_ILUSTRADOR.md`. v4: franja do Passos, orelhas e boca do Cavaco.
+- v5 (entrega "ilustrador"): `01_imagem/png_v5/` — folhas de expressões (6), visemas A–F+X, bustos 1500x3000 neutro/nega, 5 personagens. Em falta vs briefing: vistas ¾, mãos, ficheiro PSD; Portas real.

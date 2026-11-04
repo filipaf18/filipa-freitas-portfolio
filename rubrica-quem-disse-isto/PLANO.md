@@ -41,4 +41,4 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - v5 (entrega "ilustrador"): `01_imagem/png_v5/` — folhas de expressões (6), visemas A–F+X, bustos 1500x3000 neutro/nega, 5 personagens. Em falta vs briefing: vistas ¾, mãos, ficheiro PSD; Portas real.
 - Portas v5.1: desenhado a partir das 6 fotos da Filipa (sem óculos), medidas em `config/medidas_media.json`. Refs em `refs/paulo_portas_filipa/` (grupos A e B).
 - Passos careca (por pedido da Filipa; variante com cabelo: `png_personagens/passos_cabelo_*`); Portas mais moreno.
-- Vídeo piloto 50 s: `04_video/QuemDisseIsto_piloto_V1.mp4` (guião em `04_video/GUIAO_PILOTO.md`). Voz: Piper pt_PT (licença NÃO CONFIRMADA) + efeito cartoon; só ritmo/atitude, sem imitar timbre. Falta: frase real, música, validação do guião.
+- Vídeo piloto 50 s: `04_video/QuemDisseIsto_piloto_V1.mp4` (guião em `04_video/GUIAO_PILOTO.md`). Voz V2: 5 modelos Piper pt-PT distintos (OpenVoiceOS miro/dii: CC BY-NC-ND; voice3/4 e tugão: licença NÃO CONFIRMADA) + efeito cartoon; só ritmo/atitude, sem imitar timbre. Falta: frase real, música, validação do guião.

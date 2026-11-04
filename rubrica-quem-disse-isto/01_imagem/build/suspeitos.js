@@ -38,11 +38,12 @@ const EXPR = {
   vC: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vC', olhos: 1 }, vD: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vD', olhos: 1 },
   vE: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vE', olhos: 1 }, vF: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'vF', olhos: 1 },
   vX: { brow: [0, 0], raiseL: 0, raiseR: 0, boca: 'base', olhos: 1 },
+  fala: { brow: [-6, 6], raiseL: -6, raiseR: -10, boca: 'base', olhos: 1.05 },
   ironico: { brow: [4, 8], raiseL: 0, raiseR: -16, boca: 'ironico', olhos: .9 },
 };
 
 function suspeito(key, expr = 'neutro', uid = key) {
-  const P = PRESETS[key], E = EXPR[expr], cx = 300, cy = 300, w = P.w, h = P.h, j = P.jaw;
+  const P = PRESETS[key], E = typeof expr === 'object' ? expr : EXPR[expr], cx = 300, cy = 300, w = P.w, h = P.h, j = P.jaw;
   const [s1, s2, s3] = P.pele, [h1, h2, h3] = P.cabelo;
   const id = (n) => `${uid}_${n}`;
   const head = `M${cx} ${cy - h} C${cx + w * 1.02} ${cy - h} ${cx + w * 1.02} ${cy - h * .05} ${cx + w * .93} ${cy + h * .28} C${cx + w * .82} ${cy + h * .8} ${cx + w * j * .55} ${cy + h * 1.02 + (P.chin || 0)} ${cx} ${cy + h * 1.03 + (P.chin || 0)} C${cx - w * j * .55} ${cy + h * 1.02 + (P.chin || 0)} ${cx - w * .82} ${cy + h * .8} ${cx - w * .93} ${cy + h * .28} C${cx - w * 1.02} ${cy - h * .05} ${cx - w * 1.02} ${cy - h} ${cx} ${cy - h}Z`;
@@ -148,7 +149,7 @@ function suspeito(key, expr = 'neutro', uid = key) {
     <path d="M${cx - w - 10} ${cy - 60} Q${cx} ${cy - 190} ${cx + w + 10} ${cy - 60}" fill="none" stroke="#000" stroke-width="22" opacity=".08" filter="url(#${id('bl2')})"/>
   </g>
   ${rugas}
-  <g id="olhos">
+  <g id="olhos"${E.piscar ? ` transform="translate(0 ${ey}) scale(1 .1) translate(0 ${-ey})"` : ''}>
     <ellipse cx="${cx - ex}" cy="${ey}" rx="${er * 1.05}" ry="${er * .95}" fill="url(#${id('eye')})"/><ellipse cx="${cx + ex}" cy="${ey}" rx="${er * 1.05}" ry="${er * .95}" fill="url(#${id('eye')})"/>
     <circle cx="${cx - ex + 5}" cy="${ey + 2}" r="${er * .5}" fill="url(#${id('iris')})"/><circle cx="${cx + ex + 5}" cy="${ey + 2}" r="${er * .5}" fill="url(#${id('iris')})"/>
     <circle cx="${cx - ex + 5}" cy="${ey + 2}" r="${er * .22}" fill="#000"/><circle cx="${cx + ex + 5}" cy="${ey + 2}" r="${er * .22}" fill="#000"/>

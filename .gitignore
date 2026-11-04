@@ -46,3 +46,9 @@ rubrica-quem-disse-isto/refs/*/
 !rubrica-quem-disse-isto/refs/.gitkeep
 rubrica-quem-disse-isto/01_imagem/build/node_modules/
 rubrica-quem-disse-isto/01_imagem/build/_*.html
+rubrica-quem-disse-isto/04_video/frames/
+rubrica-quem-disse-isto/04_video/cache/
+rubrica-quem-disse-isto/04_video/audio/*_raw.wav
+rubrica-quem-disse-isto/04_video/audio/*.mp3
+rubrica-quem-disse-isto/04_video/_fr*.html
+rubrica-quem-disse-isto/04_video/*.log

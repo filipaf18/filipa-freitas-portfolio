@@ -6,17 +6,17 @@ const O = '#F58220', OD = '#D96516', W = '#FFFFFF', K = '#171717', N = '#172A3A'
 const PRESETS = {
   // Traços baseados nas fotos de referência (cabelo, sobrancelhas, óculos, forma da cara).
   cavaco: { nome: 'Cavaco Silva', pele: ['#F2CDAE', '#E2B08C', '#B9835F'], cabelo: ['#C9CED3', '#8E959C', '#5C636A'],
-    w: 130, h: 228, jaw: .6, hl: 30, estilo: 'atras', sobr: { t: 20, w: 74, cor: '#4A4F55' }, oculos: 'nenhum', nariz: 1.15, orelha: 1,
+    w: 122, h: 250, jaw: .5, hl: -26, vol: 34, lid: .6, nl: 1.35, estilo: 'atras', sobr: { t: 24, w: 80, cor: '#3B4045' }, oculos: 'nenhum', nariz: 1.1, orelha: 1,
     rugas: true, sorriso: .0, fato: N, gravata: OD, camisa: G, prop: 'caneta', brilho: 1 },
   passos: { nome: 'Passos Coelho', pele: ['#F3CBAA', '#E4B08C', '#B98562'], cabelo: ['#6B4A36', '#3E2A1F', '#22160F'],
-    w: 128, h: 224, jaw: .56, hl: 14, estilo: 'lado', sobr: { t: 15, w: 68, cor: '#33231A' }, oculos: 'fino', nariz: 1.05, orelha: 1,
+    w: 120, h: 244, jaw: .5, hl: 6, vol: 40, lid: .15, nl: 1.2, estilo: 'lado', sobr: { t: 20, w: 76, cor: '#2A1B13' }, oculos: 'fino', nariz: 1.05, orelha: 1,
     rugas: false, sorriso: .0, fato: N, gravata: O, camisa: W, prop: 'copo', brilho: 1 },
   // PROVISÓRIO: sem foto utilizável → só adereços do briefing, traços genéricos (sem semelhança).
   portas: { nome: 'Paulo Portas (PROVISÓRIO)', pele: ['#F1C9A8', '#E1AE8A', '#B6805D'], cabelo: ['#9A9A9A', '#6E6E6E', '#444'],
     w: 140, h: 200, jaw: .64, hl: 22, estilo: 'lado', sobr: { t: 13, w: 66, cor: '#555' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
     rugas: false, sorriso: .1, fato: N, gravata: G, camisa: W, prop: 'pasta', brilho: 1 },
   montenegro: { nome: 'Luís Montenegro', pele: ['#EDBF9B', '#D9A07A', '#AD7653'], cabelo: ['#4A3B33', '#2B211C', '#15100D'],
-    w: 166, h: 184, jaw: .8, hl: 4, estilo: 'curto', sobr: { t: 16, w: 68, cor: '#241B17' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
+    w: 176, h: 180, jaw: .88, hl: -4, vol: 26, lid: .1, nl: .9, estilo: 'lado', sobr: { t: 22, w: 80, cor: '#1c1411' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
     rugas: false, sorriso: .75, fato: N, gravata: W, camisa: W, prop: 'microfone', brilho: 1 },
   apresentador: { nome: 'Apresentador', pele: ['#F5D3B5', '#E6B796', '#BC8A67'], cabelo: ['#3B3B3B', '#171717', '#050505'],
     w: 140, h: 200, jaw: .62, hl: 8, estilo: 'curto', sobr: { t: 14, w: 66, cor: '#171717' }, oculos: 'nenhum', nariz: .95, orelha: 1,
@@ -50,8 +50,8 @@ function suspeito(key, expr = 'neutro', uid = key) {
   const brow = (sx, ang, raise) => `<g transform="translate(${cx + sx * ex * 1.05} ${cy - 52 + raise}) rotate(${ang * sx})"><path d="M${-b.w / 2} ${b.t * .5} Q0 ${-b.t * 1.2} ${b.w / 2} ${b.t * .2} L${b.w / 2} ${b.t * 1.0} Q0 ${-b.t * .1} ${-b.w / 2} ${b.t * 1.1}Z" fill="${b.cor}"/></g>`;
   // cabelo
   const top = cy - h;
-  const hairOuter = `M${cx - w - 10} ${cy + 22} C${cx - w - 24} ${top + 40} ${cx - w * .6} ${top - 36} ${cx} ${top - 30} C${cx + w * .6} ${top - 36} ${cx + w + 24} ${top + 40} ${cx + w + 10} ${cy + 22}`;
-  const hl = P.hl;
+  const vol0 = P.vol || 0; const hairOuter = `M${cx - w - 10} ${cy + 22} C${cx - w - 24 - vol0 * .3} ${top + 40} ${cx - w * .6} ${top - 36 - vol0} ${cx} ${top - 30 - vol0} C${cx + w * .6} ${top - 36 - vol0} ${cx + w + 24 + vol0 * .3} ${top + 40} ${cx + w + 10} ${cy + 22}`;
+  const hl = P.hl; const vol = P.vol || 0;
   let hair = '';
   if (P.estilo === 'atras') {
     hair = `<path d="${hairOuter} L${cx + w - 14} ${cy - 62} C${cx + w * .8} ${cy - 128} ${cx + w * .45} ${cy - 150 + hl} ${cx} ${cy - 150 + hl} C${cx - w * .45} ${cy - 150 + hl} ${cx - w * .8} ${cy - 128} ${cx - w + 14} ${cy - 62}Z" fill="url(#${id('hair')})"/>
@@ -103,19 +103,22 @@ function suspeito(key, expr = 'neutro', uid = key) {
   <path d="M283 556 H317 L330 600 L308 720 L300 740 L292 720 L270 600Z" fill="url(#${id('tie')})"/>
   <path d="M232 520 L170 590 L250 700 L300 650Z M368 520 L430 590 L350 700 L300 650Z" fill="url(#${id('suit')})" opacity=".92"/>
   <path d="M232 520 L170 590 L250 700 L300 650Z" fill="#fff" opacity=".05"/>
-  <rect x="262" y="452" width="76" height="86" rx="30" fill="url(#${id('skin')})"/>
+  <rect x="262" y="420" width="76" height="120" rx="30" fill="url(#${id('skin')})"/>
   <ellipse cx="300" cy="${cy + h * .98 + 18}" rx="64" ry="22" fill="#000" opacity=".3" filter="url(#${id('bl2')})"/>
+  <g transform="translate(300 500) scale(${P.escala || 1.12}) translate(-300 -${500 + Math.round(1.03 * h - 218)})">
   <ellipse cx="${cx - w * .97}" cy="${cy + 8}" rx="${24 * P.orelha}" ry="${42 * P.orelha}" fill="url(#${id('ear')})"/>
   <ellipse cx="${cx + w * .97}" cy="${cy + 8}" rx="${24 * P.orelha}" ry="${42 * P.orelha}" fill="url(#${id('ear')})"/>
   <path d="${head}" fill="url(#${id('skin')})"/>
   <g clip-path="url(#${id('hc')})">
+    <ellipse cx="${cx + w * 1.0}" cy="${cy}" rx="16" ry="${h * .8}" fill="#F58220" opacity=".6" filter="url(#${id('bl2')})"/>
+    <ellipse cx="${cx - w * 1.0}" cy="${cy}" rx="14" ry="${h * .7}" fill="#22BBCB" opacity=".45" filter="url(#${id('bl2')})"/>
     <ellipse cx="${cx + w * .95}" cy="${cy + 30}" rx="${w * .5}" ry="${h}" fill="${s3}" opacity=".45" filter="url(#${id('bl')})"/>
     <ellipse cx="${cx - w * .35}" cy="${cy - h * .38}" rx="${w * .42}" ry="${h * .2}" fill="#fff" opacity=".28" filter="url(#${id('bl')})"/>
     <ellipse cx="${cx - w * .46}" cy="${cy + 52}" rx="34" ry="24" fill="#fff" opacity=".18" filter="url(#${id('bl2')})"/>
     <ellipse cx="${cx + w * .46}" cy="${cy + 56}" rx="34" ry="24" fill="#E0735F" opacity=".22" filter="url(#${id('bl2')})"/>
     <ellipse cx="${cx - w * .46}" cy="${cy + 56}" rx="34" ry="24" fill="#E0735F" opacity=".18" filter="url(#${id('bl2')})"/>
     <ellipse cx="${cx}" cy="${cy + h * 1.0}" rx="${w * .6}" ry="26" fill="${s3}" opacity=".4" filter="url(#${id('bl2')})"/>
-    <path d="M${cx - w - 10} ${cy - 60} Q${cx} ${cy - 190} ${cx + w + 10} ${cy - 60}" fill="none" stroke="#000" stroke-width="22" opacity=".22" filter="url(#${id('bl2')})"/>
+    <path d="M${cx - w - 10} ${cy - 60} Q${cx} ${cy - 190} ${cx + w + 10} ${cy - 60}" fill="none" stroke="#000" stroke-width="22" opacity=".08" filter="url(#${id('bl2')})"/>
   </g>
   ${rugas}
   <g id="olhos">
@@ -126,13 +129,15 @@ function suspeito(key, expr = 'neutro', uid = key) {
     <path d="M${cx - ex - er} ${ey - 4} Q${cx - ex} ${ey - er * 1.25} ${cx - ex + er} ${ey - 4}" fill="none" stroke="${s3}" stroke-width="6" stroke-linecap="round" opacity=".7"/>
     <path d="M${cx + ex - er} ${ey - 4} Q${cx + ex} ${ey - er * 1.25} ${cx + ex + er} ${ey - 4}" fill="none" stroke="${s3}" stroke-width="6" stroke-linecap="round" opacity=".7"/>
   </g>
+  ${P.lid ? [-1, 1].map((sx) => `<g><clipPath id="${id('lc' + sx)}"><ellipse cx="${cx + sx * ex}" cy="${ey}" rx="${er * 1.05}" ry="${er * .95}"/></clipPath><rect clip-path="url(#${id('lc' + sx)})" x="${cx + sx * ex - er * 1.1}" y="${ey - er}" width="${er * 2.2}" height="${er * (.25 + P.lid)}" fill="${s2}"/><path d="M${cx + sx * ex - er} ${ey - er + er * (.25 + P.lid)} Q${cx + sx * ex} ${ey - er + er * (.25 + P.lid) + 4} ${cx + sx * ex + er} ${ey - er + er * (.25 + P.lid)}" fill="none" stroke="${s3}" stroke-width="4" opacity=".8" clip-path="url(#${id('lc' + sx)})"/></g>`).join('') : ''}
   <g id="sobrancelhas">${brow(-1, E.brow[0], E.raiseL)}${brow(1, E.brow[1], E.raiseR)}</g>
-  <g id="nariz" transform="translate(${cx} ${cy + 46}) scale(${P.nariz})"><ellipse cx="6" cy="14" rx="34" ry="30" fill="${s3}" opacity=".35" filter="url(#${id('bl2')})"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#${id('skin')})"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
+  <g id="nariz" transform="translate(${cx} ${cy + 46}) scale(${P.nariz} ${P.nariz * (P.nl || 1)})"><ellipse cx="6" cy="14" rx="34" ry="30" fill="${s3}" opacity=".35" filter="url(#${id('bl2')})"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#${id('skin')})"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
   <g id="boca">${boca}</g>
   ${oculos}
-  <g id="cabelo">${hair}</g>`;
+  <g id="cabelo">${hair}</g>
+  </g>`;
   return { body, props, uid };
 }
 
-const wrapBust = (s, scale = 1) => `<svg xmlns="http://www.w3.org/2000/svg" width="${600 * scale}" height="${900 * scale}" viewBox="0 0 600 900">${s.body}<g transform="translate(300 700)">${s.props}</g></svg>`;
+const wrapBust = (s, scale = 1) => `<svg xmlns="http://www.w3.org/2000/svg" width="${600 * scale}" height="${1040 * scale}" viewBox="0 -140 600 1040">${s.body}<g transform="translate(300 700)">${s.props}</g></svg>`;
 module.exports = { PRESETS, EXPR, suspeito, wrapBust, O, OD, W, K, N, G };

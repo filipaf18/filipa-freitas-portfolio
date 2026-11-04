@@ -49,3 +49,4 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - **V3c «O Leilão» (farsa)**: humor físico/sonoro, ≥50% dos risos visuais. `04_video/v3/guiao_v3c_farsa.md`.
 - **V3d «O Debate» (sketch de debate de TV)**: `04_video/v3/guiao_v3d_sketch.md` (cadeia de nexo entre falas). ElevenLabs: plano gratuito NAO permite vozes de biblioteca (pt-PT) via API (402).
 - **V3e «O apresentador provocador»**: `04_video/v3/guiao_v3e_provocador.md` (apresentador inventa citações; mensagens de telespectadores; callback «nem eleições»).
+- **V3f caricatura** (guiao_v3f_caricatura.md): sem telespectadores, apresentador fala para a sala; tiques levados ao absurdo. Amostras teatrais com referencia pt-PT em voz_teste/v3f e comparacao de sotaque em voz_teste/sotaque.

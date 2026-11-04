@@ -36,3 +36,4 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 - Gerado por `build/suspeitos.js` (mesmas camadas para todos). Tons de pele/cabelo = extras à paleta.
 - Paulo Portas **provisório** (sem foto utilizável, sem semelhança).
 - v2 (nomes no ecrã, traços mais exagerados, luz de contorno laranja/azul-verde): ver `png_personagens/`.
+- v3: proporções medidas nas fotos (pontos faciais, `config/medidas_faciais.json`), cabeças maiores (estilo caricatura de jornal).

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1040" viewBox="0 -140 600 1040"><defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1200" viewBox="0 -300 600 1200"><defs>
     <radialGradient id="montenegro_skin" cx="38%" cy="30%" r="85%"><stop offset="0" stop-color="#EDBF9B"/><stop offset=".55" stop-color="#D9A07A"/><stop offset="1" stop-color="#AD7653"/></radialGradient>
     <radialGradient id="montenegro_ear" cx="40%" cy="40%" r="70%"><stop offset="0" stop-color="#D9A07A"/><stop offset="1" stop-color="#AD7653"/></radialGradient>
     <linearGradient id="montenegro_hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A3B33"/><stop offset=".5" stop-color="#2B211C"/><stop offset="1" stop-color="#15100D"/></linearGradient>
@@ -13,7 +13,7 @@
     <filter id="montenegro_bl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
     <filter id="montenegro_bl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
     <filter id="montenegro_bl3" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
-    <clipPath id="montenegro_hc"><path d="M300 120 C479.52 120 479.52 291 463.68 350.4 C444.32 444 385.18399999999997 483.6 300 485.4 C214.816 483.6 155.68 444 136.32 350.4 C120.47999999999999 291 120.47999999999999 120 300 120Z"/></clipPath>
+    <clipPath id="montenegro_hc"><path d="M300 120 C479.52 120 479.52 291 463.68 350.4 C444.32 444 385.18399999999997 473.6 300 475.4 C214.816 473.6 155.68 444 136.32 350.4 C120.47999999999999 291 120.47999999999999 120 300 120Z"/></clipPath>
   </defs>
   <ellipse cx="300" cy="884" rx="230" ry="16" fill="#000" opacity=".25"/>
   <path d="M60 900 Q50 640 150 560 Q220 520 300 520 Q380 520 450 560 Q550 640 540 900Z" fill="url(#montenegro_suit)"/>
@@ -25,10 +25,10 @@
   <path d="M232 520 L170 590 L250 700 L300 650Z" fill="#fff" opacity=".05"/>
   <rect x="262" y="420" width="76" height="120" rx="30" fill="url(#montenegro_skin)"/>
   <ellipse cx="300" cy="494.4" rx="64" ry="22" fill="#000" opacity=".3" filter="url(#montenegro_bl2)"/>
-  <g transform="translate(300 500) scale(1.12) translate(-300 -467)">
+  <g transform="translate(300 500) scale(1.3) translate(-300 -460)">
   <ellipse cx="129.28" cy="308" rx="24" ry="42" fill="url(#montenegro_ear)"/>
   <ellipse cx="470.72" cy="308" rx="24" ry="42" fill="url(#montenegro_ear)"/>
-  <path d="M300 120 C479.52 120 479.52 291 463.68 350.4 C444.32 444 385.18399999999997 483.6 300 485.4 C214.816 483.6 155.68 444 136.32 350.4 C120.47999999999999 291 120.47999999999999 120 300 120Z" fill="url(#montenegro_skin)"/>
+  <path d="M300 120 C479.52 120 479.52 291 463.68 350.4 C444.32 444 385.18399999999997 473.6 300 475.4 C214.816 473.6 155.68 444 136.32 350.4 C120.47999999999999 291 120.47999999999999 120 300 120Z" fill="url(#montenegro_skin)"/>
   <g clip-path="url(#montenegro_hc)">
     <ellipse cx="476" cy="300" rx="16" ry="144" fill="#F58220" opacity=".6" filter="url(#montenegro_bl2)"/>
     <ellipse cx="124" cy="300" rx="14" ry="125.99999999999999" fill="#22BBCB" opacity=".45" filter="url(#montenegro_bl2)"/>
@@ -42,17 +42,17 @@
   </g>
   
   <g id="olhos">
-    <ellipse cx="244" cy="292" rx="28.35" ry="25.65" fill="url(#montenegro_eye)"/><ellipse cx="356" cy="292" rx="28.35" ry="25.65" fill="url(#montenegro_eye)"/>
-    <circle cx="249" cy="294" r="13.5" fill="url(#montenegro_iris)"/><circle cx="361" cy="294" r="13.5" fill="url(#montenegro_iris)"/>
-    <circle cx="249" cy="294" r="5.94" fill="#000"/><circle cx="361" cy="294" r="5.94" fill="#000"/>
-    <circle cx="255" cy="287" r="3.5100000000000002" fill="#fff"/><circle cx="367" cy="287" r="3.5100000000000002" fill="#fff"/>
-    <path d="M217 288 Q244 258.25 271 288" fill="none" stroke="#AD7653" stroke-width="6" stroke-linecap="round" opacity=".7"/>
-    <path d="M329 288 Q356 258.25 383 288" fill="none" stroke="#AD7653" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    <ellipse cx="237.28" cy="292" rx="28.35" ry="25.65" fill="url(#montenegro_eye)"/><ellipse cx="362.72" cy="292" rx="28.35" ry="25.65" fill="url(#montenegro_eye)"/>
+    <circle cx="242.28" cy="294" r="13.5" fill="url(#montenegro_iris)"/><circle cx="367.72" cy="294" r="13.5" fill="url(#montenegro_iris)"/>
+    <circle cx="242.28" cy="294" r="5.94" fill="#000"/><circle cx="367.72" cy="294" r="5.94" fill="#000"/>
+    <circle cx="248.28" cy="287" r="3.5100000000000002" fill="#fff"/><circle cx="373.72" cy="287" r="3.5100000000000002" fill="#fff"/>
+    <path d="M210.28 288 Q237.28 258.25 264.28 288" fill="none" stroke="#AD7653" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    <path d="M335.72 288 Q362.72 258.25 389.72 288" fill="none" stroke="#AD7653" stroke-width="6" stroke-linecap="round" opacity=".7"/>
   </g>
-  <g><clipPath id="montenegro_lc-1"><ellipse cx="244" cy="292" rx="28.35" ry="25.65"/></clipPath><rect clip-path="url(#montenegro_lc-1)" x="214.3" y="265" width="59.400000000000006" height="9.45" fill="#D9A07A"/><path d="M217 274.45 Q244 278.45 271 274.45" fill="none" stroke="#AD7653" stroke-width="4" opacity=".8" clip-path="url(#montenegro_lc-1)"/></g><g><clipPath id="montenegro_lc1"><ellipse cx="356" cy="292" rx="28.35" ry="25.65"/></clipPath><rect clip-path="url(#montenegro_lc1)" x="326.3" y="265" width="59.400000000000006" height="9.45" fill="#D9A07A"/><path d="M329 274.45 Q356 278.45 383 274.45" fill="none" stroke="#AD7653" stroke-width="4" opacity=".8" clip-path="url(#montenegro_lc1)"/></g>
-  <g id="sobrancelhas"><g transform="translate(241.2 248) rotate(0)"><path d="M-40 11 Q0 -26.4 40 4.4 L40 22 Q0 -2.2 -40 24.200000000000003Z" fill="#1c1411"/></g><g transform="translate(358.8 248) rotate(0)"><path d="M-40 11 Q0 -26.4 40 4.4 L40 22 Q0 -2.2 -40 24.200000000000003Z" fill="#1c1411"/></g></g>
-  <g id="nariz" transform="translate(300 346) scale(1 0.9)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#AD7653" opacity=".35" filter="url(#montenegro_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#montenegro_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
-  <g id="boca"><path d="M250 390 Q300 410 350 390 Q340 444 300 444 Q260 444 250 390Z" fill="#3a1410"/><path d="M254 392 Q300 408 346 392 L342 410 Q300 420 258 410Z" fill="#fff"/></g>
+  <g><clipPath id="montenegro_lc-1"><ellipse cx="237.28" cy="292" rx="28.35" ry="25.65"/></clipPath><rect clip-path="url(#montenegro_lc-1)" x="207.57999999999998" y="265" width="59.400000000000006" height="14.850000000000001" fill="#D9A07A"/><path d="M210.28 279.85 Q237.28 283.85 264.28 279.85" fill="none" stroke="#AD7653" stroke-width="4" opacity=".8" clip-path="url(#montenegro_lc-1)"/></g><g><clipPath id="montenegro_lc1"><ellipse cx="362.72" cy="292" rx="28.35" ry="25.65"/></clipPath><rect clip-path="url(#montenegro_lc1)" x="333.02000000000004" y="265" width="59.400000000000006" height="14.850000000000001" fill="#D9A07A"/><path d="M335.72 279.85 Q362.72 283.85 389.72 279.85" fill="none" stroke="#AD7653" stroke-width="4" opacity=".8" clip-path="url(#montenegro_lc1)"/></g>
+  <g id="sobrancelhas"><g transform="translate(234.144 254) rotate(0)"><path d="M-40 11 Q0 -26.4 40 4.4 L40 22 Q0 -2.2 -40 24.200000000000003Z" fill="#1c1411"/></g><g transform="translate(365.856 254) rotate(0)"><path d="M-40 11 Q0 -26.4 40 4.4 L40 22 Q0 -2.2 -40 24.200000000000003Z" fill="#1c1411"/></g></g>
+  <g id="nariz" transform="translate(300 346) scale(1.25 1)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#AD7653" opacity=".35" filter="url(#montenegro_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#montenegro_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
+  <g id="boca" transform="translate(300 400) scale(1 1) translate(-300 -400)"><path d="M250 390 Q300 410 350 390 Q340 444 300 444 Q260 444 250 390Z" fill="#3a1410"/><path d="M254 392 Q300 408 346 392 L342 410 Q300 420 258 410Z" fill="#fff"/></g>
   
   <g id="cabelo"><path d="M114 322 C92.2 160 194.4 58 300 64 C405.6 58 507.8 160 486 322 L464 240 C405.6 182 317.6 176 212 184 C159.2 194 142 230 138 260Z" fill="url(#montenegro_hair)"/>
       <path d="M247.2 102 C282.4 140 335.2 160 432 190" fill="none" stroke="#4A3B33" stroke-width="9" stroke-linecap="round" opacity=".55" filter="url(#montenegro_bl3)"/></g>

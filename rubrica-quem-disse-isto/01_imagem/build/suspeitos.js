@@ -6,17 +6,17 @@ const O = '#F58220', OD = '#D96516', W = '#FFFFFF', K = '#171717', N = '#172A3A'
 const PRESETS = {
   // Traços baseados nas fotos de referência (cabelo, sobrancelhas, óculos, forma da cara).
   cavaco: { nome: 'Cavaco Silva', pele: ['#F2CDAE', '#E2B08C', '#B9835F'], cabelo: ['#C9CED3', '#8E959C', '#5C636A'],
-    w: 122, h: 250, jaw: .5, hl: -26, vol: 34, lid: .6, nl: 1.35, estilo: 'atras', sobr: { t: 24, w: 80, cor: '#3B4045' }, oculos: 'nenhum', nariz: 1.1, orelha: 1,
+    w: 122, h: 250, jaw: .5, hl: -26, vol: 34, lid: .45, nl: 1.1, exm: .8, mw: .62, chin: 26, bgap: 14, nw: .85, estilo: 'atras', sobr: { t: 24, w: 80, cor: '#3B4045' }, oculos: 'nenhum', nariz: 1.1, orelha: 1,
     rugas: true, sorriso: .0, fato: N, gravata: OD, camisa: G, prop: 'caneta', brilho: 1 },
   passos: { nome: 'Passos Coelho', pele: ['#F3CBAA', '#E4B08C', '#B98562'], cabelo: ['#6B4A36', '#3E2A1F', '#22160F'],
-    w: 120, h: 244, jaw: .5, hl: 6, vol: 40, lid: .15, nl: 1.2, estilo: 'lado', sobr: { t: 20, w: 76, cor: '#2A1B13' }, oculos: 'fino', nariz: 1.05, orelha: 1,
+    w: 120, h: 244, jaw: .5, hl: 6, vol: 40, lid: .15, nl: 1.25, exm: 1.07, erm: 1.18, mw: .75, myo: 12, bgap: -6, estilo: 'lado', sobr: { t: 20, w: 76, cor: '#2A1B13' }, oculos: 'fino', nariz: 1.05, orelha: 1,
     rugas: false, sorriso: .0, fato: N, gravata: O, camisa: W, prop: 'copo', brilho: 1 },
   // PROVISÓRIO: sem foto utilizável → só adereços do briefing, traços genéricos (sem semelhança).
   portas: { nome: 'Paulo Portas (PROVISÓRIO)', pele: ['#F1C9A8', '#E1AE8A', '#B6805D'], cabelo: ['#9A9A9A', '#6E6E6E', '#444'],
     w: 140, h: 200, jaw: .64, hl: 22, estilo: 'lado', sobr: { t: 13, w: 66, cor: '#555' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
     rugas: false, sorriso: .1, fato: N, gravata: G, camisa: W, prop: 'pasta', brilho: 1 },
   montenegro: { nome: 'Luís Montenegro', pele: ['#EDBF9B', '#D9A07A', '#AD7653'], cabelo: ['#4A3B33', '#2B211C', '#15100D'],
-    w: 176, h: 180, jaw: .88, hl: -4, vol: 26, lid: .1, nl: .9, estilo: 'lado', sobr: { t: 22, w: 80, cor: '#1c1411' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
+    w: 176, h: 180, jaw: .88, hl: -4, vol: 26, lid: .3, nl: 1.0, exm: 1.12, nw: 1.25, bgap: -6, chin: -10, estilo: 'lado', sobr: { t: 22, w: 80, cor: '#1c1411' }, oculos: 'nenhum', nariz: 1.0, orelha: 1,
     rugas: false, sorriso: .75, fato: N, gravata: W, camisa: W, prop: 'microfone', brilho: 1 },
   apresentador: { nome: 'Apresentador', pele: ['#F5D3B5', '#E6B796', '#BC8A67'], cabelo: ['#3B3B3B', '#171717', '#050505'],
     w: 140, h: 200, jaw: .62, hl: 8, estilo: 'curto', sobr: { t: 14, w: 66, cor: '#171717' }, oculos: 'nenhum', nariz: .95, orelha: 1,
@@ -33,8 +33,8 @@ function suspeito(key, expr = 'neutro', uid = key) {
   const P = PRESETS[key], E = EXPR[expr], cx = 300, cy = 300, w = P.w, h = P.h, j = P.jaw;
   const [s1, s2, s3] = P.pele, [h1, h2, h3] = P.cabelo;
   const id = (n) => `${uid}_${n}`;
-  const head = `M${cx} ${cy - h} C${cx + w * 1.02} ${cy - h} ${cx + w * 1.02} ${cy - h * .05} ${cx + w * .93} ${cy + h * .28} C${cx + w * .82} ${cy + h * .8} ${cx + w * j * .55} ${cy + h * 1.02} ${cx} ${cy + h * 1.03} C${cx - w * j * .55} ${cy + h * 1.02} ${cx - w * .82} ${cy + h * .8} ${cx - w * .93} ${cy + h * .28} C${cx - w * 1.02} ${cy - h * .05} ${cx - w * 1.02} ${cy - h} ${cx} ${cy - h}Z`;
-  const ex = 56, ey = cy - 8, er = 27 * E.olhos;
+  const head = `M${cx} ${cy - h} C${cx + w * 1.02} ${cy - h} ${cx + w * 1.02} ${cy - h * .05} ${cx + w * .93} ${cy + h * .28} C${cx + w * .82} ${cy + h * .8} ${cx + w * j * .55} ${cy + h * 1.02 + (P.chin || 0)} ${cx} ${cy + h * 1.03 + (P.chin || 0)} C${cx - w * j * .55} ${cy + h * 1.02 + (P.chin || 0)} ${cx - w * .82} ${cy + h * .8} ${cx - w * .93} ${cy + h * .28} C${cx - w * 1.02} ${cy - h * .05} ${cx - w * 1.02} ${cy - h} ${cx} ${cy - h}Z`;
+  const ex = 56 * (P.exm || 1), ey = cy - 8, er = 27 * E.olhos * (P.erm || 1);
   const sm = P.sorriso;
   // boca
   let boca = '';
@@ -47,7 +47,7 @@ function suspeito(key, expr = 'neutro', uid = key) {
   else boca = `<path d="M${cx - 36} ${my} Q${cx} ${my + 10 + sm * 14} ${cx + 36} ${my}" fill="none" stroke="#7a3a2e" stroke-width="7" stroke-linecap="round"/><path d="M${cx - 30} ${my + 12} Q${cx} ${my + 22} ${cx + 30} ${my + 12}" fill="none" stroke="${s3}" stroke-width="5" stroke-linecap="round" opacity=".55"/>`;
   // sobrancelhas
   const b = P.sobr;
-  const brow = (sx, ang, raise) => `<g transform="translate(${cx + sx * ex * 1.05} ${cy - 52 + raise}) rotate(${ang * sx})"><path d="M${-b.w / 2} ${b.t * .5} Q0 ${-b.t * 1.2} ${b.w / 2} ${b.t * .2} L${b.w / 2} ${b.t * 1.0} Q0 ${-b.t * .1} ${-b.w / 2} ${b.t * 1.1}Z" fill="${b.cor}"/></g>`;
+  const brow = (sx, ang, raise) => `<g transform="translate(${cx + sx * ex * 1.05} ${cy - 52 - (P.bgap || 0) + raise}) rotate(${ang * sx})"><path d="M${-b.w / 2} ${b.t * .5} Q0 ${-b.t * 1.2} ${b.w / 2} ${b.t * .2} L${b.w / 2} ${b.t * 1.0} Q0 ${-b.t * .1} ${-b.w / 2} ${b.t * 1.1}Z" fill="${b.cor}"/></g>`;
   // cabelo
   const top = cy - h;
   const vol0 = P.vol || 0; const hairOuter = `M${cx - w - 10} ${cy + 22} C${cx - w - 24 - vol0 * .3} ${top + 40} ${cx - w * .6} ${top - 36 - vol0} ${cx} ${top - 30 - vol0} C${cx + w * .6} ${top - 36 - vol0} ${cx + w + 24 + vol0 * .3} ${top + 40} ${cx + w + 10} ${cy + 22}`;
@@ -105,7 +105,7 @@ function suspeito(key, expr = 'neutro', uid = key) {
   <path d="M232 520 L170 590 L250 700 L300 650Z" fill="#fff" opacity=".05"/>
   <rect x="262" y="420" width="76" height="120" rx="30" fill="url(#${id('skin')})"/>
   <ellipse cx="300" cy="${cy + h * .98 + 18}" rx="64" ry="22" fill="#000" opacity=".3" filter="url(#${id('bl2')})"/>
-  <g transform="translate(300 500) scale(${P.escala || 1.12}) translate(-300 -${500 + Math.round(1.03 * h - 218)})">
+  <g transform="translate(300 500) scale(${P.escala || 1.3}) translate(-300 -${500 + Math.round(1.03 * h + (P.chin || 0) - 200 - 20 / 1.3)})">
   <ellipse cx="${cx - w * .97}" cy="${cy + 8}" rx="${24 * P.orelha}" ry="${42 * P.orelha}" fill="url(#${id('ear')})"/>
   <ellipse cx="${cx + w * .97}" cy="${cy + 8}" rx="${24 * P.orelha}" ry="${42 * P.orelha}" fill="url(#${id('ear')})"/>
   <path d="${head}" fill="url(#${id('skin')})"/>
@@ -131,13 +131,13 @@ function suspeito(key, expr = 'neutro', uid = key) {
   </g>
   ${P.lid ? [-1, 1].map((sx) => `<g><clipPath id="${id('lc' + sx)}"><ellipse cx="${cx + sx * ex}" cy="${ey}" rx="${er * 1.05}" ry="${er * .95}"/></clipPath><rect clip-path="url(#${id('lc' + sx)})" x="${cx + sx * ex - er * 1.1}" y="${ey - er}" width="${er * 2.2}" height="${er * (.25 + P.lid)}" fill="${s2}"/><path d="M${cx + sx * ex - er} ${ey - er + er * (.25 + P.lid)} Q${cx + sx * ex} ${ey - er + er * (.25 + P.lid) + 4} ${cx + sx * ex + er} ${ey - er + er * (.25 + P.lid)}" fill="none" stroke="${s3}" stroke-width="4" opacity=".8" clip-path="url(#${id('lc' + sx)})"/></g>`).join('') : ''}
   <g id="sobrancelhas">${brow(-1, E.brow[0], E.raiseL)}${brow(1, E.brow[1], E.raiseR)}</g>
-  <g id="nariz" transform="translate(${cx} ${cy + 46}) scale(${P.nariz} ${P.nariz * (P.nl || 1)})"><ellipse cx="6" cy="14" rx="34" ry="30" fill="${s3}" opacity=".35" filter="url(#${id('bl2')})"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#${id('skin')})"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
-  <g id="boca">${boca}</g>
+  <g id="nariz" transform="translate(${cx} ${cy + 46}) scale(${P.nariz * (P.nw || 1)} ${P.nariz * (P.nl || 1)})"><ellipse cx="6" cy="14" rx="34" ry="30" fill="${s3}" opacity=".35" filter="url(#${id('bl2')})"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#${id('skin')})"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
+  <g id="boca" transform="translate(${cx} ${my + (P.myo || 0)}) scale(${P.mw || 1} 1) translate(${-cx} ${-my})">${boca}</g>
   ${oculos}
   <g id="cabelo">${hair}</g>
   </g>`;
   return { body, props, uid };
 }
 
-const wrapBust = (s, scale = 1) => `<svg xmlns="http://www.w3.org/2000/svg" width="${600 * scale}" height="${1040 * scale}" viewBox="0 -140 600 1040">${s.body}<g transform="translate(300 700)">${s.props}</g></svg>`;
+const wrapBust = (s, scale = 1) => `<svg xmlns="http://www.w3.org/2000/svg" width="${600 * scale}" height="${1200 * scale}" viewBox="0 -300 600 1200">${s.body}<g transform="translate(300 700)">${s.props}</g></svg>`;
 module.exports = { PRESETS, EXPR, suspeito, wrapBust, O, OD, W, K, N, G };

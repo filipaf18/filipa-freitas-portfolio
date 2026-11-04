@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1040" viewBox="0 -140 600 1040"><defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1200" viewBox="0 -300 600 1200"><defs>
     <radialGradient id="cavaco_skin" cx="38%" cy="30%" r="85%"><stop offset="0" stop-color="#F2CDAE"/><stop offset=".55" stop-color="#E2B08C"/><stop offset="1" stop-color="#B9835F"/></radialGradient>
     <radialGradient id="cavaco_ear" cx="40%" cy="40%" r="70%"><stop offset="0" stop-color="#E2B08C"/><stop offset="1" stop-color="#B9835F"/></radialGradient>
     <linearGradient id="cavaco_hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9CED3"/><stop offset=".5" stop-color="#8E959C"/><stop offset="1" stop-color="#5C636A"/></linearGradient>
@@ -13,7 +13,7 @@
     <filter id="cavaco_bl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
     <filter id="cavaco_bl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
     <filter id="cavaco_bl3" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
-    <clipPath id="cavaco_hc"><path d="M300 50 C424.44 50 424.44 287.5 413.46000000000004 370 C400.03999999999996 500 333.55 555 300 557.5 C266.45 555 199.96 500 186.54 370 C175.56 287.5 175.56 50 300 50Z"/></clipPath>
+    <clipPath id="cavaco_hc"><path d="M300 50 C424.44 50 424.44 287.5 413.46000000000004 370 C400.03999999999996 500 333.55 581 300 583.5 C266.45 581 199.96 500 186.54 370 C175.56 287.5 175.56 50 300 50Z"/></clipPath>
   </defs>
   <ellipse cx="300" cy="884" rx="230" ry="16" fill="#000" opacity=".25"/>
   <path d="M60 900 Q50 640 150 560 Q220 520 300 520 Q380 520 450 560 Q550 640 540 900Z" fill="url(#cavaco_suit)"/>
@@ -25,10 +25,10 @@
   <path d="M232 520 L170 590 L250 700 L300 650Z" fill="#fff" opacity=".05"/>
   <rect x="262" y="420" width="76" height="120" rx="30" fill="url(#cavaco_skin)"/>
   <ellipse cx="300" cy="563" rx="64" ry="22" fill="#000" opacity=".3" filter="url(#cavaco_bl2)"/>
-  <g transform="translate(300 500) scale(1.12) translate(-300 -540)">
+  <g transform="translate(300 500) scale(1.3) translate(-300 -568)">
   <ellipse cx="181.66" cy="308" rx="24" ry="42" fill="url(#cavaco_ear)"/>
   <ellipse cx="418.34000000000003" cy="308" rx="24" ry="42" fill="url(#cavaco_ear)"/>
-  <path d="M300 50 C424.44 50 424.44 287.5 413.46000000000004 370 C400.03999999999996 500 333.55 555 300 557.5 C266.45 555 199.96 500 186.54 370 C175.56 287.5 175.56 50 300 50Z" fill="url(#cavaco_skin)"/>
+  <path d="M300 50 C424.44 50 424.44 287.5 413.46000000000004 370 C400.03999999999996 500 333.55 581 300 583.5 C266.45 581 199.96 500 186.54 370 C175.56 287.5 175.56 50 300 50Z" fill="url(#cavaco_skin)"/>
   <g clip-path="url(#cavaco_hc)">
     <ellipse cx="422" cy="300" rx="16" ry="200" fill="#F58220" opacity=".6" filter="url(#cavaco_bl2)"/>
     <ellipse cx="178" cy="300" rx="14" ry="175" fill="#22BBCB" opacity=".45" filter="url(#cavaco_bl2)"/>
@@ -42,17 +42,17 @@
   </g>
   <g fill="none" stroke="#B9835F" stroke-width="5" stroke-linecap="round" opacity=".38"><path d="M238 340 Q226 380 246 408"/><path d="M362 340 Q374 380 354 408"/><path d="M240 188 Q300 176 360 188" opacity=".5"/></g>
   <g id="olhos">
-    <ellipse cx="244" cy="292" rx="31.752000000000002" ry="28.728" fill="url(#cavaco_eye)"/><ellipse cx="356" cy="292" rx="31.752000000000002" ry="28.728" fill="url(#cavaco_eye)"/>
-    <circle cx="249" cy="294" r="15.120000000000001" fill="url(#cavaco_iris)"/><circle cx="361" cy="294" r="15.120000000000001" fill="url(#cavaco_iris)"/>
-    <circle cx="249" cy="294" r="6.6528" fill="#000"/><circle cx="361" cy="294" r="6.6528" fill="#000"/>
-    <circle cx="255" cy="287" r="3.9312000000000005" fill="#fff"/><circle cx="367" cy="287" r="3.9312000000000005" fill="#fff"/>
-    <path d="M213.76 288 Q244 254.2 274.24 288" fill="none" stroke="#B9835F" stroke-width="6" stroke-linecap="round" opacity=".7"/>
-    <path d="M325.76 288 Q356 254.2 386.24 288" fill="none" stroke="#B9835F" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    <ellipse cx="255.2" cy="292" rx="31.752000000000002" ry="28.728" fill="url(#cavaco_eye)"/><ellipse cx="344.8" cy="292" rx="31.752000000000002" ry="28.728" fill="url(#cavaco_eye)"/>
+    <circle cx="260.2" cy="294" r="15.120000000000001" fill="url(#cavaco_iris)"/><circle cx="349.8" cy="294" r="15.120000000000001" fill="url(#cavaco_iris)"/>
+    <circle cx="260.2" cy="294" r="6.6528" fill="#000"/><circle cx="349.8" cy="294" r="6.6528" fill="#000"/>
+    <circle cx="266.2" cy="287" r="3.9312000000000005" fill="#fff"/><circle cx="355.8" cy="287" r="3.9312000000000005" fill="#fff"/>
+    <path d="M224.95999999999998 288 Q255.2 254.2 285.44 288" fill="none" stroke="#B9835F" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+    <path d="M314.56 288 Q344.8 254.2 375.04 288" fill="none" stroke="#B9835F" stroke-width="6" stroke-linecap="round" opacity=".7"/>
   </g>
-  <g><clipPath id="cavaco_lc-1"><ellipse cx="244" cy="292" rx="31.752000000000002" ry="28.728"/></clipPath><rect clip-path="url(#cavaco_lc-1)" x="210.736" y="261.76" width="66.528" height="25.704" fill="#E2B08C"/><path d="M213.76 287.464 Q244 291.464 274.24 287.464" fill="none" stroke="#B9835F" stroke-width="4" opacity=".8" clip-path="url(#cavaco_lc-1)"/></g><g><clipPath id="cavaco_lc1"><ellipse cx="356" cy="292" rx="31.752000000000002" ry="28.728"/></clipPath><rect clip-path="url(#cavaco_lc1)" x="322.736" y="261.76" width="66.528" height="25.704" fill="#E2B08C"/><path d="M325.76 287.464 Q356 291.464 386.24 287.464" fill="none" stroke="#B9835F" stroke-width="4" opacity=".8" clip-path="url(#cavaco_lc1)"/></g>
-  <g id="sobrancelhas"><g transform="translate(241.2 244) rotate(10)"><path d="M-40 12 Q0 -28.799999999999997 40 4.800000000000001 L40 24 Q0 -2.4000000000000004 -40 26.400000000000002Z" fill="#3B4045"/></g><g transform="translate(358.8 234) rotate(10)"><path d="M-40 12 Q0 -28.799999999999997 40 4.800000000000001 L40 24 Q0 -2.4000000000000004 -40 26.400000000000002Z" fill="#3B4045"/></g></g>
-  <g id="nariz" transform="translate(300 346) scale(1.1 1.4850000000000003)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#B9835F" opacity=".35" filter="url(#cavaco_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#cavaco_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
-  <g id="boca"><path d="M256 396 Q300 408 344 396 Q340 458 300 458 Q260 458 256 396Z" fill="#3a1410"/>
+  <g><clipPath id="cavaco_lc-1"><ellipse cx="255.2" cy="292" rx="31.752000000000002" ry="28.728"/></clipPath><rect clip-path="url(#cavaco_lc-1)" x="221.93599999999998" y="261.76" width="66.528" height="21.168" fill="#E2B08C"/><path d="M224.95999999999998 282.928 Q255.2 286.928 285.44 282.928" fill="none" stroke="#B9835F" stroke-width="4" opacity=".8" clip-path="url(#cavaco_lc-1)"/></g><g><clipPath id="cavaco_lc1"><ellipse cx="344.8" cy="292" rx="31.752000000000002" ry="28.728"/></clipPath><rect clip-path="url(#cavaco_lc1)" x="311.536" y="261.76" width="66.528" height="21.168" fill="#E2B08C"/><path d="M314.56 282.928 Q344.8 286.928 375.04 282.928" fill="none" stroke="#B9835F" stroke-width="4" opacity=".8" clip-path="url(#cavaco_lc1)"/></g>
+  <g id="sobrancelhas"><g transform="translate(252.95999999999998 230) rotate(10)"><path d="M-40 12 Q0 -28.799999999999997 40 4.800000000000001 L40 24 Q0 -2.4000000000000004 -40 26.400000000000002Z" fill="#3B4045"/></g><g transform="translate(347.04 220) rotate(10)"><path d="M-40 12 Q0 -28.799999999999997 40 4.800000000000001 L40 24 Q0 -2.4000000000000004 -40 26.400000000000002Z" fill="#3B4045"/></g></g>
+  <g id="nariz" transform="translate(300 346) scale(0.935 1.2100000000000002)"><ellipse cx="6" cy="14" rx="34" ry="30" fill="#B9835F" opacity=".35" filter="url(#cavaco_bl2)"/><ellipse cx="0" cy="12" rx="24" ry="20" fill="url(#cavaco_skin)"/><ellipse cx="-6" cy="4" rx="8" ry="6" fill="#fff" opacity=".4"/><ellipse cx="-10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/><ellipse cx="10" cy="24" rx="4" ry="3" fill="#000" opacity=".45"/></g>
+  <g id="boca" transform="translate(300 400) scale(0.62 1) translate(-300 -400)"><path d="M256 396 Q300 408 344 396 Q340 458 300 458 Q260 458 256 396Z" fill="#3a1410"/>
      <path d="M260 398 Q300 408 340 398 L338 412 Q300 420 262 412Z" fill="#fff"/>
      <ellipse cx="300" cy="444" rx="22" ry="11" fill="#D9604C"/></g>
   

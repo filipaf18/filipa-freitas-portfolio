@@ -1,0 +1,392 @@
+{
+ "a01": {
+  "take": 2,
+  "acc": 0.909,
+  "hyp": " Boa noite, Famicão. Bem-vindos aos 50 anos da JSD e a um programa que se chama Quem é que disse isto?"
+ },
+ "a02": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " O formato é simples, eu leio uma frase, quatro convidados explicam, com enorme elegância,  que não foram eles, depois acusam-se uns aos out"
+ },
+ "a03": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": " O que é, para um jantar de partido, o mais próximo de uma eleição interna sem ninguém a gritar."
+ },
+ "a04": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " O prêmio é nenhum, o castigo é pagar a próxima ronda."
+ },
+ "a05": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Quero cumprimentar a mesa dos dirigentes, que está, como sempre, mais perto da comida.  E a mesa do fundo, onde ninguém sabe se estamos num"
+ },
+ "a06": {
+  "take": 1,
+  "acc": 0.862,
+  "hyp": " Os convidados, o professor Cavaco Silva, dedica 5 minutos de manhã e 5 minutos à tarde a ler os jornais.  Tenha um cronômetro. Tenha um cro"
+ },
+ "a07": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Pessoal!"
+ },
+ "a08": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Pedro Passos Coelho. Responde a tudo. Em diferido. Muito diferido."
+ },
+ "a09": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Boa noite!"
+ },
+ "a10": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Paulo Portas, um orador de tal calibre que, se lhe dessem uma frase curta, pedia desculpa à frase."
+ },
+ "a11": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Onde é a próxima?"
+ },
+ "a12": {
+  "take": 1,
+  "acc": 0.958,
+  "hyp": " E Luís Montenegro, convencido de que não há problema que uma reunião não resolva,  e que não há reunião que não cria um problema."
+ },
+ "a13": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Proponho um ponto prévio."
+ },
+ "a14": {
+  "take": 1,
+  "acc": 0.5,
+  "hyp": " Ainda não isso sentou."
+ },
+ "b01": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Ouçam e comovam-se. Se algum dia tiver de perder umas eleições em Portugal para salvar o país que se lixem as eleições, o que interessa é P"
+ },
+ "b02": {
+  "take": 1,
+  "acc": 0.824,
+  "hyp": " Lindo, isto é poesia, uma poesia que só falem dois aspectos, na rima e na decência."
+ },
+ "b03": {
+  "take": 1,
+  "acc": 0.889,
+  "hyp": " Umas eleições, como quem perde umas meias.  Ora eu perco meias há 30 anos, eleições nunca perdi nenhuma, nunca me candida até.  Isto não é "
+ },
+ "c01": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Primeira pergunta ao professor, foi o senhor que disse isto, sim ou não?"
+ },
+ "c02": {
+  "take": 1,
+  "acc": 0.808,
+  "hyp": " antes de mais, o que é não, do latim não, nem, e sim do latim si, assim, ou assim e nem,  da sua origem inter-europeia."
+ },
+ "c03": {
+  "take": 1,
+  "acc": 0.25,
+  "hyp": " Professor, eu tenho uma pergunta."
+ },
+ "c04": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Eu vou ver o que eu tenho."
+ },
+ "c05": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Tempo!"
+ },
+ "c06": {
+  "take": 1,
+  "acc": 0.786,
+  "hyp": " Vibir por 5 minutos de manhã e 5 minutos a tarde a ler os jornais."
+ },
+ "c07": {
+  "take": 1,
+  "acc": 0.8,
+  "hyp": " Isso não responde nada."
+ },
+ "c08": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Risto de ONU!"
+ },
+ "c09": {
+  "take": 1,
+  "acc": 0.8,
+  "hyp": " Doutor Portas, sim ou não?"
+ },
+ "c10": {
+  "take": 1,
+  "acc": 0.924,
+  "hyp": " Meu cara apresentador, minhas senoras e meus senhores,  ilustre os membros da mesa dos dirigentes e distintos clientes do bar aberto,  tenh"
+ },
+ "c11": {
+  "take": 1,
+  "acc": 0.667,
+  "hyp": " Propone uma reunião para decidir quando é que o doutor porta a caba."
+ },
+ "c12": {
+  "take": 1,
+  "acc": 0.333,
+  "hyp": " Estou abrindo."
+ },
+ "c13": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Estamos todos a meio."
+ },
+ "c14": {
+  "take": 1,
+  "acc": 0.833,
+  "hyp": " Foram 40 segundos para uma sílaba."
+ },
+ "c15": {
+  "take": 1,
+  "acc": 0.8,
+  "hyp": " Doutor Montenegro, sim ou não?"
+ },
+ "c16": {
+  "take": 1,
+  "acc": 0.6,
+  "hyp": " Não é não! Peste o camo!"
+ },
+ "c17": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Eu também!"
+ },
+ "c18": {
+  "take": 1,
+  "acc": 0.5,
+  "hyp": " Doutor Passos."
+ },
+ "c19": {
+  "take": 1,
+  "acc": 0.5,
+  "hyp": " Doutor Passos, está conusco?"
+ },
+ "c20": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Isto é o restituto!"
+ },
+ "c21": {
+  "take": 1,
+  "acc": 0.455,
+  "hyp": " Voltaremos ao Dr. Passos em 2031."
+ },
+ "d01": {
+  "take": 1,
+  "acc": 0.909,
+  "hyp": " O doutor Potas é suspeito, a frase tem um verbo no conjuntivo, bem usado, tiver de perder.  Só um orador faria isto."
+ },
+ "d02": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Obrigado. Não espere. Isso é uma acusação."
+ },
+ "d03": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " E o que você quer? Fum Factum!"
+ },
+ "d04": {
+  "take": 1,
+  "acc": 0.786,
+  "hyp": " Foi ele. Tenho uma defesa de 40 segundos para uma frase de 20 palavras."
+ },
+ "d05": {
+  "take": 1,
+  "acc": 0.444,
+  "hyp": " A sua defesa mata sobre o mato."
+ },
+ "d06": {
+  "take": 1,
+  "acc": 0.25,
+  "hyp": " Ah, eu fui aprovada!"
+ },
+ "d07": {
+  "take": 1,
+  "acc": 0.684,
+  "hyp": " Um Doutor Montenegro pergunte qualquer frase propõe numa filmeal.  Esta frase não propõe nenhuma filmeal.  Logo, não é dele."
+ },
+ "d08": {
+  "take": 1,
+  "acc": 0.917,
+  "hyp": " Isso é um insulto. Eu consigo dizer uma frase sem reunião. Ou são, que se, antes de dizer, propõe uma reunião para decidir se digo."
+ },
+ "d09": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Prova concluída!"
+ },
+ "d10": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " E o passos nunca diria esta frase, demoraria tanto a dizê-la que a eleição já tinha acontecido."
+ },
+ "d11": {
+  "take": 1,
+  "acc": 0.75,
+  "hyp": " E isso fica para o fundo."
+ },
+ "d12": {
+  "take": 1,
+  "acc": 0.143,
+  "hyp": " e se ocupar de dia."
+ },
+ "d13": {
+  "take": 1,
+  "acc": 0.733,
+  "hyp": " O professor, porque frase tem vergo bem usado e ninguém mais usa."
+ },
+ "d14": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " O Pico!  O que está aí?"
+ },
+ "d15": {
+  "take": 1,
+  "acc": 0.846,
+  "hyp": " O professor cronometra tudo. A frase tem vinte e uma palavras, contoas."
+ },
+ "d16": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " O que você tem que fazer?"
+ },
+ "d17": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Ah!"
+ },
+ "d18": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " O professor sabe quantas são. Foi o professor."
+ },
+ "d19": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Opa!"
+ },
+ "d20": {
+  "take": 1,
+  "acc": 0.167,
+  "hyp": " Fui mortas, que objetantes!"
+ },
+ "d21": {
+  "take": 1,
+  "acc": 0.667,
+  "hyp": " Foi o primeiro de propõe comissões."
+ },
+ "d22": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Foi o Passos que adia tudo."
+ },
+ "d23": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Falei um confissão."
+ },
+ "d24": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " A discussão está ótima!"
+ },
+ "e01": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Cada um lê a frase em voz alta, a vez, acho que vai correr bem."
+ },
+ "e02": {
+  "take": 1,
+  "acc": 0.533,
+  "hyp": " Sim, em qualquer momento anterior, via a verificar a necessidade de poder um sofágio."
+ },
+ "e03": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Isso não é uma frase, é um requerimento."
+ },
+ "e04": {
+  "take": 1,
+  "acc": 0.556,
+  "hyp": " Sim, por ventura e não obstante o que em tempos de algum dia fosse perdermos, licharem-se."
+ },
+ "e05": {
+  "take": 1,
+  "acc": 0.0,
+  "hyp": " Chameu-liçado em C1XU!"
+ },
+ "e06": {
+  "take": 1,
+  "acc": 0.571,
+  "hyp": " Propondo uma reunião para perdermas eleições."
+ },
+ "e07": {
+  "take": 1,
+  "acc": 0.75,
+  "hyp": " Isso não tem ferro."
+ },
+ "e08": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Se algum dia, isso fica para o futuro."
+ },
+ "e09": {
+  "take": 1,
+  "acc": 0.2,
+  "hyp": " Isto é o meu filho."
+ },
+ "e10": {
+  "take": 1,
+  "acc": 0.6,
+  "hyp": " Isso é uma velha frase!"
+ },
+ "e11": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Isso não é a frase!"
+ },
+ "e12": {
+  "take": 1,
+  "acc": 0.952,
+  "hyp": " Os quatro tentaram. Os quatro falharam. Ou seja, ninguém consegue dizê-la. Logo foi outro. Ou fantasma de um deputado."
+ },
+ "f01": {
+  "take": 1,
+  "acc": 0.857,
+  "hyp": " Mas calma, que resposta cheia de no fim. O Dr. Passos tinha ficado de responder a primeira pergunta. Vamos ouvir-lo."
+ },
+ "f02": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": " Já pensei, não sei."
+ },
+ "f03": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": " Obrigado, Dr. Passos. Antes não sabia. Agora sabe que não sabe."
+ },
+ "f04": {
+  "take": 1,
+  "acc": 0.962,
+  "hyp": " E vocês, aí sentados, votem no carrute, quem perder paga a ronda.  O bar aliás continua aberto. É o único sítio onde a campanha está ganha."
+ }
+}

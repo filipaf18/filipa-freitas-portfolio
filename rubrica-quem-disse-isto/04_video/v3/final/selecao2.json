@@ -1,0 +1,272 @@
+{
+ "a01": {
+  "take": 2,
+  "acc": 0.864,
+  "hyp": "boa noite famicao bem vindos aos 50 anos da jtsd e a um programa que se chama quem e que disse isto"
+ },
+ "a06": {
+  "take": 1,
+  "acc": 0.931,
+  "hyp": "os convidados o professor cavaco silva dedica cinco minutos de manha e cinco minutos a tarde a ler os jornais tenha um c"
+ },
+ "a07": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "exato"
+ },
+ "a09": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "boa noite"
+ },
+ "a11": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": "com anexos"
+ },
+ "a14": {
+  "take": 1,
+  "acc": 0.75,
+  "hyp": "ainda nem se"
+ },
+ "b02": {
+  "take": 1,
+  "acc": 0.824,
+  "hyp": "mindo isto e poesia uma poesia que so falha em dois aspectos na rima e na"
+ },
+ "b03": {
+  "take": 1,
+  "acc": 0.963,
+  "hyp": "com umas eleicoes como quem perde umas meias ora eu perco meias ha 30 anos eleicoes nunca perdi nenhuma nunca me candida"
+ },
+ "c02": {
+  "take": 1,
+  "acc": 0.923,
+  "hyp": "antes de mais o que e nao do latim nao nem e sim do latim seek assim ora assim e nem na sua origem indo a europeia"
+ },
+ "c03": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "professor isto e uma aula ou uma resposta"
+ },
+ "c04": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "convem distinguir"
+ },
+ "c06": {
+  "take": 1,
+  "acc": 0.857,
+  "hyp": "dedico 5 minutos de manha e 5 minutos a tarde a ler os jornais"
+ },
+ "c07": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "isso nao responde a nada"
+ },
+ "c08": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "responde ao horario"
+ },
+ "c09": {
+  "take": 1,
+  "acc": 0.8,
+  "hyp": "doutor portas sim ou nao"
+ },
+ "c11": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "proponho uma reuniao para decidir quando e que o dr portas acaba"
+ },
+ "c12": {
+  "take": 2,
+  "acc": 0.667,
+  "hyp": "estou em meio"
+ },
+ "c14": {
+  "take": 1,
+  "acc": 0.833,
+  "hyp": "foram 40 segundos para uma silaba"
+ },
+ "c15": {
+  "take": 1,
+  "acc": 0.8,
+  "hyp": "doutor montenegro sim ou nao"
+ },
+ "c16": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "nao e nao estou calmo"
+ },
+ "c17": {
+  "take": 1,
+  "acc": 0.667,
+  "hyp": "e calmar"
+ },
+ "c18": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": "dr passos"
+ },
+ "c19": {
+  "take": 2,
+  "acc": 0.75,
+  "hyp": "dr passos esta"
+ },
+ "c20": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "estou para futuro"
+ },
+ "d01": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": "o dr portas e suspeito a frase tem um verbo no conjuntivo bem usado tiver de perder so um orador faria isto"
+ },
+ "d03": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "convem distinguir foi um facto"
+ },
+ "d04": {
+  "take": 1,
+  "acc": 0.857,
+  "hyp": "foi ele tem uma defesa de 40 segundos para uma frase de 20 palavras"
+ },
+ "d05": {
+  "take": 1,
+  "acc": 0.111,
+  "hyp": "assude fez ou mata sobre o mata"
+ },
+ "d06": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": "a ata foi aprovada"
+ },
+ "d07": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "o dr montenegro perante qualquer frase propoe uma reuniao esta frase nao propoe nenhuma reuniao logo nao e dele"
+ },
+ "d08": {
+  "take": 1,
+  "acc": 0.917,
+  "hyp": "isso e um insulto eu consigo dizer uma frase sem reuniao ou sao que sim antes de dizer proponho uma reuniao para decidir"
+ },
+ "d11": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "isso fica para futuro"
+ },
+ "d12": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "isso e o que um culpado diria"
+ },
+ "d13": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": "o professor porque a frase tem um verbo bem usado e ninguem mais o usa"
+ },
+ "d14": {
+  "take": 1,
+  "acc": 0.5,
+  "hyp": "obrigado"
+ },
+ "d15": {
+  "take": 1,
+  "acc": 0.769,
+  "hyp": "o professor cronometra tudo a frase tem 21 palavras contou as"
+ },
+ "d16": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "foram vinte e duas"
+ },
+ "d19": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "eu conto tudo"
+ },
+ "d20": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "foi o portas que objeta antes"
+ },
+ "d21": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "foi o montenegro que propoe comissoes"
+ },
+ "d23": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": "foi o professor"
+ },
+ "e02": {
+  "take": 1,
+  "acc": 0.733,
+  "hyp": "se em qualquer momento interior vier a verificar sua necessidade de perder o"
+ },
+ "e04": {
+  "take": 1,
+  "acc": 0.889,
+  "hyp": "sim porventura e nao obstante o que em tempo util algum dia fosse perder umas lixarem se"
+ },
+ "e05": {
+  "take": 2,
+  "acc": 0.5,
+  "hyp": "chamou lhe shan in si ha um anexo"
+ },
+ "e06": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "proponho uma reuniao para perder umas eleicoes"
+ },
+ "e07": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "isso nao tem verbo"
+ },
+ "e08": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "se algum dia isso fica para futuro"
+ },
+ "e09": {
+  "take": 2,
+  "acc": 1.0,
+  "hyp": "isso nao e a frase"
+ },
+ "e10": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "isso nao e a frase"
+ },
+ "f01": {
+  "take": 1,
+  "acc": 0.952,
+  "hyp": "mas calma que a resposta chega no fim o dr passos tinha ficado de responder a primeira pergunta vamos ouvir lo"
+ },
+ "f02": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "ja pensei nao sei"
+ },
+ "c10": {
+  "take": 1,
+  "acc": 0.97,
+  "hyp": "meu caro apresentador minhas senhoras e meus senhores ilustras membros da mesa dos dirigentes e distintos clientes do ba"
+ },
+ "d02": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "obrigado nao espere isso e uma acusacao"
+ },
+ "e03": {
+  "take": 1,
+  "acc": 1.0,
+  "hyp": "isso nao e uma frase e um requerimento"
+ }
+}

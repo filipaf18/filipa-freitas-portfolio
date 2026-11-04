@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#172A3A"/>
+  <path d="M0 760 h1920 v320 h-1920z" fill="#171717"/>
+  <rect y="758" width="1920" height="8" fill="#F58220"/>
+  <g id="paineis_laranja">
+    <path d="M0 0 h300 l-150 760 h-150z" fill="#F58220"/><path d="M0 0 h220 l-150 760 h-70z" fill="#D96516"/>
+    <path d="M1920 0 h-300 l150 760 h150z" fill="#F58220"/><path d="M1920 0 h-220 l150 760 h70z" fill="#D96516"/>
+  </g>
+  <g id="painel_central">
+    <rect x="360" y="70" width="1200" height="520" rx="22" fill="#171717" stroke="#F58220" stroke-width="10"/>
+    <rect x="392" y="102" width="1136" height="456" rx="12" fill="#172A3A"/>
+    <path d="M392 102 h1136 v60 h-1136z" fill="#F58220"/>
+    <text x="960" y="146" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="34" fill="#171717">A FRASE EM CAUSA</text>
+    <g id="ecra_frase"><rect x="440" y="200" width="1040" height="300" rx="10" fill="#171717" opacity=".35"/>
+    <text x="960" y="360" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="64" fill="#FFFFFF">«  A FRASE VAI AQUI  »</text></g>
+    <g opacity=".5"><circle cx="440" cy="530" r="7" fill="#F58220"/><circle cx="480" cy="530" r="7" fill="#FFFFFF"/><circle cx="520" cy="530" r="7" fill="#F58220"/></g>
+  </g>
+  <g id="mesa_angular">
+    <path d="M140 640 L960 590 L1780 640 L1880 760 L40 760z" fill="#FFFFFF" stroke="#171717" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M40 760 L1880 760 L1880 1080 L40 1080z" fill="#F58220" stroke="#171717" stroke-width="8"/>
+    <path d="M40 760 L1880 760 L1880 800 L40 800z" fill="#D96516"/>
+    <text x="960" y="940" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="76" fill="#171717">QUEM É QUE DISSE ISTO?</text>
+  </g>
+  <g id="lugares" opacity="0"><g transform="translate(360 0)"><rect x="-120" y="640" width="240" height="26" rx="8" fill="#FFFFFF" stroke="#171717" stroke-width="6"/><path d="M-110 666 h220 l-18 120 h-184z" fill="#E9E9E9" stroke="#171717" stroke-width="6" stroke-linejoin="round"/><rect x="-70" y="684" width="140" height="34" rx="6" fill="#172A3A"/><text x="0" y="710" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="20" fill="#F58220">LUGAR</text></g><g transform="translate(760 0)"><rect x="-120" y="640" width="240" height="26" rx="8" fill="#FFFFFF" stroke="#171717" stroke-width="6"/><path d="M-110 666 h220 l-18 120 h-184z" fill="#E9E9E9" stroke="#171717" stroke-width="6" stroke-linejoin="round"/><rect x="-70" y="684" width="140" height="34" rx="6" fill="#172A3A"/><text x="0" y="710" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="20" fill="#F58220">LUGAR</text></g><g transform="translate(1160 0)"><rect x="-120" y="640" width="240" height="26" rx="8" fill="#FFFFFF" stroke="#171717" stroke-width="6"/><path d="M-110 666 h220 l-18 120 h-184z" fill="#E9E9E9" stroke="#171717" stroke-width="6" stroke-linejoin="round"/><rect x="-70" y="684" width="140" height="34" rx="6" fill="#172A3A"/><text x="0" y="710" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="20" fill="#F58220">LUGAR</text></g><g transform="translate(1560 0)"><rect x="-120" y="640" width="240" height="26" rx="8" fill="#FFFFFF" stroke="#171717" stroke-width="6"/><path d="M-110 666 h220 l-18 120 h-184z" fill="#E9E9E9" stroke="#171717" stroke-width="6" stroke-linejoin="round"/><rect x="-70" y="684" width="140" height="34" rx="6" fill="#172A3A"/><text x="0" y="710" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="20" fill="#F58220">LUGAR</text></g></g>
+  <g id="aviso"><rect x="560" y="1010" width="800" height="48" rx="24" fill="#171717"/>
+    <text x="960" y="1044" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="26" fill="#FFFFFF">HUMOR · FALAS FICCIONAIS</text></g>
+</svg>

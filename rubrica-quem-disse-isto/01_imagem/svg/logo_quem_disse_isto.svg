@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520">
+  <g transform="rotate(-3 700 260)">
+    <rect x="40" y="60" width="1320" height="400" rx="40" fill="#171717"/>
+    <rect x="20" y="40" width="1320" height="400" rx="40" fill="#F58220" stroke="#171717" stroke-width="10"/>
+    <text x="570" y="210" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="136" fill="#171717">QUEM É QUE</text>
+    <text x="570" y="360" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="136" fill="#FFFFFF" stroke="#171717" stroke-width="10" paint-order="stroke">DISSE ISTO</text>
+    <g transform="translate(1160 250)"><path d="M-110 -150 h220 q40 0 40 40 v140 q0 40 -40 40 h-90 l-50 60 l-10 -60 h-70 q-40 0 -40 -40 v-140 q0 -40 40 -40z" fill="#FFFFFF" stroke="#171717" stroke-width="10" stroke-linejoin="round"/>
+      <text x="0" y="40" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="190" fill="#D96516">?</text></g>
+  </g>
+  <text x="690" y="500" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="30" fill="#172A3A" letter-spacing="8">JSD FAMALICÃO · 50 ANOS</text>
+</svg>

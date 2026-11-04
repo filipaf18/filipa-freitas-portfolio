@@ -42,3 +42,7 @@ next-env.d.ts
 
 # manter o exemplo de variáveis
 !.env.example
+rubrica-quem-disse-isto/refs/*/
+!rubrica-quem-disse-isto/refs/.gitkeep
+rubrica-quem-disse-isto/01_imagem/build/node_modules/
+rubrica-quem-disse-isto/01_imagem/build/_*.html

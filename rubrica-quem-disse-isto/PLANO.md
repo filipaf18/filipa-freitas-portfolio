@@ -19,3 +19,10 @@ Estado em 2026-11-04. **Fase atual: pesquisa e proposta.** Nada de imagens finai
 ## Pendente / limitações
 - Sem fontes sobre o que os caricaturistas exageram em cada figura: NÃO CONFIRMADO.
 - Quotas grátis do Canva e CapCut, e licença do TTS em evento: NÃO CONFIRMADO.
+
+## Atualização (2026-11-04, tarde)
+- [x] Identidade visual da JSD analisada a partir dos vídeos/cartazes da Filipa (vertical 9:16, Montserrat, pílulas laranja, vidro fosco, gradiente + logo 50 ANOS, gradiente azul-verde→laranja→vermelho nos títulos, LUT C8 orange/teal)
+- [x] Kit em `01_imagem/png_brand/` (substitui o kit cartoon 16:9 anterior, que **não** respeita o estilo)
+- [x] Fotos de referência (licença livre, Wikimedia Commons) em `refs/` — **fora do git**; créditos em `refs/<nome>/CREDITOS.json`
+- [ ] Fotos melhores de Passos Coelho e Paulo Portas (Commons tem pouco material útil; Getty não permitido na rede)
+- [ ] Aprovação do estilo do frame de exemplo

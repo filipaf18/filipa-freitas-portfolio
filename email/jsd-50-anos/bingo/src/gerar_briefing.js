@@ -10,10 +10,10 @@ const cartao = b64('fase1-v5/bingo-A6.png', 'image/png');
 const G = 'linear-gradient(100deg,#1EBCE8 0%,#54CFC9 14%,#F8B451 38%,#F86420 62%,#E8452A 100%)';
 
 const exemplos = [
- 'Selfie com um ex-presidente da JSD Famalicão','Brindar com alguém de outra concelhia','Cantar os parabéns à JSD com a tua mesa',
- 'Dançar com um dirigente','Trocar contacto com um novo militante','Ouvir uma história dos 50 anos',
- 'Foto de grupo com a tua mesa','Fazer um brinde aos 50 anos','Falar com quem tem mais anos de JSD',
- 'Conhecer um militante que ainda não conhecias','Assinar o cartão de outro convidado','Dizer em coro: «Cinco décadas, uma identidade»'];
+ 'Ir a um congresso','Comer 3 bifanas num só dia de campanha','Colar cartazes de madrugada',
+ 'Fazer campanha porta a porta','Distribuir panfletos à chuva','Ficar sem voz num comício',
+ 'Viajar de autocarro para um evento da Jota','Dormir na sede','Ter estado numa lista candidata',
+ 'Fazer uma intervenção numa reunião','Levar um amigo para a Jota','Já ter sido eleito para um cargo'];
 
 const css = `
 ${[300,500,700,800].map(w=>`@font-face{font-family:M;font-weight:${w};src:url(${font(w)}) format('woff2')}`).join('')}
@@ -29,7 +29,7 @@ html,body{font-family:M,sans-serif;color:#0A0701;font-size:9pt;line-height:1.45}
 .kicker{font-size:7pt;font-weight:700;letter-spacing:.3em;text-transform:uppercase}
 h1{font-weight:300;font-size:25pt;line-height:1.05;text-transform:uppercase;margin-top:2mm}
 h1 b{font-weight:800;display:block}
-h2{font-size:9pt;font-weight:800;letter-spacing:.22em;text-transform:uppercase;margin:5mm 0 2.2mm;padding-bottom:1.4mm;border-bottom:.35mm solid #0A0701}
+h2{font-size:9pt;font-weight:800;letter-spacing:.22em;text-transform:uppercase;margin:4.2mm 0 2mm;padding-bottom:1.2mm;border-bottom:.35mm solid #0A0701}
 p{margin-bottom:2mm}
 .info{display:grid;grid-template-columns:repeat(4,1fr);border:.35mm solid #0A0701;margin-top:5mm}
 .info div{padding:2.6mm 3mm;border-right:.35mm solid #0A0701}.info div:last-child{border-right:0}
@@ -50,9 +50,9 @@ ol.steps b{font-weight:800}
 .card img{width:100%;display:block;border:.3mm solid #CFC8BE}
 .card small{display:block;margin-top:1.6mm;font-size:7pt;color:#3E352B}
 table{border-collapse:collapse;width:100%;font-size:8.3pt}
-td{border-bottom:.25mm solid #D9D2C8;padding:1.5mm 1mm;vertical-align:middle}
+td{border-bottom:.25mm solid #D9D2C8;padding:1.1mm 1mm;vertical-align:middle}
 td.n{width:8mm;font-weight:800;color:#F86420;font-size:10pt}
-.say{margin-bottom:1.8mm;padding:1.5mm 3mm;background:#F6F3EE;border-radius:1mm}
+.say{margin-bottom:1.4mm;padding:1.3mm 3mm;background:#F6F3EE;border-radius:1mm}
 .say small{display:block;font-size:6.2pt;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#6B6054;margin-bottom:.8mm}
 .say i{font-style:normal;font-weight:500}
 ul.chk{list-style:none}
@@ -63,7 +63,7 @@ ul.chk li::before{content:'';position:absolute;left:0;top:1.1mm;width:2.8mm;heig
 
 const p1 = `<div class="page">
  <div class="top"><div><div class="kicker gt">Jantar dos 50 anos · JSD Famalicão</div><h1>Bingo da<b>Militância</b></h1></div><img src="${logo}"></div>
- <p style="font-size:10.5pt;font-weight:300;max-width:150mm">Um jogo curto e participativo para pôr toda a sala em movimento: cada convidado recebe um cartão numerado e, a cada número sorteado, cumpre um pequeno desafio. Ganha quem completar primeiro uma linha.</p>
+ <p style="font-size:10.5pt;font-weight:300;max-width:150mm">Um bingo das memórias de militância: cada número do cartão é uma coisa que se vive na Jota (ir a um congresso, comer três bifanas num só dia de campanha…). A cada número sorteado, quem já o viveu risca a bola. Ganha quem completar primeiro uma linha.</p>
  <div class="info">
   <div><small>Quando</small><b>Depois de todos os discursos, antes da abertura do bolo</b></div>
   <div><small>Data e local</small><b>7 nov 2026<br>Sunset House</b></div>
@@ -78,10 +78,10 @@ const p1 = `<div class="page">
  <h2>Como funciona</h2>
  <ol class="steps">
   <li><div><b>Cartões nas mesas.</b> Cada convidado tem o seu cartão (Nº 001 a 132) e uma caneta. Os cartões já estão em cada lugar, ou são distribuídos durante a sobremesa.</div></li>
-  <li><div><b>O animador explica em 30 segundos.</b> Cada cartão tem 12 bolas numeradas de 1 a 12; cada número corresponde a um desafio, que o animador lê em voz alta.</div></li>
-  <li><div><b>Sorteio.</b> O animador sorteia um número de cada vez, sem repetir, e anuncia o desafio. Quem o cumprir risca a bola desse número no seu cartão. O cartão não tem texto: só o animador (e o ecrã) diz qual é o desafio.</div></li>
+  <li><div><b>O animador explica em 30 segundos.</b> Cada cartão tem 12 bolas numeradas de 1 a 12. Cada número é uma experiência de militância, que o animador lê em voz alta (e que aparece no ecrã).</div></li>
+  <li><div><b>Sorteio.</b> O animador sorteia um número de cada vez, sem repetir, e lê a experiência. <b>Quem já a viveu risca a bola</b> desse número; quem não viveu, deixa em branco. O cartão não tem texto: só os números.</div></li>
   <li><div><b>BINGO!</b> Quem completar uma <b>linha de 4 bolas</b> levanta o cartão e grita «BINGO!». Como cada cartão tem os mesmos números por ordem diferente, as linhas completam-se em momentos diferentes e não há dois cartões com o mesmo padrão de vitória.</div></li>
-  <li><div><b>Validação.</b> A organização confere o número do cartão (canto superior direito) com a folha de controlo. Se estiver certo, entrega o prémio e o jogo termina; segue-se o bolo.</div></li>
+  <li><div><b>Validação.</b> A organização confere o número do cartão (canto superior direito) com a folha de controlo e, para animar, pede ao vencedor que conte a história de uma das bolas. Entrega o prémio e o jogo termina; segue-se o bolo.</div></li>
  </ol>
  <div class="box"><b>Prémio:</b> <span class="tbd">[a definir]</span> &nbsp;·&nbsp; <b>Método de sorteio:</b> <span class="tbd">[a definir: saco de bolas, cartas ou ecrã]</span> &nbsp;·&nbsp; <b>Animador:</b> <span class="tbd">[a definir]</span></div>
  <div class="foot"><span>Bingo da Militância · Briefing</span><span>1 / 2</span></div>
@@ -92,23 +92,24 @@ const p2 = `<div class="page">
  <div class="cols">
   <div class="card"><img src="${cartao}"><small><b>Amostra do cartão</b> (A6 horizontal, 148×105 mm). A ordem dos números muda em cada um dos 132 cartões. O design ainda pode sofrer alterações.</small></div>
   <div>
-   <h2 style="margin-top:0">Desafios de exemplo</h2>
+   <h2 style="margin-top:0">Experiências de exemplo</h2>
    <table>${exemplos.map((t,i)=>`<tr><td class="n">${i+1}</td><td>${t}</td></tr>`).join('')}</table>
-   <p style="font-size:7.2pt;color:#6B6054;margin-top:1.8mm">Exemplos ilustrativos. A lista definitiva dos 12 desafios está por fechar.</p>
+   <p style="font-size:7.2pt;color:#6B6054;margin-top:1.8mm">Exemplos ilustrativos. A lista definitiva das 12 experiências está por fechar.</p>
   </div>
  </div>
 
  <h2>Frases de exemplo para o animador</h2>
- <div class="say"><small>Abertura</small><i>«Antes de cortarmos o bolo, falta uma última tradição da noite: o <b>Bingo da Militância</b>! Peguem no cartão que têm à vossa frente.»</i></div>
- <div class="say"><small>Regras em 30 segundos</small><i>«Cada cartão tem 12 bolas, numeradas de 1 a 12. Eu sorteio um número, leio o desafio, e quem o cumprir risca a bola. Quem completar uma linha de quatro, levanta o cartão e grita BINGO!»</i></div>
- <div class="say"><small>A cada sorteio</small><i>«Número <b>7</b>! O desafio é: foto de grupo com a tua mesa. Têm um minuto… e já está! Riscam o 7.»</i></div>
- <div class="say"><small>Quando alguém grita BINGO</small><i>«Cartão no ar, não mexam! A organização vai conferir o número… Confirmado! Uma salva de palmas para o/a vencedor/a!»</i></div>
- <div class="say"><small>Fecho e passagem para o bolo</small><i>«Cinco décadas, uma identidade — e agora, a cada um no seu lugar: está na hora do <b>bolo dos 50 anos</b>!»</i></div>
+ <div class="say"><small>Abertura</small><i>«Antes de cortarmos o bolo, falta uma última tradição da noite: o <b>Bingo da Militância</b>! Vamos descobrir quem, nesta sala, já viveu tudo o que a Jota tem para dar. Peguem no cartão que têm à vossa frente.»</i></div>
+ <div class="say"><small>Regras em 30 segundos</small><i>«Cada cartão tem 12 bolas, numeradas de 1 a 12. Eu sorteio um número e leio uma experiência de militância. Quem já a viveu, risca a bola. Quem completar uma linha de quatro, levanta o cartão e grita BINGO!»</i></div>
+ <div class="say"><small>A cada sorteio</small><i>«Número <b>2</b>! Já comeste três bifanas num só dia de campanha? Quem sim, risca o 2… e quem quiser, levante a mão e conte-nos onde foi!»</i></div>
+ <div class="say"><small>Quando alguém grita BINGO</small><i>«Cartão no ar, não mexam! A organização vai conferir o número… Confirmado! Agora tens de nos contar: qual foi a melhor história das tuas bolas?»</i></div>
+ <div class="say"><small>Fecho e passagem para o bolo</small><i>«Cinco décadas, uma identidade — e todas estas histórias fazem parte dela. A cada um no seu lugar: está na hora do <b>bolo dos 50 anos</b>!»</i></div>
+
 
  <h2>Para a organização</h2>
  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8mm">
   <ul class="chk"><li>132 cartões impressos em A6, numerados 001–132</li><li>Folha de controlo (CSV) com a disposição de cada cartão, nas mãos dos validadores</li><li>Canetas ou marcadores em todas as mesas</li></ul>
-  <ul class="chk"><li>Lista dos 12 desafios no ecrã ou na mão do animador</li><li>Microfone e sorteador (bolas, cartas ou ecrã)</li><li>Prémio e quem o entrega</li></ul>
+  <ul class="chk"><li>Lista das 12 experiências no ecrã ou na mão do animador</li><li>Microfone e sorteador (bolas, cartas ou ecrã)</li><li>Prémio e quem o entrega</li></ul>
  </div>
  <div class="foot"><span>Bingo da Militância · Briefing</span><span>2 / 2</span></div>
 </div>`;

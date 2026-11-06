@@ -159,6 +159,11 @@ body.idle{cursor:none}
 .toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#fff;color:var(--ink);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:60}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion: reduce){.rays,.track,.live i,.mini.now,.ball.spin i,.intro .hint,.intro.play *{animation:none!important}.ball.pop,.award .inner{animation:none}.lower{transition:none}}
+.ctl{left:auto;right:14px;transform:none;padding:5px;border-radius:12px}
+.ctl .btn{font-size:13px;padding:8px 14px}
+.vol{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;font-size:13px;color:var(--muted)}
+.vol input{width:100%;accent-color:#F8863F}
+.vol output{font-weight:700;color:var(--fg);min-width:3.2ch;text-align:right}
 </style>
 
 <div class="room">
@@ -193,18 +198,15 @@ body.idle{cursor:none}
         <div class="pre">Jantar dos 50 anos · JSD Famalicão</div>
         <div class="t1">Bingo</div>
         <div class="t2 gt">Cinco Jotas</div>
-        <div class="hint" id="ihint">Carrega em Espaço para começar o programa</div>
+        <div class="hint" id="ihint">O programa vai começar · Espaço ou clique para abrir · R abre a régie</div>
       </div>
     </div>
   </div>
 </div>
 
 <div class="ctl" id="ctl">
-  <button class="btn primary" id="draw" type="button">Rodar o globo <kbd>Espaço</kbd></button>
-  <button class="btn" id="undo" type="button">Anular último</button>
-  <button class="btn" id="open" type="button">Régie <kbd>R</kbd></button>
-  <button class="btn" id="snd" type="button" aria-pressed="true">Som ligado</button>
-  <button class="btn" id="fs" type="button">Ecrã inteiro <kbd>F</kbd></button>
+  <button class="btn danger" id="newgame" type="button">Novo jogo</button>
+  <button class="btn" id="fs" type="button">Ecrã inteiro</button>
 </div>
 
 <aside class="regie" id="regie" hidden aria-label="Régie">
@@ -231,8 +233,23 @@ body.idle{cursor:none}
     <p class="hint2" id="exnote">As frases atuais são exemplos.</p>
   </section>
   <section id="v-jogo" class="col" hidden>
-    <p>Atalhos no palco. O rato esconde-se e os comandos desaparecem passados 3 segundos.</p>
-    <div class="keys"><b>Espaço / Enter</b><span>Rodar o globo e sortear</span><b>R</b><span>Abrir ou fechar a régie</span><b>F</b><span>Ecrã inteiro</span><b>M</b><span>Som ligado ou desligado</span><b>Esc</b><span>Fechar a régie ou um título</span></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn primary" id="draw" type="button" style="padding:10px 20px;font-size:15px">Rodar o globo <kbd>Espaço</kbd></button>
+      <button class="btn" id="undo" type="button">Anular último</button>
+    </div>
+    <h2 style="margin-top:6px">Som e música</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="snd" type="button" aria-pressed="true">Som ligado</button>
+      <button class="btn" id="mus" type="button" aria-pressed="true">Música ligada</button>
+    </div>
+    <div class="vol"><label for="vol">Volume da música</label><input type="range" id="vol" min="0" max="100" value="50"><output id="volo">50%</output></div>
+    <div class="col" style="gap:6px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="mbtn" type="button">Usar a minha música</button><button class="btn" id="mreset" type="button" hidden>Voltar à música do estúdio</button></div>
+      <input type="file" id="mfile" accept="audio/*" hidden>
+      <p class="hint2" id="mnome">A tocar a música de estúdio embutida. Podes escolher um ficheiro de áudio teu (MP3, por exemplo), que toca em ciclo. O ficheiro escolhido perde-se ao recarregar a página.</p>
+    </div>
+    <h2 style="margin-top:6px">Atalhos</h2>
+    <div class="keys"><b>Espaço, Enter, seta direita ou clique</b><span>Rodar o globo e sortear (também funciona com um apresentador de diapositivos)</span><b>R</b><span>Abrir ou fechar a régie</span><b>F</b><span>Ecrã inteiro</span><b>M</b><span>Som ligado ou desligado</span><b>Esc</b><span>Fechar a régie ou um título</span></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="intro-again" type="button">Rever a abertura</button><button class="btn danger" id="reset" type="button">Novo jogo</button></div>
   </section>
 </aside>
@@ -250,8 +267,8 @@ var TITULOS = [
   {id:'premium', nome:'Premium', regra:'Cartão cheio'}
 ];
 var KEY = 'bingo-cinco-jotas-v1';
-var state = {order:[], winners:{}, phrases:EXEMPLOS.slice(), edited:false, mute:false};
-var animating=false, started=false, resetTimer=null, idleTimer=null, awardTimer=null;
+var state = {order:[], winners:{}, phrases:EXEMPLOS.slice(), edited:false, mute:false, music:true, vol:50};
+var animating=false, introRunning=false, started=false, resetTimer=null, idleTimer=null, awardTimer=null;
 
 function load(){
   try{
@@ -260,7 +277,7 @@ function load(){
     if(Array.isArray(s.order)) state.order = s.order.filter(function(n){return ALL.indexOf(n)>-1});
     if(s.winners && typeof s.winners==='object') state.winners = s.winners;
     if(Array.isArray(s.phrases) && s.phrases.length===12) state.phrases = s.phrases.map(String);
-    state.edited = !!s.edited; state.mute = !!s.mute;
+    state.edited = !!s.edited; state.mute = !!s.mute; state.music = s.music!==false; if(typeof s.vol==='number') state.vol=Math.max(0,Math.min(100,s.vol));
   }catch(e){}
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
@@ -281,7 +298,7 @@ var Som = (function(){
   function tone(t,freq,dur,vol,type){ var a=ac,o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter(); o.type=type||'sawtooth'; o.frequency.value=freq; f.type='lowpass'; f.frequency.value=2600;
     g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.03); g.gain.setValueAtTime(vol,t+dur*.6); g.gain.exponentialRampToValueAtTime(.001,t+dur); o.connect(f); f.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+.05); }
   return {
-    set:function(v){ on=v; if(!v) this.stop(); }, get:function(){ return on; },
+    set:function(v){ on=v; if(!v) this.stop(); }, get:function(){ return on; }, ctx:ctx, noiseBuf:function(){ return buf(); },
     // rufar de tambores a acelerar, mais o barulho das bolas no globo
     roll:function(sec){
       if(!on) return; var a=ctx(); if(!a||!buf()) return; var t0=a.currentTime+.02, t=0;
@@ -294,6 +311,63 @@ var Som = (function(){
     fanfare:function(){ if(!on) return; var a=ctx(); if(!a||!buf()) return; var t=a.currentTime+.02, n=[523.25,659.25,783.99,1046.5,783.99,1046.5,1318.5];
       n.forEach(function(f,i){ var d=i<6?.16:1.3; tone(t+i*.16,f,d,.11); tone(t+i*.16,f/2,d,.06); }); burst(t+6*.16,1.6,5000,'highpass',.28,.5); },
     stop:function(){ try{ if(rumble){ rumble.stop(); rumble=null; } }catch(e){} }
+  };
+})();
+
+/* ---------- música de fundo (sintetizada: baixo, acordes, arpejo e bateria) ---------- */
+var Music = (function(){
+  var ac=null,out=null,duck=null,echo=null,timer=null,step=0,next=0,running=false,vol=.5,el=null,custom=false;
+  var BPM=116, SPS=60/BPM/4;
+  var PROG=[{r:36,t:[60,64,67]},{r:33,t:[57,60,64]},{r:41,t:[57,60,65]},{r:43,t:[59,62,67]},{r:36,t:[60,64,67]},{r:33,t:[57,60,64]},{r:41,t:[57,60,65]},{r:43,t:[59,62,65,67]}];
+  var BASS={0:0,3:0,6:12,8:0,11:7,12:0,14:12};
+  function hz(n){ return 440*Math.pow(2,(n-69)/12); }
+  function osc(type,f,t,dur,v,lp,dest){ var o=ac.createOscillator(),g=ac.createGain(),fl=ac.createBiquadFilter(); o.type=type; o.frequency.setValueAtTime(f,t); fl.type='lowpass'; fl.frequency.value=lp;
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(v,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(fl); fl.connect(g); g.connect(dest); o.start(t); o.stop(t+dur+.03); }
+  function kick(t){ var o=ac.createOscillator(),g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(165,t); o.frequency.exponentialRampToValueAtTime(42,t+.13); g.gain.setValueAtTime(.8,t); g.gain.exponentialRampToValueAtTime(.001,t+.3); o.connect(g); g.connect(out); o.start(t); o.stop(t+.32); }
+  function nz(t,dur,freq,type,v){ var s=ac.createBufferSource(); s.buffer=Som.noiseBuf(); s.loop=true; var f=ac.createBiquadFilter(); f.type=type; f.frequency.value=freq; var g=ac.createGain(); g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.001,t+dur); s.connect(f); f.connect(g); g.connect(out); s.start(t,Math.random()*.4); s.stop(t+dur+.02); }
+  function play(s,t){
+    var bar=(s>>4)&7, i=s&15, ch=PROG[bar], k;
+    if(i===0||i===8||i===10||(bar%2===1&&i===14)) kick(t);
+    if(i===4||i===12){ nz(t,.16,1600,'highpass',.26); osc('triangle',190,t,.1,.12,1200,out); }
+    if(i%2===0) nz(t,.04,7000,'highpass',i%4===0?.11:.065);
+    if(i===14) nz(t,.2,7000,'highpass',.07);
+    if(BASS.hasOwnProperty(i)) osc('sawtooth',hz(ch.r+BASS[i]),t,.2,.26,520,out);
+    if(i===2||i===5||i===10||i===13) ch.t.forEach(function(n){ osc('sawtooth',hz(n),t,.13,.045,2300,out); });
+    if(i%2===0){ var idx=[0,1,2,1,0,2,1,2][(i/2)%8]%ch.t.length, n=ch.t[idx]+12+(bar>=4?12:0); osc('triangle',hz(n),t,.18,.075,3200,echo); osc('square',hz(n),t,.09,.018,2400,echo); }
+  }
+  function sched(){ while(next<ac.currentTime+.16){ play(step,next); next+=SPS; step=(step+1)&127; } }
+  function ensure(){
+    ac=Som.ctx(); if(!ac||out) return !!ac;
+    out=ac.createGain(); out.gain.value=0; duck=ac.createGain(); duck.gain.value=1; out.connect(duck); duck.connect(ac.destination);
+    var d=ac.createDelay(1); d.delayTime.value=SPS*3; var fb=ac.createGain(); fb.gain.value=.3; d.connect(fb); fb.connect(d); echo=ac.createGain(); echo.gain.value=1; echo.connect(out); var send=ac.createGain(); send.gain.value=.4; echo.connect(send); send.connect(d); d.connect(out);
+    return true;
+  }
+  function fadeEl(to,sec){ if(!el) return; var from=el.volume,t0=performance.now(); (function f(){ var p=Math.min(1,(performance.now()-t0)/(sec*1000)); try{ el.volume=Math.max(0,Math.min(1,from+(to-from)*p)); }catch(e){} if(p<1) requestAnimationFrame(f); })(); }
+  return {
+    start:function(){
+      if(running) return; running=true;
+      if(custom && el){ el.volume=0; el.play().catch(function(){}); fadeEl(vol,1.6); return; }
+      if(!ensure()){ running=false; return; }
+      step=0; next=ac.currentTime+.12; timer=setInterval(sched,30);
+      out.gain.cancelScheduledValues(ac.currentTime); out.gain.setValueAtTime(0,ac.currentTime); out.gain.linearRampToValueAtTime(vol,ac.currentTime+1.6);
+    },
+    stop:function(){
+      if(!running) return; running=false;
+      if(timer){ clearInterval(timer); timer=null; }
+      try{ if(out){ out.gain.cancelScheduledValues(ac.currentTime); out.gain.setTargetAtTime(0,ac.currentTime,.12); } }catch(e){}
+      if(el){ var e2=el; fadeEl(0,.4); setTimeout(function(){ if(!running) e2.pause(); },500); }
+    },
+    duck:function(level,sec){ try{ if(custom&&el){ fadeEl(vol*level,sec); } else if(duck){ duck.gain.cancelScheduledValues(ac.currentTime); duck.gain.setTargetAtTime(level,ac.currentTime,Math.max(.05,sec/3)); } }catch(e){} },
+    volume:function(v){ vol=v; try{ if(custom&&el&&running) el.volume=v; else if(out&&running) out.gain.setTargetAtTime(v,ac.currentTime,.1); }catch(e){} },
+    isRunning:function(){ return running; },
+    useFile:function(file){
+      var was=running; if(was) this.stop();
+      if(!el){ el=new Audio(); el.loop=true; el.preload='auto'; }
+      el.src=URL.createObjectURL(file); custom=true; running=false;
+      if(was){ var self=this; setTimeout(function(){ self.start(); },520); }
+    },
+    useStudio:function(){ var was=running; if(was) this.stop(); custom=false; if(el){ el.pause(); } running=false; if(was){ var self=this; setTimeout(function(){ self.start(); },520); } },
+    isCustom:function(){ return custom; }
   };
 })();
 
@@ -415,27 +489,32 @@ function draw(){
     animating=false; state.order.push(n); save(); render();
     var ball=$('ball'); ball.classList.remove('spin'); ball.classList.remove('pop'); void ball.offsetWidth; ball.classList.add('pop');
     var f=$('flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
-    var c=FX.at(ball); FX.burst(c.x,c.y,70,false); FX.burst(c.x,c.y,40,true); Som.crash();
+    var c=FX.at(ball); FX.burst(c.x,c.y,70,false); FX.burst(c.x,c.y,40,true); Som.crash(); setTimeout(function(){ Music.duck(1,1.6); },1700);
     setTimeout(function(){ $('lower').classList.add('in'); },350);
   }
   animating = true; $('draw').disabled = true; $('undo').disabled = true;
   lowerOut(); $('num').textContent='?'; $('lbl').textContent='A rodar…'; $('ball').classList.add('spin');
   if(reduced()){ finish(pick); return; }
-  Som.roll(Cage.total()/1000);
+  Som.roll(Cage.total()/1000); Music.duck(.22,.5);
   Cage.start(pick, finish);
 }
 function undo(){
   if(animating || !state.order.length) return;
   var n = state.order.pop(); save(); render(); toast('Anulado o número '+n+'.');
 }
+var confirmandoNovo=false;
+function labelsNovo(t){ ['newgame','reset'].forEach(function(id){ var b=$(id); if(b) b.textContent=t; }); }
 function reset(){
-  var b = $('reset');
-  if(b.dataset.confirm==='1'){
-    clearTimeout(resetTimer); b.dataset.confirm=''; b.textContent='Novo jogo';
-    state.order=[]; state.winners={}; save(); lowerOut(); render(); toast('Novo jogo. Tudo a zeros.'); return;
+  if(animating){ toast('Espera pelo fim do sorteio.'); return; }
+  if(!confirmandoNovo){
+    confirmandoNovo=true; labelsNovo('Confirmar: novo jogo');
+    clearTimeout(resetTimer); resetTimer=setTimeout(function(){ confirmandoNovo=false; labelsNovo('Novo jogo'); },3500); return;
   }
-  b.dataset.confirm='1'; b.textContent='Confirmar: apagar tudo';
-  resetTimer=setTimeout(function(){ b.dataset.confirm=''; b.textContent='Novo jogo'; },3500);
+  clearTimeout(resetTimer); confirmandoNovo=false; labelsNovo('Novo jogo');
+  state.order=[]; state.winners={}; save();
+  Music.stop(); closeAward(); closeRegie(); lowerOut();
+  started=false; introRunning=false; var el=$('intro'); el.classList.remove('play'); el.classList.remove('gone');
+  render(); toast('Novo jogo. Tudo a zeros.');
 }
 
 function render(){
@@ -474,17 +553,19 @@ function buildTicker(){
 }
 
 /* ---------- abertura e título atribuído ---------- */
+function maybeMusic(){ if(started && !state.mute && state.music) Music.start(); }
 function runIntro(){
+  if(introRunning) return; introRunning=true;
   var el=$('intro'); el.classList.add('play'); Som.fanfare();
   var dur = reduced()?200:3400;
-  setTimeout(function(){ el.classList.add('gone'); started=true; el.classList.remove('play'); $('ihint').textContent='Carrega em Espaço para começar o programa'; render(); }, dur);
+  setTimeout(function(){ el.classList.add('gone'); started=true; introRunning=false; el.classList.remove('play'); render(); maybeMusic(); }, dur);
 }
-function replayIntro(){ closeRegie(); var el=$('intro'); started=false; el.classList.remove('gone'); setTimeout(runIntro,150); }
+function replayIntro(){ closeRegie(); Music.stop(); var el=$('intro'); started=false; el.classList.remove('gone'); setTimeout(runIntro,150); }
 function award(id, card){
   var t = TITULOS.filter(function(x){return x.id===id})[0];
   $('aT').textContent=t.nome; $('aC').textContent='Cartão nº '+pad(card);
   var el=$('award'); el.hidden=false; var inner=el.firstElementChild; inner.style.animation='none'; void inner.offsetWidth; inner.style.animation='';
-  Som.fanfare(); FX.rain(id==='premium'?9:5); var r=$('stage').getBoundingClientRect(); FX.burst(r.width/2,r.height/2,90,true);
+  Som.fanfare(); Music.duck(.25,.3); setTimeout(function(){ Music.duck(1,2); },4500); FX.rain(id==='premium'?9:5); var r=$('stage').getBoundingClientRect(); FX.burst(r.width/2,r.height/2,90,true);
   clearTimeout(awardTimer); awardTimer=setTimeout(closeAward, 12000);
 }
 function closeAward(){ clearTimeout(awardTimer); $('award').hidden=true; }
@@ -555,17 +636,27 @@ function fullscreen(){
   else toast('Este ecrã não permite ecrã inteiro aqui.');
 }
 function syncSom(){ var b=$('snd'); b.textContent = state.mute ? 'Som desligado' : 'Som ligado'; b.setAttribute('aria-pressed', state.mute?'false':'true'); }
-function toggleSom(){ state.mute=!state.mute; Som.set(!state.mute); save(); syncSom(); toast(state.mute?'Som desligado':'Som ligado'); }
-function wakeCtl(){ $('ctl').classList.remove('idle'); document.body.classList.remove('idle'); clearTimeout(idleTimer); idleTimer=setTimeout(function(){ if($('regie').hidden){ $('ctl').classList.add('idle'); document.body.classList.add('idle'); } },3000); }
+function toggleSom(){ state.mute=!state.mute; Som.set(!state.mute); if(state.mute) Music.stop(); else maybeMusic(); save(); syncSom(); toast(state.mute?'Som desligado':'Som ligado'); }
+function syncMus(){ var b=$('mus'); b.textContent = state.music ? 'Música ligada' : 'Música desligada'; b.setAttribute('aria-pressed', state.music?'true':'false'); $('vol').value=state.vol; $('volo').textContent=state.vol+'%'; }
+function toggleMus(){ state.music=!state.music; if(!state.music) Music.stop(); else maybeMusic(); save(); syncMus(); }
+function escolherMusica(e){ var f=e.target.files&&e.target.files[0]; if(!f) return; Music.useFile(f); $('mnome').textContent='A tocar o teu ficheiro: '+f.name+'. Perde-se ao recarregar a página.'; $('mreset').hidden=false; if(!state.mute && state.music && started) setTimeout(function(){ Music.start(); },600); }
+function musicaEstudio(){ Music.useStudio(); $('mnome').textContent='A tocar a música de estúdio embutida.'; $('mreset').hidden=true; }
+function wakeCtl(){ $('ctl').classList.remove('idle'); document.body.classList.remove('idle'); clearTimeout(idleTimer); idleTimer=setTimeout(function(){ if($('regie').hidden && document.fullscreenElement){ $('ctl').classList.add('idle'); document.body.classList.add('idle'); } },3000); }
 function wake(){ try{ if(navigator.wakeLock && document.visibilityState==='visible') navigator.wakeLock.request('screen').catch(function(){}); }catch(e){} }
 
 function init(){
   load(); Som.set(!state.mute); started = state.order.length>0;
   if(started) $('intro').classList.add('gone');
-  Cage.init(); FX.init(); buildFrases(); render(); syncSom();
+  Cage.init(); FX.init(); buildFrases(); render(); syncSom(); syncMus(); Music.volume(state.vol/100);
+  if(started){ var arm=function(){ document.removeEventListener('pointerdown',arm); document.removeEventListener('keydown',arm); maybeMusic(); }; document.addEventListener('pointerdown',arm); document.addEventListener('keydown',arm); }
   $('draw').addEventListener('click', draw); $('undo').addEventListener('click', undo); $('reset').addEventListener('click', reset);
-  $('open').addEventListener('click', openRegie); $('close').addEventListener('click', closeRegie);
-  $('snd').addEventListener('click', toggleSom); $('fs').addEventListener('click', fullscreen);
+  $('close').addEventListener('click', closeRegie); $('newgame').addEventListener('click', function(){ reset(); this.blur(); });
+  $('snd').addEventListener('click', toggleSom); $('mus').addEventListener('click', toggleMus);
+  $('vol').addEventListener('input', function(){ state.vol=+this.value; $('volo').textContent=state.vol+'%'; Music.volume(state.vol/100); save(); });
+  $('mbtn').addEventListener('click', function(){ $('mfile').click(); }); $('mfile').addEventListener('change', escolherMusica); $('mreset').addEventListener('click', musicaEstudio);
+  $('fs').addEventListener('click', function(){ fullscreen(); this.blur(); });
+  document.addEventListener('fullscreenchange', function(){ $('fs').textContent = document.fullscreenElement ? 'Sair do ecrã inteiro' : 'Ecrã inteiro'; wakeCtl(); });
+  $('stage').addEventListener('click', function(e){ if(e.button!==0 || !started) return; if(!$('award').hidden){ closeAward(); return; } draw(); });
   $('vform').addEventListener('submit', onValidar); $('repor').addEventListener('click', repor); $('intro-again').addEventListener('click', replayIntro);
   $('intro').addEventListener('click', function(){ if(!started) runIntro(); });
   $('award').addEventListener('click', closeAward);
@@ -575,7 +666,7 @@ function init(){
     var typing = /INPUT|TEXTAREA/.test(e.target.tagName);
     if(e.key==='Escape'){ if(!$('award').hidden) closeAward(); else closeRegie(); return; }
     if(typing) return;
-    if(e.key===' '||e.key==='Enter'){ if(e.target===document.body && $('regie').hidden){ e.preventDefault(); if(!$('award').hidden) closeAward(); else draw(); } }
+    if(e.key===' '||e.key==='Enter'||e.key==='ArrowRight'||e.key==='PageDown'){ if(e.target===document.body && $('regie').hidden){ e.preventDefault(); if(!$('award').hidden) closeAward(); else draw(); } }
     else if(e.key==='r'||e.key==='R'){ if($('regie').hidden) openRegie(); else closeRegie(); }
     else if(e.key==='f'||e.key==='F'){ fullscreen(); }
     else if(e.key==='m'||e.key==='M'){ toggleSom(); }

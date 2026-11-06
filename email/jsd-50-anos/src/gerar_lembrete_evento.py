@@ -5,29 +5,29 @@ from gerar_confirmacao import *      # blocos de v11/v12
 
 F = FORTE
 TEL = '+351&nbsp;912&nbsp;845&nbsp;818'
-PRE = 'Amanhã, 19h00, Sunset House. Dress code casual chic e after party no Classe Bar.'
+PRE = 'É já amanhã. Sunset House, 19h30. Depois, a noite continua no Classe Bar, a partir das 01h30.'
 
 def logo_classe_pequeno(cima):
     return logo_classe(cima).replace('width="240"', 'width="170"').replace('width:240px', 'width:170px')
 
 def lembrete():
+    L = lambda t, c: linha(t, c, 0)
     corpo = ''.join([
         cabecalho('ATÉ AMANHÃ', titulo=None, subtitulo=None),
         linha('Caro(a) companheiro(a),', 36, 0, f'font-size:16px; line-height:27px; font-weight:700; color:{ESCURO};'),
-        linha(f'Amanhã, <strong {F}>sábado, 7&nbsp;de&nbsp;novembro</strong>, às <strong {F}>19h00</strong>, celebramos os '
-              f'<strong {F}>50&nbsp;anos</strong> da JSD&nbsp;Famalicão na <strong {F}>Sunset&nbsp;House</strong> ({MAPA_LINK}). '
-              'Esperamos por todos.', 12, 0),
-        linha(f'O dress code é <strong {F}>casual chic</strong>: castanho, bege, azul-marinho, preto e branco, '
-              'com toques de laranja queimado ou dourado.', 16, 0),
-        imagem_dresscode(20),
-        linha(f'Depois do jantar, a noite continua no <strong {F}>Classe&nbsp;Bar</strong>, a partir das <strong {F}>01h30</strong>, '
-              'com entrada gratuita para todos os convidados.', 28, 0),
-        logo_classe_pequeno(12),
-        linha(f'Para qualquer dúvida, a <strong {F}>Daniela Torres</strong>, presidente da JSD&nbsp;Famalicão, está disponível em '
-              f'<a href="tel:+351912845818" style="color:{ESCURO}; font-weight:700; text-decoration:none;">{TEL}</a>.', 28, 0),
-        linha('Até amanhã,', 28, 0),
+        L(f'É já amanhã, <strong {F}>sábado, dia 7&nbsp;de&nbsp;novembro</strong>, que nos juntamos para celebrar uma data muito especial: '
+          f'os <strong {F}>50&nbsp;anos</strong> da Juventude Social Democrata de Vila Nova de Famalicão!', 12),
+        L(f'O jantar comemorativo terá lugar na <strong {F}>Sunset&nbsp;House</strong> (<a href="{MAPA_HREF}" style="color:{ESCURO}; text-decoration:none;">'
+          f'Av.&nbsp;Visconde de Pindela, n.º&nbsp;112, 4770&#8209;189&nbsp;Cruz</a>), com início marcado para as <strong {F}>19h30</strong>.', 16),
+        L(f'E porque a celebração não termina à mesa, a noite continua no <strong {F}>Classe&nbsp;Bar</strong>, a partir das <strong {F}>01h30</strong>, '
+          'com entrada gratuita para todos os convidados do jantar.', 16),
+        L(f'Para qualquer esclarecimento, a Presidente da JSD&nbsp;Famalicão <strong {F}>Daniela Torres</strong>, estará disponível através do número '
+          f'<a href="tel:+351912845818" style="color:{ESCURO}; font-weight:700; text-decoration:none;">{TEL}</a>.', 16),
+        L('Esperamos por ti amanhã, para celebrarmos juntos 50 anos de história, de gerações e de uma identidade que continua a construir o futuro.', 16),
+        L('Até lá,', 28),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
-        mote(), linha('', 0, 44),
+        imagem_dresscode(36),            # só a imagem, sem texto sobre o dress code
+        linha('', 0, 44),
     ])
     html = pagina('50 Anos JSD Famalicão · Lembrete', PRE, corpo, '', css_extra=CSS, claro_forcado=True, logo_png=True,
                   gerador='src/gerar_lembrete_evento.py', banner_coluna=True, link_banner=SITE_50)

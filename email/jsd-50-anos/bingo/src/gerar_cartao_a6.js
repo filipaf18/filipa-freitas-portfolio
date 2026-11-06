@@ -3,7 +3,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const OUT = process.argv[2] || path.join(ROOT, 'fase1-v7');
+const OUT = process.argv[2] || path.join(ROOT, 'fase1-v8');
 const b64 = (f, mime) => `data:${mime};base64,` + fs.readFileSync(path.join(ROOT, f)).toString('base64');
 const font = (w) => b64(`assets/fonts/montserrat-latin-${w}-normal.woff2`, 'font/woff2');
 const logoPreto = b64('assets/logo-h-preto.png', 'image/png');
@@ -39,7 +39,7 @@ footer{flex-shrink:0;display:grid;grid-template-columns:1fr auto 1fr;align-items
 .motto span{display:block;font-weight:300}.motto b{display:block;font-weight:800}
 .sede{text-align:right;font-size:5.4pt;font-weight:500;letter-spacing:.06em;text-transform:uppercase;line-height:1.5}
 `;
-const html = `<div class="card"><header><div><h1>Bingo<b>Cinco Jotas</b></h1><div class="sub gt">5J · 4J · 3J</div></div><div class="right"><img src="${logoPreto}"><div class="nr">Nº<b>${NUM}</b></div></div></header>
+const html = `<div class="card"><header><div><h1>Bingo<b>Cinco Jotas</b></h1><div class="sub gt">Rookie · Pro · Premium</div></div><div class="right"><img src="${logoPreto}"><div class="nr">Nº<b>${NUM}</b></div></div></header>
 <div class="grid">${numeros.map(n=>`<div class="n"><div class="ball"><i>${n}</i></div></div>`).join('')}</div>
 <footer><div><div class="d1">1976_2026</div><div class="d2">7 de novembro de 2026</div></div><div class="motto"><span class="gt">Cinco Décadas</span><b class="gt">Uma Identidade</b></div><div class="sede">Sunset House<br>Famalicão</div></footer></div>`;
 

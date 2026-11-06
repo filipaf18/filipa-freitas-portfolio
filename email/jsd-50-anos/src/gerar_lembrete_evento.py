@@ -26,7 +26,7 @@ def lembrete():
         logo_classe_pequeno(20),
         L(f'Para qualquer esclarecimento, a Presidente da JSD&nbsp;Famalicão <strong {F}>Daniela Torres</strong> estará disponível através do número '
           f'<a href="tel:+351912845818" style="color:{ESCURO}; font-weight:700; text-decoration:none;">{TEL}</a>.', 16),
-        L('Esperamos por ti amanhã, para celebrarmos juntos 50 anos de história, de gerações e de uma identidade que continua a construir o futuro.', 16),
+        L('Vamos celebrar juntos 50 anos de história, de gerações e de uma identidade que continua a construir o futuro!', 16),
         L('Até lá,', 28),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
         linha('', 0, 44),

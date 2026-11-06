@@ -5,11 +5,14 @@
 | `cartoes-bingo-140-frente-e-verso.pdf` | **Ficheiro principal.** 280 páginas: frente do cartão 001, verso, frente do 002, verso… (para impressão frente e verso). |
 | `cartoes-bingo-140-so-frentes.pdf` | 140 páginas, só as frentes (001 a 140). |
 | `cartoes-bingo-verso.pdf` | 1 página, o verso (igual em todos os cartões). |
+| `previa-frente-140.png`, `previa-verso.png` | Pré-visualizações (sem sangria) tiradas do PDF final: a frente do cartão 140 e o verso. |
 | `cartoes-bingo-140.csv` | Folha de controlo: o número de cada casa, as linhas de cada cartão e os pares de linhas (Jota Pro). Para os validadores. |
 
 ## Especificações
 - Formato final: **A6 horizontal, 148 × 105 mm**. Páginas com **3 mm de sangria** em cada lado (154 × 111 mm); o `TrimBox` marca o corte e o `BleedBox` a sangria. Sem marcas de corte.
 - Cor: RGB. Fontes (Montserrat) incorporadas. Texto e formas vetoriais; o logótipo é imagem.
+- Texto mínimo de 7 pt. O gradiente do texto é feito com letras de cor sólida (funciona em qualquer leitor de PDF); as bolas e a barra inferior mantêm o gradiente.
+- Os jogadores usam **feijões** em vez de riscar: as bolas têm 17 mm de diâmetro interior (cabem feijões pequenos).
 - Verso na mesma orientação que a frente (horizontal), para impressão frente e verso com viragem pelo lado maior.
 
 ## Regras garantidas nas distribuições (verificadas por `src/validar_cartoes.py`)
@@ -23,5 +26,6 @@
 python3 src/gerar_distribuicoes.py 140 2026 impressao/cartoes-bingo-140.csv
 python3 src/validar_cartoes.py impressao/cartoes-bingo-140.csv
 node src/gerar_pdf_impressao.js impressao/cartoes-bingo-140.csv impressao
+python3 src/caixas_pdf.py impressao/cartoes-bingo-140-frente-e-verso.pdf impressao/cartoes-bingo-140-so-frentes.pdf impressao/cartoes-bingo-verso.pdf
 ```
-(O passo final das caixas de página `TrimBox`/`BleedBox` foi aplicado com `pypdf` depois de gerar os PDF.)
+(O `gerar_pdf_impressao.js` também verifica, antes de gerar, se algum texto fica fora da área segura de 4,5 mm dentro do corte.)

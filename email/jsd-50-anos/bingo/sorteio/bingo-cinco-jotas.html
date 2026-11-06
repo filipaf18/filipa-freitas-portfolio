@@ -108,7 +108,7 @@ button,input{font:inherit;color:inherit}
 .intro.play img{animation:zoomIn 3.2s ease-out}
 @keyframes sweep{from{transform:translateX(-120%) skewX(-20deg)}to{transform:translateX(560%) skewX(-20deg)}}
 @keyframes zoomIn{from{transform:scale(.86)}to{transform:scale(1.04)}}
-.award{position:absolute;inset:0;z-index:18;display:grid;place-items:center;text-align:center;background:radial-gradient(70% 70% at 50% 50%,rgba(5,7,10,.86),rgba(5,7,10,.97));cursor:pointer}
+.award{position:absolute;inset:0;z-index:18;display:grid;place-items:center;text-align:center;background:radial-gradient(70% 70% at 50% 50%,rgba(5,7,10,.95),rgba(5,7,10,.985));cursor:pointer}
 .award .inner{display:flex;flex-direction:column;align-items:center;gap:1.2cqw;animation:award .9s cubic-bezier(.2,1.5,.4,1)}
 @keyframes award{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
 .award .a0{font-size:1.5cqw;font-weight:700;letter-spacing:.6em;padding-left:.6em;text-transform:uppercase;color:var(--muted)}
@@ -179,6 +179,18 @@ body.idle{cursor:none}
 .p2 .pd-step{height:12cqw}.p3 .pd-step{height:8.5cqw}
 .pd-hint{font-size:1cqw;letter-spacing:.25em;text-transform:uppercase;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){.pd-col,.pd-step{transition:none}}
+.award .inner{gap:.8cqw}
+.award .a1{font-size:2.4cqw}
+.award .a2{font-size:8.5cqw}
+.award .a3{font-size:3cqw;padding:.5cqw 2.6cqw}
+.award .a4:empty{display:none}
+.aw-grid{display:flex;flex-direction:column;gap:.9cqw;width:82cqw;margin-top:.8cqw;--f:1.5cqw;--b:3.6cqw}
+.aw-grid.rows1{--f:2.1cqw;--b:5.2cqw}.aw-grid.rows2{--f:1.6cqw;--b:4cqw}.aw-grid.rows3{--f:1.3cqw;--b:3.3cqw}
+.aw-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.9cqw}
+.aw-c{display:flex;align-items:center;gap:.8cqw;min-width:0;text-align:left;background:rgba(255,255,255,.09);border:.15cqw solid var(--line);border-radius:1cqw;padding:.6cqw .9cqw}
+.aw-c i{font-style:normal;flex:none;width:var(--b);height:var(--b);border-radius:50%;background:var(--grad);padding:.28cqw;display:flex}
+.aw-c i b{flex:1;border-radius:50%;background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:calc(var(--b)*.46);font-variant-numeric:tabular-nums}
+.aw-c span{font-size:var(--f);font-weight:700;line-height:1.15;min-width:0;text-wrap:balance}
 
 body.no-role .room,body.no-role .ctl{display:none}
 .modes{position:fixed;inset:0;z-index:200;background:radial-gradient(70% 70% at 50% 40%,#10151E,#05070A);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px;overflow:auto}
@@ -268,7 +280,7 @@ body.role-ctl{overflow:auto;height:auto}
     <div class="pair" id="pair"><i></i><span id="pairtxt"></span></div>
     <canvas id="fx"></canvas>
     <div class="flash" id="flash"></div>
-    <div class="award" id="award" hidden><div class="inner"><div class="a0">Parabéns</div><div class="a1">Jota</div><div class="a2 gt" id="aT">Rookie</div><div class="a3" id="aC">Cartão nº 001</div><div class="a4" id="a4">Clica ou carrega em Esc para continuar</div></div></div>
+    <div class="award" id="award" hidden><div class="inner"><div class="a0">Parabéns</div><div class="a1">Jota</div><div class="a2 gt" id="aT">Rookie</div><div class="a3" id="aC">Cartão nº 001</div><div class="aw-grid" id="aGrid"></div><div class="a4" id="a4"></div></div></div>
     <div class="podium" id="podium" hidden>
       <div class="pd-head"><small>Jantar dos 50 anos · JSD Famalicão</small><h2>Pódio <b class="gt">Cinco Jotas</b></h2></div>
       <div class="pd-row">
@@ -276,7 +288,7 @@ body.role-ctl{overflow:auto;height:auto}
         <div class="pd-col p1" id="pd1"><div class="pd-who"><small>Jota</small><b>Premium</b><div class="pd-card" id="pc1">—</div></div><div class="pd-step"><span>1º</span></div></div>
         <div class="pd-col p3" id="pd3"><div class="pd-who"><small>Jota</small><b>Rookie</b><div class="pd-card" id="pc3">—</div></div><div class="pd-step"><span>3º</span></div></div>
       </div>
-      <div class="pd-hint">Clica ou carrega em Esc para fechar</div>
+      <div class="pd-hint"></div>
     </div>
     <div class="intro" id="intro">
       <div class="sweep"></div>
@@ -392,7 +404,7 @@ function load(){
 }
 function save(){ if(ROLE==='display') return; try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 function $(id){ return document.getElementById(id); }
-function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove('show')},2400); }
+function toast(msg){ if(ROLE==='display') return; var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove('show')},2400); }
 function rand(n){ try{ var a=new Uint32Array(1); crypto.getRandomValues(a); return a[0]%n; }catch(e){ return Math.floor(Math.random()*n); } }
 function pad(n){ return String(n).padStart(3,'0'); }
 function remaining(){ return ALL.filter(function(n){return state.order.indexOf(n)<0}); }
@@ -684,12 +696,22 @@ function runIntro(){
 function replayIntro(){
   if(ROLE==='ctl'){ sendCmd({t:'intro-again'}); toast('Abertura enviada para o ecrã.'); return; }
   closeRegie(); Music.stop(); var el=$('intro'); started=false; el.classList.remove('gone'); setTimeout(runIntro,150); }
+function buildAwardGrid(card,id){
+  var g=$('aGrid'); g.innerHTML=''; var nums=CARDS[String(card)]; if(!nums){ g.className='aw-grid'; return; }
+  var lines=[0,1,2].map(function(r){ var ns=nums.slice(r*4,r*4+4), ix=ns.map(function(x){return state.order.indexOf(x)}); return {ns:ns, done:ix.every(function(i){return i>-1}), at:Math.max.apply(null,ix)}; })
+    .filter(function(l){return l.done}).sort(function(a,b){return a.at-b.at});
+  var need={rookie:1,pro:2,premium:3}[id]||1; lines=lines.slice(0,need);
+  g.className='aw-grid rows'+lines.length;
+  lines.forEach(function(l){ var row=document.createElement('div'); row.className='aw-row';
+    l.ns.forEach(function(n){ var c=document.createElement('div'); c.className='aw-c'; c.innerHTML='<i><b>'+n+'</b></i><span></span>'; c.lastChild.textContent=state.phrases[n-1]||''; row.appendChild(c); });
+    g.appendChild(row); });
+}
 function award(id, card){
   var t = TITULOS.filter(function(x){return x.id===id})[0];
-  $('aT').textContent=t.nome; $('aC').textContent='Cartão nº '+pad(card);
+  $('aT').textContent=t.nome; $('aC').textContent='Cartão nº '+pad(card); buildAwardGrid(card,id);
   var el=$('award'); el.hidden=false; var inner=el.firstElementChild; inner.style.animation='none'; void inner.offsetWidth; inner.style.animation='';
   Som.fanfare(); Music.duck(.25,.3); setTimeout(function(){ Music.duck(1,2); },4500); FX.rain(id==='premium'?9:5); var r=$('stage').getBoundingClientRect(); FX.burst(r.width/2,r.height/2,90,true);
-  var final=!!(state.winners.rookie&&state.winners.pro&&state.winners.premium); $('a4').textContent = final ? 'A seguir: o pódio' : 'Clica ou carrega em Esc para continuar';
+  var final=!!(state.winners.rookie&&state.winners.pro&&state.winners.premium); $('a4').textContent = final ? 'A seguir: o pódio' : '';
   clearTimeout(awardTimer); awardTimer=setTimeout(closeAward, final ? 7500 : 12000);
 }
 function closeAward(){ clearTimeout(awardTimer); var was=!$('award').hidden; $('award').hidden=true; if(was && state.winners.rookie && state.winners.pro && state.winners.premium){ setTimeout(function(){ if($('award').hidden && $('podium').hidden) showPodium(); },700); } }
@@ -853,18 +875,23 @@ function onRemote(m){
 }
 function updPair(){
   var ok = Date.now()-ctlSeen<9000, p=$('pair');
-  p.classList.toggle('on',ok);
-  $('pairtxt').innerHTML = 'Código <b>'+code+'</b> · '+(ok?'comando ligado':'à espera do comando')+(linkMsg?' · '+linkMsg:'');
-  if(!started) $('ihint').innerHTML = 'O programa vai começar · código de ligação<b>'+code+'</b>'+(ok?'comando ligado':'à espera do comando')+'<br><span style="font-size:1.1cqw;letter-spacing:.15em">Clica uma vez neste ecrã para ativar o som</span>'+(linkMsg?'<br><span style="font-size:1.1cqw;letter-spacing:.15em;color:var(--bad)">'+linkMsg+'</span>':'');
+  // código e dicas só aparecem antes de o comando ligar; depois o ecrã fica só com o programa
+  p.hidden = started || ok; p.classList.toggle('on',ok);
+  $('pairtxt').innerHTML = 'Código <b>'+code+'</b> · à espera do comando'+(linkMsg?' · '+linkMsg:'');
+  if(!started){
+    $('ihint').innerHTML = ok ? 'O programa vai começar' : 'O programa vai começar · código de ligação<b>'+code+'</b>à espera do comando';
+    if(!audioReady) $('ihint').innerHTML += '<br><span style="font-size:1.1cqw;letter-spacing:.15em">Clica uma vez neste ecrã para ativar o som</span>';
+    if(linkMsg) $('ihint').innerHTML += '<br><span style="font-size:1.1cqw;letter-spacing:.15em;color:var(--bad)">'+linkMsg+'</span>';
+  }
 }
-var linkMsg='';
+var linkMsg='', audioReady=false;
 function genCode(){ var L='BCDFGHJKMNPQRSTVWXZ',c=''; for(var i=0;i<4;i++) c+=L.charAt(rand(L.length)); return c; }
 function bootDisplay(){
   try{ code=localStorage.getItem('bingo-codigo')||''; }catch(e){}
   if(!/^[A-Z]{4}$/.test(code)){ code=genCode(); try{ localStorage.setItem('bingo-codigo',code); }catch(e){} }
   Link.start('display',code,onRemote,function(t,msg){ linkMsg=(t==='sem-servidor'||t==='erro')?msg:''; updPair(); });
   setInterval(updPair,2000); updPair();
-  var arm=function(){ document.removeEventListener('pointerdown',arm); document.removeEventListener('keydown',arm); try{ Som.ctx(); }catch(e){} maybeMusic(); };
+  var arm=function(){ document.removeEventListener('pointerdown',arm); document.removeEventListener('keydown',arm); try{ Som.ctx(); }catch(e){} audioReady=true; updPair(); maybeMusic(); };
   document.addEventListener('pointerdown',arm); document.addEventListener('keydown',arm);
 }
 

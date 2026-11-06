@@ -176,6 +176,7 @@ rep("state.phrases[k-1]=inp.value; state.edited=true; save(); $('fstate').textCo
 rep("save(); syncSom(); toast(", "save(); syncSom(); sendState(); toast(")
 rep("else maybeMusic(); save(); syncMus(); }", "else maybeMusic(); save(); syncMus(); sendState(); }")
 
+rep("function toast(msg){ var t=$('toast');", "function toast(msg){ if(ROLE==='display') return; var t=$('toast');")
 # ---------------- JS: ligação, ecrã e comando; novo init ----------------
 i0 = s.index('function init(){'); i1 = s.rindex('init();')
 novo = r'''/* ---------- ligação entre ecrã e comando ---------- */
@@ -246,18 +247,23 @@ function onRemote(m){
 }
 function updPair(){
   var ok = Date.now()-ctlSeen<9000, p=$('pair');
-  p.classList.toggle('on',ok);
-  $('pairtxt').innerHTML = 'Código <b>'+code+'</b> · '+(ok?'comando ligado':'à espera do comando')+(linkMsg?' · '+linkMsg:'');
-  if(!started) $('ihint').innerHTML = 'O programa vai começar · código de ligação<b>'+code+'</b>'+(ok?'comando ligado':'à espera do comando')+'<br><span style="font-size:1.1cqw;letter-spacing:.15em">Clica uma vez neste ecrã para ativar o som</span>'+(linkMsg?'<br><span style="font-size:1.1cqw;letter-spacing:.15em;color:var(--bad)">'+linkMsg+'</span>':'');
+  // código e dicas só aparecem antes de o comando ligar; depois o ecrã fica só com o programa
+  p.hidden = started || ok; p.classList.toggle('on',ok);
+  $('pairtxt').innerHTML = 'Código <b>'+code+'</b> · à espera do comando'+(linkMsg?' · '+linkMsg:'');
+  if(!started){
+    $('ihint').innerHTML = ok ? 'O programa vai começar' : 'O programa vai começar · código de ligação<b>'+code+'</b>à espera do comando';
+    if(!audioReady) $('ihint').innerHTML += '<br><span style="font-size:1.1cqw;letter-spacing:.15em">Clica uma vez neste ecrã para ativar o som</span>';
+    if(linkMsg) $('ihint').innerHTML += '<br><span style="font-size:1.1cqw;letter-spacing:.15em;color:var(--bad)">'+linkMsg+'</span>';
+  }
 }
-var linkMsg='';
+var linkMsg='', audioReady=false;
 function genCode(){ var L='BCDFGHJKMNPQRSTVWXZ',c=''; for(var i=0;i<4;i++) c+=L.charAt(rand(L.length)); return c; }
 function bootDisplay(){
   try{ code=localStorage.getItem('bingo-codigo')||''; }catch(e){}
   if(!/^[A-Z]{4}$/.test(code)){ code=genCode(); try{ localStorage.setItem('bingo-codigo',code); }catch(e){} }
   Link.start('display',code,onRemote,function(t,msg){ linkMsg=(t==='sem-servidor'||t==='erro')?msg:''; updPair(); });
   setInterval(updPair,2000); updPair();
-  var arm=function(){ document.removeEventListener('pointerdown',arm); document.removeEventListener('keydown',arm); try{ Som.ctx(); }catch(e){} maybeMusic(); };
+  var arm=function(){ document.removeEventListener('pointerdown',arm); document.removeEventListener('keydown',arm); try{ Som.ctx(); }catch(e){} audioReady=true; updPair(); maybeMusic(); };
   document.addEventListener('pointerdown',arm); document.addEventListener('keydown',arm);
 }
 

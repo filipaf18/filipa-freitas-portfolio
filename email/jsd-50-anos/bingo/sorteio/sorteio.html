@@ -210,7 +210,7 @@ body.idle{cursor:none}
     <footer class="ticker" aria-hidden="true"><div class="track" id="track"></div></footer>
     <canvas id="fx"></canvas>
     <div class="flash" id="flash"></div>
-    <div class="award" id="award" hidden><div class="inner"><div class="a0">Parabéns</div><div class="a1">Jota</div><div class="a2 gt" id="aT">Rookie</div><div class="a3" id="aC">Cartão nº 001</div><div class="a4">Clica ou carrega em Esc para continuar</div></div></div>
+    <div class="award" id="award" hidden><div class="inner"><div class="a0">Parabéns</div><div class="a1">Jota</div><div class="a2 gt" id="aT">Rookie</div><div class="a3" id="aC">Cartão nº 001</div><div class="a4" id="a4">Clica ou carrega em Esc para continuar</div></div></div>
     <div class="podium" id="podium" hidden>
       <div class="pd-head"><small>Jantar dos 50 anos · JSD Famalicão</small><h2>Pódio <b class="gt">Cinco Jotas</b></h2></div>
       <div class="pd-row">
@@ -596,7 +596,8 @@ function award(id, card){
   $('aT').textContent=t.nome; $('aC').textContent='Cartão nº '+pad(card);
   var el=$('award'); el.hidden=false; var inner=el.firstElementChild; inner.style.animation='none'; void inner.offsetWidth; inner.style.animation='';
   Som.fanfare(); Music.duck(.25,.3); setTimeout(function(){ Music.duck(1,2); },4500); FX.rain(id==='premium'?9:5); var r=$('stage').getBoundingClientRect(); FX.burst(r.width/2,r.height/2,90,true);
-  clearTimeout(awardTimer); awardTimer=setTimeout(closeAward, 12000);
+  var final=!!(state.winners.rookie&&state.winners.pro&&state.winners.premium); $('a4').textContent = final ? 'A seguir: o pódio' : 'Clica ou carrega em Esc para continuar';
+  clearTimeout(awardTimer); awardTimer=setTimeout(closeAward, final ? 7500 : 12000);
 }
 function closeAward(){ clearTimeout(awardTimer); var was=!$('award').hidden; $('award').hidden=true; if(was && state.winners.rookie && state.winners.pro && state.winners.premium){ setTimeout(function(){ if($('award').hidden && $('podium').hidden) showPodium(); },700); } }
 /* ---------- pódio ---------- */

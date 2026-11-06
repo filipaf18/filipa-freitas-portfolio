@@ -271,8 +271,8 @@ body.idle{cursor:none}
   <section id="v-frases" class="col" hidden>
     <p>Uma experiência por número, de 1 a 12. Aparece na faixa por baixo da bola. Ficam guardadas neste navegador.</p>
     <div class="col" id="frases"></div>
-    <div style="display:flex;gap:10px;align-items:center"><button class="btn" id="repor" type="button">Repor exemplos</button><span class="hint2" id="fstate"></span></div>
-    <p class="hint2" id="exnote">As frases atuais são exemplos.</p>
+    <div style="display:flex;gap:10px;align-items:center"><button class="btn" id="repor" type="button">Repor as frases originais</button><span class="hint2" id="fstate"></span></div>
+    <p class="hint2" id="exnote">As frases atuais são provisórias.</p>
   </section>
   <section id="v-jogo" class="col" hidden>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -302,14 +302,14 @@ body.idle{cursor:none}
 'use strict';
 var CARDS = /*CARDS*/{};
 var ALL = [1,2,3,4,5,6,7,8,9,10,11,12];
-var EXEMPLOS = ['Ir a um congresso','Comer 3 bifanas num só dia de campanha','Colar cartazes de madrugada','Fazer campanha porta a porta','Distribuir panfletos à chuva','Ficar sem voz num comício','Viajar de autocarro para um evento da Jota','Dormir na sede','Ter estado numa lista candidata','Fazer uma intervenção numa reunião','Levar um amigo para a Jota','Já ter sido eleito para um cargo'];
+var EXEMPLOS = ['Ir a um congresso','Comer três bifanas num só dia de campanha','Colar cartazes durante a noite','Fazer campanha à chuva','Participar em dez ou mais campanhas políticas','Exaltar-se num evento político','Ir pela primeira vez a uma terra por causa da política','Fazer campanha porta a porta','Integrar uma lista candidata','Intervir num evento político','Levar um amigo para a Jota','Ser eleito para um cargo'];
 var TITULOS = [
   {id:'rookie', nome:'Rookie', regra:'1 linha'},
   {id:'pro', nome:'Pro', regra:'2 linhas'},
   {id:'premium', nome:'Premium', regra:'Cartão cheio'}
 ];
-var KEY = 'bingo-cinco-jotas-v1';
-var state = {order:[], winners:{}, phrases:EXEMPLOS.slice(), edited:false, mute:false, music:true, vol:50};
+var KEY = 'bingo-cinco-jotas-v2';
+var state = {order:[], winners:{}, phrases:EXEMPLOS.slice(), edited:true, mute:false, music:true, vol:50};
 var animating=false, introRunning=false, started=false, resetTimer=null, idleTimer=null, awardTimer=null;
 
 function load(){
@@ -690,7 +690,7 @@ function buildFrases(){
     row.appendChild(inp); box.appendChild(row);
   });
 }
-function repor(){ state.phrases=EXEMPLOS.slice(); state.edited=false; save(); buildFrases(); render(); $('fstate').textContent='Repostos os exemplos.'; }
+function repor(){ state.phrases=EXEMPLOS.slice(); state.edited=true; save(); buildFrases(); render(); $('fstate').textContent='Repostas as frases originais.'; }
 
 /* ---------- régie, atalhos e ecrã inteiro ---------- */
 function showTab(view){

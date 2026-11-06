@@ -8,6 +8,7 @@ const font = (w, st='normal') => b64(`assets/fonts/montserrat-latin-${w}-${st}.w
 const logo = b64('assets/logo-h-preto.png', 'image/png');
 const img = (n) => b64('briefing/img/' + n, 'image/jpeg');
 const box = JSON.parse(fs.readFileSync(path.join(ROOT, 'briefing/img/_box.json'), 'utf8'));
+const FRASES = ['Ir a um congresso','Comer três bifanas num só dia de campanha','Colar cartazes durante a noite','Fazer campanha à chuva','Participar em dez ou mais campanhas políticas','Exaltar-se num evento político','Ir pela primeira vez a uma terra por causa da política','Fazer campanha porta a porta','Integrar uma lista candidata','Intervir num evento político','Levar um amigo para a Jota','Ser eleito para um cargo'];
 const G = 'linear-gradient(100deg,#1EBCE8 0%,#54CFC9 14%,#F8B451 38%,#F86420 62%,#E8452A 100%)';
 
 const css = `
@@ -24,7 +25,7 @@ html,body{font-family:M,sans-serif;color:#0A0701;font-size:9.6pt;line-height:1.4
 h1{font-weight:300;font-size:22pt;line-height:1.02;text-transform:uppercase;margin-top:1.6mm}
 h1 b{font-weight:800;display:block;text-transform:none}
 .sub{font-size:8.6pt;font-weight:700;letter-spacing:.24em;text-transform:uppercase;margin-top:1.6mm;color:#3E352B}
-h2{font-size:11.5pt;font-weight:800;margin:5.5mm 0 2.4mm;display:flex;align-items:center;gap:2.4mm}
+h2{font-size:11.5pt;font-weight:800;margin:4.2mm 0 2mm;display:flex;align-items:center;gap:2.4mm}
 h2 span{display:inline-flex;width:6.4mm;height:6.4mm;border-radius:50%;background:${G};color:#fff;font-size:8.6pt;align-items:center;justify-content:center;flex:none}
 p{margin-bottom:1.8mm}
 .strip{display:grid;grid-template-columns:1.5fr 1fr 1fr;border:.35mm solid #0A0701}
@@ -38,7 +39,7 @@ p{margin-bottom:1.8mm}
 .s3 p{font-size:8.9pt;margin:0}
 .note{font-size:8.9pt;margin-top:2.4mm;color:#3E352B}
 .titles{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
-.ttl{border:.35mm solid #0A0701;border-radius:1.6mm;padding:3mm 3.4mm;display:flex;flex-direction:column;gap:1.4mm}
+.ttl{border:.35mm solid #0A0701;border-radius:1.6mm;padding:2.4mm 3.4mm;display:flex;flex-direction:column;gap:1.1mm}
 .ttl.top3{background:#0A0701;color:#fff}
 .ttl small{font-size:6.6pt;font-weight:300;letter-spacing:.34em;text-transform:uppercase;line-height:1}
 .ttl b.nm{font-size:15pt;font-weight:800;line-height:1}
@@ -47,11 +48,11 @@ p{margin-bottom:1.8mm}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1mm;width:34mm}
 .grid4 i{aspect-ratio:1;border-radius:50%;border:.28mm solid currentColor;display:block;opacity:.55}
 .grid4 i.on{border:0;background:${G};opacity:1}
-.rules{margin-top:3mm}
+.rules{margin-top:2.4mm}
 ul{list-style:none}
 ul li{padding-left:4.6mm;position:relative;margin-bottom:1.5mm}
 ul li::before{content:'';position:absolute;left:0;top:1.7mm;width:2mm;height:2mm;border-radius:50%;background:${G}}
-.pend{border-left:1.2mm solid #F86420;padding:2mm 0 2mm 3.4mm;margin-top:3.6mm;background:#FBF6F0}
+.pend{border-left:1.2mm solid #F86420;padding:1.6mm 0 1.6mm 3.4mm;margin-top:2.6mm;background:#FBF6F0;font-size:8.8pt}
 .pend b{font-weight:800}
 .tbd{font-weight:800;color:#B3470F}
 .vfig{position:relative}
@@ -70,6 +71,10 @@ ol b{font-weight:800}
 .card2 p{font-size:8.9pt;margin-bottom:1mm}
 .chk li::before{border-radius:0;background:none;border:.3mm solid #0A0701;width:2.6mm;height:2.6mm;top:1.4mm}
 .small ul li{font-size:8.9pt;margin-bottom:1.1mm}
+.exps{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,auto);grid-auto-flow:column;gap:1mm 5mm;font-size:8.2pt;line-height:1.25}
+.expbox{margin-top:3mm;background:#F6F3EE;border-radius:1.6mm;padding:2.4mm 3.4mm}
+.exph{font-size:8.6pt;font-weight:800;margin-bottom:1.6mm}.exph span{font-weight:500}
+.exps b{color:#F86420;font-weight:800;margin-right:1.2mm}
 .foot{position:absolute;left:16mm;right:16mm;bottom:6.5mm;display:flex;justify-content:space-between;font-size:6.6pt;letter-spacing:.06em;text-transform:uppercase;color:#3E352B}
 `;
 const g = (n) => `<div class="grid4">${Array.from({length:12},(_,i)=>`<i class="${i<n*4?'on':''}"></i>`).join('')}</div>`;
@@ -90,8 +95,9 @@ const p1 = `<div class="page">
   <div class="s3"><span class="n">2</span><h3>Lê-se a experiência</h3><p>A frase aparece no ecrã, por baixo da bola. O animador lê-a e pergunta: «Já viveste isto?». <b>As frases vão estar no ecrã.</b></p></div>
   <div class="s3"><span class="n">3</span><h3>Feijão no número</h3><p>Quem já viveu essa experiência põe um feijão nesse número, no seu cartão. Quem não viveu deixa em branco.</p></div>
  </div>
- <p class="note">Cada cartão tem os 12 números, por ordem diferente. Repete-se com a bola seguinte, até estarem atribuídos os três títulos ou terem saído as 12 bolas.</p>
+ <p class="note">Cada cartão tem os 12 números, por ordem diferente. Repete-se com a bola seguinte, até estarem atribuídos os três títulos ou terem saído as 12 bolas. O ecrã mostra então o <b>pódio</b> (1.º Premium, 2.º Pro, 3.º Rookie) e segue-se o bolo.</p>
 
+ <div class="expbox"><div class="exph">As 12 experiências, por número <span>(aparecem no ecrã)</span></div><div class="exps">${FRASES.map((t,i)=>`<div><b>${i+1}</b>${t}</div>`).join('')}</div></div>
  <h2><span>2</span>Como se ganha: os três títulos</h2>
  <div class="titles">
   <div class="ttl"><small>Jota</small><b class="nm">Rookie</b>${g(1)}<div class="rule">O primeiro a completar uma linha</div><div class="det">Uma linha são as 4 casas da mesma fila, na horizontal.</div></div>
@@ -103,9 +109,7 @@ const p1 = `<div class="page">
   <li>Só contam <b>linhas na horizontal</b>. Colunas e diagonais não contam.</li>
   <li>Cada título tem <b>um só vencedor</b>: o primeiro cartão levantado que a organização confirmar.</li>
   <li>Só se põe feijão no que se viveu. <b>A organização confere o cartão</b> antes de atribuir o título.</li>
-  <li>O jogo acaba quando os três títulos estão atribuídos. O ecrã mostra então o <b>pódio</b>: 1.º Premium, 2.º Pro, 3.º Rookie. Segue-se o bolo.</li>
  </ul></div>
- <div class="pend"><b>Ainda por decidir:</b> <span class="tbd">[por decidir]</span> se dois cartões gritarem ao mesmo tempo &nbsp;·&nbsp; <span class="tbd">[por decidir]</span> se o mesmo cartão pode ganhar mais de um título &nbsp;·&nbsp; <span class="tbd">[a definir]</span> prémios físicos, se houver &nbsp;·&nbsp; <span class="tbd">[a definir]</span> quem controla o comando &nbsp;·&nbsp; <span class="tbd">[por fechar]</span> as frases das 12 experiências</div>
  <div class="foot"><span>Bingo Cinco Jotas · Briefing do animador</span><span>1 / 2</span></div>
 </div>`;
 
@@ -121,10 +125,10 @@ const p2 = `<div class="page">
     ${mk(4, 560, box.rows[0].y + box.rows[0].h*1.5)}
     ${mk(6, box.assign.x + box.assign.w + 24, box.assign.y + box.assign.h/2)}
    </div>
-   <p class="legend">Exemplo: o cartão nº 2, com uma linha completa. Só aparece o botão do título que este cartão pode ter.</p>
+   <p class="legend">Exemplo: cartão nº 2, com uma linha completa. Só aparece o botão do título que o cartão pode ter. Enganaste-te? «retirar» ao lado do título.</p>
   </div>
   <ol class="v">
-   <li class="fis"><div><b>Pede o cartão</b> a quem gritou e lê o número no canto superior direito.</div></li>
+   <li class="fis"><div><b>Pede o cartão</b> a quem gritou e lê o número no canto superior direito. <span class="legend">(Passos a preto: com o cartão na mão. A cor: no comando.)</span></div></li>
    <li><div><b>Escreve o número</b> do cartão na caixa «Nº do cartão» e carrega em <b>Conferir</b>.</div></li>
    <li><div>Vê o cartão no comando. Os números <b>iluminados já saíram</b> do globo; os apagados ainda não.</div></li>
    <li><div>Lê as <b>linhas</b>. Cada uma diz «completa» (os 4 números já saíram) ou «faltam números».</div></li>
@@ -132,7 +136,6 @@ const p2 = `<div class="page">
    <li><div>Carrega em <b>Atribuir Jota…</b> no botão do título. Rookie aparece com 1 linha completa, Pro com 2 e Premium com as 3.</div></li>
   </ol>
  </div>
- <p class="legend" style="margin-top:1mm"><b>Preto:</b> passo com o cartão na mão. <b>Cor:</b> passo no comando. Enganaste-te? Carrega em «retirar» ao lado do título.</p>
 
  <h2 style="margin-top:4mm"><span>→</span>O que o ecrã mostra</h2>
  <ul>
@@ -145,7 +148,7 @@ const p2 = `<div class="page">
    <li>Ficheiro do jogo nos dois computadores (Chrome ou Edge).</li>
    <li><b>Ecrã:</b> abrir, escolher «Ecrã», ecrã inteiro (F) e <b>clicar uma vez</b> para ativar o som. Aparece um código de 4 letras.</li>
    <li><b>Comando:</b> abrir, escolher «Comando», escrever o código e esperar «Ligado ao ecrã».</li>
-   <li>Frases definitivas no separador Frases do comando <span class="tbd">[por fechar]</span>.</li>
+   <li>Confirma, no ensaio, que as 12 frases aparecem certas no ecrã.</li>
    <li><b>Ensaio completo</b> com o wifi do Sunset House. A internet só é precisa para ligar.</li>
   </ul></div>
   <div class="card2 small"><h3>Durante o jogo, no comando</h3><ul>
@@ -158,6 +161,7 @@ const p2 = `<div class="page">
    <li><b>Sem som:</b> clica uma vez no ecrã.</li>
   </ul></div>
  </div>
+ <div class="pend" style="margin-top:5mm"><b>Ainda por decidir:</b> <span class="tbd">[por decidir]</span> se dois cartões gritarem ao mesmo tempo &nbsp;·&nbsp; <span class="tbd">[por decidir]</span> se o mesmo cartão pode ganhar mais de um título &nbsp;·&nbsp; <span class="tbd">[a definir]</span> prémios físicos, se houver &nbsp;·&nbsp; <span class="tbd">[a definir]</span> quem controla o comando</div>
  <div class="foot"><span>Bingo Cinco Jotas · Briefing do animador</span><span>2 / 2</span></div>
 </div>`;
 

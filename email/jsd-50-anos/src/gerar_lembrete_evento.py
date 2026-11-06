@@ -19,17 +19,16 @@ def lembrete():
           f'os <strong {F}>50&nbsp;anos</strong> da Juventude Social Democrata de Vila Nova de Famalicão!', 12),
         L(f'O jantar comemorativo terá lugar na <strong {F}>Sunset&nbsp;House</strong> (<a href="{MAPA_HREF}" style="color:{ESCURO}; text-decoration:none;">'
           f'Av.&nbsp;Visconde de Pindela, n.º&nbsp;112, 4770&#8209;189&nbsp;Cruz</a>), com início marcado para as <strong {F}>19h30</strong>.', 16),
+        L(f'Para a noite, sugerimos um estilo <strong {F}>casual chic</strong>. Deixamos aqui a inspiração:', 16),
+        imagem_dresscode(16),
         L(f'E porque a celebração não termina à mesa, a noite continua no <strong {F}>Classe&nbsp;Bar</strong>, a partir das <strong {F}>01h30</strong>, '
-          'com entrada gratuita para todos os convidados do jantar.', 16),
+          'com entrada gratuita para todos os convidados do jantar.', 28),
         logo_classe_pequeno(20),
-        L(f'Para qualquer esclarecimento, a Presidente da JSD&nbsp;Famalicão <strong {F}>Daniela Torres</strong>, estará disponível através do número '
+        L(f'Para qualquer esclarecimento, a Presidente da JSD&nbsp;Famalicão <strong {F}>Daniela Torres</strong> estará disponível através do número '
           f'<a href="tel:+351912845818" style="color:{ESCURO}; font-weight:700; text-decoration:none;">{TEL}</a>.', 16),
         L('Esperamos por ti amanhã, para celebrarmos juntos 50 anos de história, de gerações e de uma identidade que continua a construir o futuro.', 16),
         L('Até lá,', 28),
         linha(ASSINATURA, 2, 0, f'font-size:16px; line-height:25px; font-weight:700; color:{ESCURO};'),
-        linha(f'P.S. Se precisares de inspiração para a noite, deixamos aqui uma sugestão de dress code.', 32, 0,
-              f'font-size:14px; line-height:23px; color:{MUTED};'),
-        imagem_dresscode(16),
         linha('', 0, 44),
     ])
     html = pagina('50 Anos JSD Famalicão · Lembrete', PRE, corpo, '', css_extra=CSS, claro_forcado=True, logo_png=True,

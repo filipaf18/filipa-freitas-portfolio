@@ -36,4 +36,7 @@ def lembrete():
     return re.sub(r'\n[ \t]+', '\n', html)
 
 if __name__ == '__main__':
-    (AQUI / 'v13-lembrete-evento.html').write_text(lembrete(), encoding='utf-8'); print('v13-lembrete-evento.html')
+    html = lembrete()
+    (AQUI / 'v13-lembrete-evento.html').write_text(html, encoding='utf-8'); print('v13-lembrete-evento.html')
+    (AQUI / 'copiar-lembrete-evento.html').write_text(pagina_copiar_um('Lembrete · todos os participantes', html), encoding='utf-8')
+    print('copiar-lembrete-evento.html')

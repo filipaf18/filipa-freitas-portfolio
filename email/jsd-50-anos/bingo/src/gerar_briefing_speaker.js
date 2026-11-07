@@ -153,11 +153,13 @@ const p2 = `<div class="page">
   </ul></div>
   <div class="card2 small"><h3>Durante o jogo, no comando</h3><ul>
    <li><b>Começar o programa:</b> abertura e música.</li>
-   <li><b>Rodar o globo:</b> botão, Espaço, Enter, seta direita ou clique.</li>
+   <li><b>Rodar o globo:</b> botão, Espaço ou clique.</li>
    <li><b>Anular último:</b> se saiu uma bola por engano.</li>
+   <li><b>Encerrar o jogo:</b> depois do pódio. Ecrã de despedida e música a descer.</li>
+   <li><b>Começar de novo:</b> apaga tudo e volta ao início.</li>
   </ul>
   <h3 style="margin-top:2mm">Se algo falhar</h3><ul>
-   <li><b>«Sem ligação ao ecrã»:</b> espera uns segundos. Se persistir, abre o modo «Tudo neste computador» no computador do ecrã.</li>
+   <li><b>«Sem ligação ao ecrã»:</b> espera uns segundos; se persistir, usa «Tudo neste computador».</li>
    <li><b>Sem som:</b> clica uma vez no ecrã.</li>
   </ul></div>
  </div>

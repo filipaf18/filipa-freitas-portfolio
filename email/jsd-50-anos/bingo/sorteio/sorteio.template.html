@@ -196,6 +196,14 @@ body.idle{cursor:none}
 .aw-c i{font-style:normal;flex:none;width:var(--b);height:var(--b);border-radius:50%;background:var(--grad);padding:.28cqw;display:flex}
 .aw-c i b{flex:1;border-radius:50%;background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:calc(var(--b)*.46);font-variant-numeric:tabular-nums}
 .aw-c span{font-size:var(--f);font-weight:700;line-height:1.15;min-width:0;text-wrap:balance}
+.closing{position:absolute;inset:0;z-index:22;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6cqw;text-align:center;background:radial-gradient(70% 80% at 50% 40%,#10151E,#05070A);opacity:0}
+.closing.in{opacity:1;transition:opacity 1.6s ease}
+.closing img{width:15cqw}
+.closing .cl1{font-size:4.6cqw;font-weight:300;letter-spacing:.4em;padding-left:.4em;text-transform:uppercase;line-height:1}
+.closing .cl2{font-size:9cqw;font-weight:900;font-style:italic;line-height:1;filter:drop-shadow(0 0 2.4cqw rgba(248,100,32,.5))}
+.closing .cl3{font-size:1.5cqw;font-weight:700;letter-spacing:.4em;padding-left:.4em;text-transform:uppercase;color:var(--muted)}
+.closing .cl4{margin-top:1.6cqw;font-size:2cqw;font-weight:700;letter-spacing:.2em;padding-left:.2em;text-transform:uppercase;border:.2cqw solid var(--line);padding:.8cqw 2.2cqw;border-radius:5cqw}
+@media (prefers-reduced-motion: reduce){.closing.in{transition:none}}
 </style>
 
 <div class="room">
@@ -232,6 +240,13 @@ body.idle{cursor:none}
       </div>
       <div class="pd-hint"></div>
     </div>
+    <div class="closing" id="closing" hidden>
+      <img alt="50 anos JSD Famalicão" src="__LOGO_BRANCO__">
+      <div class="cl1">Obrigado</div>
+      <div class="cl2 gt">por jogarem</div>
+      <div class="cl3">Cinco décadas · Uma identidade</div>
+      <div class="cl4">A seguir: o bolo dos 50 anos</div>
+    </div>
     <div class="intro" id="intro">
       <div class="sweep"></div>
       <div class="inner">
@@ -247,7 +262,8 @@ body.idle{cursor:none}
 
 <div class="ctl" id="ctl">
   <button class="btn" id="pbtn" type="button">Pódio</button>
-  <button class="btn danger" id="newgame" type="button">Novo jogo</button>
+  <button class="btn" id="endbtn" type="button">Encerrar o jogo</button>
+  <button class="btn danger" id="newgame" type="button">Começar de novo</button>
   <button class="btn" id="fs" type="button">Ecrã inteiro</button>
 </div>
 
@@ -292,7 +308,7 @@ body.idle{cursor:none}
     </div>
     <h2 style="margin-top:6px">Atalhos</h2>
     <div class="keys"><b>Espaço, Enter, seta direita ou clique</b><span>Rodar o globo e sortear (também funciona com um apresentador de diapositivos)</span><b>P</b><span>Mostrar o pódio</span><b>R</b><span>Abrir ou fechar a régie</span><b>F</b><span>Ecrã inteiro</span><b>M</b><span>Som ligado ou desligado</span><b>Esc</b><span>Fechar a régie ou um título</span></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="intro-again" type="button">Rever a abertura</button><button class="btn danger" id="reset" type="button">Novo jogo</button></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="intro-again" type="button">Rever a abertura</button><button class="btn danger" id="reset" type="button">Começar de novo</button></div>
   </section>
 </aside>
 <div class="toast" id="toast" role="status"></div>
@@ -545,7 +561,7 @@ function undo(){
   var n = state.order.pop(); save(); render(); toast('Anulado o número '+n+'.');
 }
 var confirmandoNovo=false;
-function labelsNovo(t){ ['newgame','reset'].forEach(function(id){ var b=$(id); if(b) b.textContent=t; }); }
+function labelsNovo(t){ var conf=/^Confirmar/.test(t); ['newgame','reset','c-new'].forEach(function(id){ var b=$(id); if(b) b.textContent = conf ? 'Confirmar: apagar tudo' : 'Começar de novo'; }); }
 function reset(){
   if(animating){ toast('Espera pelo fim do sorteio.'); return; }
   if(!confirmandoNovo){
@@ -554,7 +570,7 @@ function reset(){
   }
   clearTimeout(resetTimer); confirmandoNovo=false; labelsNovo('Novo jogo');
   state.order=[]; state.winners={}; save();
-  Music.stop(); closeAward(); closePodium(); closeRegie(); lowerOut();
+  Music.stop(); closeAward(); closePodium(); closeClosing(); ended=false; closeRegie(); lowerOut();
   started=false; introRunning=false; var el=$('intro'); el.classList.remove('play'); el.classList.remove('gone');
   render(); toast('Novo jogo. Tudo a zeros.');
 }
@@ -638,6 +654,25 @@ function showPodium(){
   on('pd1',4800,function(){ Som.fanfare(); FX.rain(9); FX.burst(r.width/2,r.height*.45,110,true); });
 }
 function closePodium(){ podTimers.forEach(clearTimeout); podTimers=[]; $('podium').hidden=true; Music.duck(1,1.2); }
+
+/* ---------- encerramento do jogo ---------- */
+var ended=false, confEnd=false, endT=null;
+function showClosing(){
+  closeAward(); closePodium(); closeRegie();
+  var el=$('closing'); el.hidden=false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+  Som.crash(); var r=$('stage').getBoundingClientRect(); FX.burst(r.width/2,r.height*.42,70,true);
+  Music.duck(.04,3.2); setTimeout(function(){ if(!$('closing').hidden) Music.stop(); },3800);
+}
+function closeClosing(){ var was=!$('closing').hidden; $('closing').hidden=true; return was; }
+function labelsEnd(){ ['endbtn','c-end'].forEach(function(id){ var b=$(id); if(b) b.textContent='Encerrar o jogo'; }); }
+function encerrar(){
+  if(!confEnd){
+    confEnd=true; ['endbtn','c-end'].forEach(function(id){ var b=$(id); if(b) b.textContent='Confirmar: encerrar'; });
+    clearTimeout(endT); endT=setTimeout(function(){ confEnd=false; labelsEnd(); },3500); return;
+  }
+  clearTimeout(endT); confEnd=false; labelsEnd();
+  if(typeof ROLE!=='undefined' && ROLE==='ctl'){ sendCmd({t:'closing'}); ended=true; renderCtl(); } else showClosing();
+}
 
 
 /* ---------- validar ---------- */
@@ -726,17 +761,17 @@ function init(){
   $('mbtn').addEventListener('click', function(){ $('mfile').click(); }); $('mfile').addEventListener('change', escolherMusica); $('mreset').addEventListener('click', musicaEstudio);
   $('fs').addEventListener('click', function(){ fullscreen(); this.blur(); });
   document.addEventListener('fullscreenchange', function(){ $('fs').textContent = document.fullscreenElement ? 'Sair do ecrã inteiro' : 'Ecrã inteiro'; wakeCtl(); });
-  $('stage').addEventListener('click', function(e){ if(e.button!==0 || !started) return; if(!$('award').hidden || !$('podium').hidden) return; draw(); });
+  $('stage').addEventListener('click', function(e){ if(e.button!==0 || !started) return; if(!$('award').hidden || !$('podium').hidden || !$('closing').hidden) return; draw(); });
   $('vform').addEventListener('submit', onValidar); $('repor').addEventListener('click', repor); $('intro-again').addEventListener('click', replayIntro);
   $('intro').addEventListener('click', function(){ if(!started) runIntro(); });
-  $('award').addEventListener('click', closeAward); $('podium').addEventListener('click', closePodium); $('pbtn').addEventListener('click', function(){ showPodium(); this.blur(); });
+  $('award').addEventListener('click', closeAward); $('podium').addEventListener('click', closePodium); $('pbtn').addEventListener('click', function(){ showPodium(); this.blur(); }); $('endbtn').addEventListener('click', function(){ encerrar(); this.blur(); });
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(t){ t.addEventListener('click', function(){ showTab(t.getAttribute('data-view')); }); });
   document.addEventListener('mousemove', wakeCtl); document.addEventListener('pointerdown', wakeCtl);
   document.addEventListener('keydown', function(e){
     var typing = /INPUT|TEXTAREA/.test(e.target.tagName);
-    if(e.key==='Escape'){ if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else closeRegie(); return; }
+    if(e.key==='Escape'){ if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else if(!$('closing').hidden){ closeClosing(); Music.duck(1,1); maybeMusic(); } else closeRegie(); return; }
     if(typing) return;
-    if(e.key===' '||e.key==='Enter'||e.key==='ArrowRight'||e.key==='PageDown'){ if(e.target===document.body && $('regie').hidden){ e.preventDefault(); if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else draw(); } }
+    if(e.key===' '||e.key==='Enter'||e.key==='ArrowRight'||e.key==='PageDown'){ if(e.target===document.body && $('regie').hidden){ e.preventDefault(); if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else if(!$('closing').hidden){} else draw(); } }
     else if(e.key==='r'||e.key==='R'){ if($('regie').hidden) openRegie(); else closeRegie(); }
     else if(e.key==='f'||e.key==='F'){ fullscreen(); }
     else if(e.key==='p'||e.key==='P'){ if($('podium').hidden) showPodium(); else closePodium(); }

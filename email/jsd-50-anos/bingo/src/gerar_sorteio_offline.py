@@ -50,6 +50,10 @@ body.role-ctl{overflow:auto;height:auto}
 .ctit{display:flex;flex-direction:column;gap:8px}
 .ctit div{display:flex;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px}
 .ctit b{font-weight:800}.ctit .w{color:var(--ok);font-weight:800}
+.cmd-end{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--glass)}
+.cmd-end.hl{border-color:var(--c4);box-shadow:0 0 0 1px var(--c4)}
+.cmd-end h2{margin:0 0 10px;font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase}
+.cmd-end p{margin:10px 0 0;font-size:13px;color:var(--muted);line-height:1.5}
 .role-ctl .regie{position:static;width:auto;border:1px solid var(--line);border-radius:16px;overflow:visible}
 .role-ctl #close{display:none}
 .role-ctl .vgrid{max-width:360px}
@@ -60,7 +64,7 @@ body.role-ctl{overflow:auto;height:auto}
 .pair b{color:#fff;letter-spacing:.3em}
 .role-solo .pair{display:none}
 .intro .hint b{display:block;margin-top:1cqw;font-size:3.4cqw;letter-spacing:.35em;padding-left:.35em;color:#fff}
-.role-display .g-play,.role-display #newgame,.role-display #pbtn{display:none!important}
+.role-display .g-play,.role-display #newgame,.role-display #pbtn,.role-display #endbtn{display:none!important}
 .role-display #t-validar,.role-display #t-frases{display:none}
 .role-ctl .g-musicfile{display:none!important}
 '''
@@ -88,6 +92,7 @@ cmd = '''</div>
   <section class="cmd-live"><div class="cmd-ball"><i id="c-num">?</i></div><div><div class="hint2" id="c-count">0 de 12 sorteados</div><p class="cmd-phrase" id="c-phrase">Ainda nenhuma bola.</p></div></section>
   <div class="cmd-actions"><button class="btn primary big" id="c-draw" type="button">Começar o programa</button><button class="btn" id="c-undo" type="button">Anular último</button><button class="btn" id="c-podium" type="button">Pódio</button><button class="btn" id="c-close" type="button">Fechar ecrã de título</button></div>
   <section class="cmd-grid"><div class="cboard" id="c-board"></div><div class="ctit" id="c-titles"></div></section>
+  <section class="cmd-end" id="c-endbox"><h2>Fim do jogo</h2><div class="cmd-actions"><button class="btn big" id="c-end" type="button">Encerrar o jogo</button><button class="btn big danger" id="c-new" type="button">Começar de novo</button></div><p id="c-endmsg"></p></section>
   <div id="c-regie"></div>
 </main>
 '''
@@ -112,7 +117,7 @@ novo_jogo = '''<section id="v-jogo" class="col" hidden>
     </div>
     <h2 class="g-play" style="margin-top:6px">Atalhos</h2>
     <div class="keys g-play"><b>Espaço, Enter, seta direita ou clique</b><span>Rodar o globo e sortear (também funciona com um apresentador de diapositivos)</span><b>P</b><span>Mostrar o pódio</span><b>R</b><span>Abrir ou fechar a régie</span><b>F</b><span>Ecrã inteiro</span><b>M</b><span>Som ligado ou desligado</span><b>Esc</b><span>Fechar a régie ou um título</span></div>
-    <div class="g-play" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="intro-again" type="button">Rever a abertura</button><button class="btn danger" id="reset" type="button">Novo jogo</button></div>
+    <div class="g-play" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="intro-again" type="button">Rever a abertura</button><button class="btn danger" id="reset" type="button">Começar de novo</button></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="modo" type="button">Mudar de modo</button></div>
   </section>
 </aside>'''
@@ -149,7 +154,7 @@ rep("""    setTimeout(function(){ $('lower').classList.add('in'); },350);
 rep("var n = state.order.pop(); save(); render(); toast('Anulado o número '+n+'.');", "var n = state.order.pop(); save(); render(); sendState(); toast('Anulado o número '+n+'.');")
 rep("""  clearTimeout(resetTimer); confirmandoNovo=false; labelsNovo('Novo jogo');
   state.order=[]; state.winners={}; save();
-  Music.stop(); closeAward(); closePodium(); closeRegie(); lowerOut();
+  Music.stop(); closeAward(); closePodium(); closeClosing(); ended=false; closeRegie(); lowerOut();
   started=false; introRunning=false; var el=$('intro'); el.classList.remove('play'); el.classList.remove('gone');
   render(); toast('Novo jogo. Tudo a zeros.');
 }""", """  clearTimeout(resetTimer); confirmandoNovo=false; labelsNovo('Novo jogo');
@@ -157,7 +162,7 @@ rep("""  clearTimeout(resetTimer); confirmandoNovo=false; labelsNovo('Novo jogo'
 }
 function resetNow(emit){
   state.order=[]; state.winners={}; save();
-  Music.stop(); closeAward(); closePodium(); closeRegie(); lowerOut();
+  Music.stop(); closeAward(); closePodium(); closeClosing(); ended=false; closeRegie(); lowerOut();
   started=false; introRunning=false; animating=false; var el=$('intro'); el.classList.remove('play'); el.classList.remove('gone');
   render();
   if(emit && ROLE==='ctl'){ sendCmd({t:'newgame'}); sendState(); }
@@ -241,6 +246,7 @@ function onRemote(m){
     case 'award': if(m.winners) state.winners=m.winners; render(); award(m.id,m.card); break;
     case 'podium': if($('podium').hidden) showPodium(); else closePodium(); break;
     case 'close': closeAward(); closePodium(); break;
+    case 'closing': showClosing(); break;
     case 'newgame': resetNow(false); break;
     case 'intro-again': replayIntro(); break;
   }
@@ -282,7 +288,10 @@ function renderCtl(){
   var pill=$('c-status'); pill.className='pill '+(ok?'on':'off'); pill.textContent = ok ? 'Ligado ao ecrã' : (linkInfo||'A ligar ao ecrã…');
   $('c-num').textContent = last===null?'?':last; $('c-count').textContent = n+' de 12 sorteados';
   $('c-phrase').textContent = last===null ? 'Ainda nenhuma bola.' : (state.phrases[last-1]||'');
-  var d=$('c-draw'); d.disabled = !ok || animating || (started && n>=12);
+  var all=!!(state.winners.rookie&&state.winners.pro&&state.winners.premium);
+  $('c-endbox').classList.toggle('hl', all||ended);
+  $('c-endmsg').textContent = ended ? 'O ecrã mostra o encerramento. Carrega em «Começar de novo» para preparar o próximo jogo.' : (all ? 'Os três títulos estão atribuídos. Depois do pódio, encerra o jogo (ecrã de despedida) ou começa de novo.' : 'Quando o jogo acabar: «Encerrar o jogo» mostra o ecrã de despedida; «Começar de novo» apaga tudo e volta ao início.');
+  var d=$('c-draw'); d.disabled = !ok || animating || ended || (started && n>=12);
   d.textContent = !started ? 'Começar o programa' : (n>=12 ? 'Sorteio terminado' : (animating ? 'A rodar…' : 'Rodar o globo'));
   $('c-undo').disabled = animating || !n;
   var b=$('c-board'); b.innerHTML=''; ALL.forEach(function(k){ var el=document.createElement('div'); var on=state.order.indexOf(k)>-1; el.className='cmini'+(on?' on':''); el.innerHTML = on?'<span>'+k+'</span>':k; b.appendChild(el); });
@@ -294,7 +303,7 @@ function bootCtl(){
   $('c-code').value=saved;
   function ligar(){ var v=($('c-code').value||'').toUpperCase().replace(/[^A-Z]/g,''); if(v.length!==4){ $('c-pairmsg').textContent='O código tem 4 letras.'; return; } try{ localStorage.setItem('bingo-codigo-ctl',v); }catch(e){} location.reload(); }
   $('c-ligar').addEventListener('click',ligar); $('c-code').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ligar(); } });
-  $('c-draw').addEventListener('click',draw); $('c-undo').addEventListener('click',undo); $('c-podium').addEventListener('click',podiumCmd); $('c-close').addEventListener('click',function(){ sendCmd({t:'close'}); });
+  $('c-draw').addEventListener('click',draw); $('c-undo').addEventListener('click',undo); $('c-podium').addEventListener('click',podiumCmd); $('c-close').addEventListener('click',function(){ sendCmd({t:'close'}); }); $('c-end').addEventListener('click',encerrar); $('c-new').addEventListener('click',reset);
   if(/^[A-Z]{4}$/.test(saved)){
     Link.start('ctl',saved,onCtlMsg,function(t,msg){ linkInfo=(t==='sem-servidor'||t==='erro')?msg:''; renderCtl(); });
     function hello(){ Link.send({t:'hello'}); renderCtl(); } hello(); setInterval(hello,3000); setTimeout(hello,800);
@@ -322,19 +331,19 @@ function init(){
   $('modo').addEventListener('click', function(){ history.replaceState(null,'',location.pathname+location.search); location.reload(); });
   $('fs').addEventListener('click', function(){ fullscreen(); this.blur(); });
   document.addEventListener('fullscreenchange', function(){ $('fs').textContent = document.fullscreenElement ? 'Sair do ecrã inteiro' : 'Ecrã inteiro'; wakeCtl(); });
-  $('stage').addEventListener('click', function(e){ if(ROLE!=='solo' || e.button!==0 || !started) return; if(!$('award').hidden || !$('podium').hidden) return; draw(); });
+  $('stage').addEventListener('click', function(e){ if(ROLE!=='solo' || e.button!==0 || !started) return; if(!$('award').hidden || !$('podium').hidden || !$('closing').hidden) return; draw(); });
   $('vform').addEventListener('submit', onValidar); $('repor').addEventListener('click', repor); $('intro-again').addEventListener('click', replayIntro);
   $('intro').addEventListener('click', function(){ if(ROLE==='solo' && !started) runIntro(); });
-  $('award').addEventListener('click', closeAward); $('podium').addEventListener('click', closePodium); $('pbtn').addEventListener('click', function(){ podiumCmd(); this.blur(); });
+  $('award').addEventListener('click', closeAward); $('podium').addEventListener('click', closePodium); $('pbtn').addEventListener('click', function(){ podiumCmd(); this.blur(); }); $('endbtn').addEventListener('click', function(){ encerrar(); this.blur(); });
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(t){ t.addEventListener('click', function(){ showTab(t.getAttribute('data-view')); }); });
   document.addEventListener('mousemove', wakeCtl); document.addEventListener('pointerdown', wakeCtl);
   document.addEventListener('keydown', function(e){
     var typing = /INPUT|TEXTAREA/.test(e.target.tagName), k=e.key;
-    if(k==='Escape'){ if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else closeRegie(); return; }
+    if(k==='Escape'){ if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else if(!$('closing').hidden){ closeClosing(); Music.duck(1,1); maybeMusic(); } else closeRegie(); return; }
     if(typing) return;
     if(ROLE==='ctl'){ if((k===' '||k==='Enter'||k==='ArrowRight'||k==='PageDown') && e.target===document.body){ e.preventDefault(); draw(); } return; }
     if(ROLE==='display'){ if(k==='f'||k==='F') fullscreen(); else if(k==='r'||k==='R'){ if($('regie').hidden) openRegie(); else closeRegie(); } else if(k==='m'||k==='M') toggleSom(); return; }
-    if(k===' '||k==='Enter'||k==='ArrowRight'||k==='PageDown'){ if(e.target===document.body && $('regie').hidden){ e.preventDefault(); if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else draw(); } }
+    if(k===' '||k==='Enter'||k==='ArrowRight'||k==='PageDown'){ if(e.target===document.body && $('regie').hidden){ e.preventDefault(); if(!$('award').hidden) closeAward(); else if(!$('podium').hidden) closePodium(); else if(!$('closing').hidden){} else draw(); } }
     else if(k==='r'||k==='R'){ if($('regie').hidden) openRegie(); else closeRegie(); }
     else if(k==='f'||k==='F'){ fullscreen(); }
     else if(k==='p'||k==='P'){ podiumCmd(); }
